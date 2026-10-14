@@ -288,7 +288,7 @@ function draw(results){
   gestureHistory.push(twoHandsReady);if(gestureHistory.length>6)gestureHistory.shift();
   active=gestureHistory.filter(Boolean).length>=4;
   if(active){
-   const centers=hands.slice(0,2).map(lm=>({x:(lm[5].x+lm[9].x+lm[13].x+lm[17].x)/4,y:(lm[5].y+lm[9].y+lm[13].y+lm[17].y)/4}));
+   const centers=hands.slice(0,2).map(lm=>({x:(lm[4].x+lm[8].x)/2,y:(lm[4].y+lm[8].y)/2}));
    const cx=(centers[0].x+centers[1].x)/2,cy=(centers[0].y+centers[1].y)/2;
    const span=Math.max(Math.abs(centers[0].x-centers[1].x),Math.abs(centers[0].y-centers[1].y));
    const w=Math.min(.9,Math.max(.12,span*1.45)),h=w;
