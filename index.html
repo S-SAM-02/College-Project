@@ -273,6 +273,7 @@ function hasThumbAndIndexExtended(lm){
  return thumbExtended&&indexExtended;
 }
 function resize(){const r=preview.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
+let portalSmooth={x:.5,y:.5,size:.22};
 function draw(results){
  ctx.clearRect(0,0,1,1);active=false;
  const hands=results.landmarks||[];
@@ -285,13 +286,16 @@ function draw(results){
   }
   ctx.restore();
   const twoHandsReady=hands.length>=2&&hasThumbAndIndexExtended(hands[0])&&hasThumbAndIndexExtended(hands[1]);
-  gestureHistory.push(twoHandsReady);if(gestureHistory.length>6)gestureHistory.shift();
-  active=gestureHistory.filter(Boolean).length>=4;
+  gestureHistory.push(twoHandsReady);if(gestureHistory.length>3)gestureHistory.shift();
+  active=gestureHistory.filter(Boolean).length>=2;
   if(active){
    const centers=hands.slice(0,2).map(lm=>({x:(lm[4].x+lm[8].x)/2,y:(lm[4].y+lm[8].y)/2}));
-   const cx=(centers[0].x+centers[1].x)/2,cy=(centers[0].y+centers[1].y)/2;
+   const targetX=(centers[0].x+centers[1].x)/2,targetY=(centers[0].y+centers[1].y)/2;
    const span=Math.max(Math.abs(centers[0].x-centers[1].x),Math.abs(centers[0].y-centers[1].y));
-   const w=Math.min(.9,Math.max(.12,span*1.45)),h=w;
+   const targetSize=Math.min(.9,Math.max(.12,span*1.45));
+   if(!Number.isFinite(portalSmooth.x)){portalSmooth={x:targetX,y:targetY,size:targetSize}}
+   portalSmooth.x+=(targetX-portalSmooth.x)*.55;portalSmooth.y+=(targetY-portalSmooth.y)*.55;portalSmooth.size+=(targetSize-portalSmooth.size)*.55;
+   const cx=portalSmooth.x,cy=portalSmooth.y,w=portalSmooth.size,h=w;
    const x=Math.max(.01,Math.min(1-w,cx-w/2)),y=Math.max(.01,Math.min(1-h,cy-h/2));
    const themes={shadow:['#9b5cff','#1c1038'],pirate:['#ffb454','#5a2b11'],soul:['#e8f5ff','#253a70'],ninja:['#ff5b6e','#4b152b'],slayer:['#65f0c8','#124d49'],goku:['#ff9c32','#49200a'],gojo:['#7cc8ff','#102c58'],eren:['#a6c86a','#23331a'],deku:['#62e0a5','#103c2a'],killua:['#8ceaff','#153b5a'],zoro:['#9bd17b','#243b1b'],rukia:['#d6e5ff','#283b64']};
    const t=themes[styleSelect.value]||themes.shadow;
