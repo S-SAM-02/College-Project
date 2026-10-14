@@ -85,6 +85,18 @@ button.primary{background:linear-gradient(135deg,#f0c66a,#dba64b);border-color:#
 .menu-warning{border-left-color:#e94d4d}
 .menu-footer,.menu-heading{border-color:#29485b}
 @media(prefers-reduced-motion:no-preference){.brand span{animation:none}}
+
+/* Immersive animated anime-inspired Grand Line backdrop */
+body:before{background:radial-gradient(ellipse at 74% 22%,#2678a066,transparent 35%),radial-gradient(ellipse at 18% 75%,#a33d3d3d,transparent 34%),linear-gradient(130deg,#04111d,#0b2a3d 48%,#071522);background-size:150% 150%;animation:grandLineDrift 18s ease-in-out infinite alternate}
+body:after{opacity:.12;background-image:linear-gradient(120deg,transparent 0 46%,#f0c66a15 47% 48%,transparent 49%),radial-gradient(circle at 20% 30%,#f0c66a22 0 1px,transparent 2px),radial-gradient(circle at 70% 70%,#e94d4d22 0 1px,transparent 2px);background-size:100% 100%,72px 72px,96px 96px;animation:seaSparkle 16s linear infinite}
+@keyframes grandLineDrift{0%{background-position:0% 50%;filter:saturate(.9)}100%{background-position:100% 50%;filter:saturate(1.15)}}
+@keyframes seaSparkle{0%{background-position:0 0,0 0,20px 20px}100%{background-position:0 0,72px 144px,116px 212px}}
+/* Make the live camera workspace visually clear and hand-tracking feedback readable */
+.preview canvas{z-index:3}
+.preview video{position:relative;z-index:0}
+.preview:before{z-index:1}
+.preview:after{z-index:4}
+#gesture{color:#f0c66a}
 </style>
 </head>
 <body><main>
@@ -126,12 +138,20 @@ menuToggle.addEventListener('click',()=>setMenu(projectMenu.hidden));menuClose.a
 let stream=null,landmarker=null,running=false,lastVideoTime=-1,active=false;
 function setStatus(s,on=false){status.textContent=s;dot.classList.toggle('on',on)}
 async function setupModel(){if(landmarker)return landmarker;const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const modelAssetPath="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";try{landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"GPU"},runningMode:"VIDEO",numHands:1,minHandDetectionConfidence:.45,minHandPresenceConfidence:.45,minTrackingConfidence:.45})}catch(gpuError){console.warn("GPU hand tracking unavailable; retrying on CPU",gpuError);landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"CPU"},runningMode:"VIDEO",numHands:1,minHandDetectionConfidence:.45,minHandPresenceConfidence:.45,minTrackingConfidence:.45})}return landmarker}
-function countFingers(lm){let n=0;if(lm[4].x<lm[3].x)n++;for(const [tip,pip] of [[8,6],[12,10],[16,14],[20,18]])if(lm[tip].y<lm[pip].y)n++;return n}
+function countFingers(lm,handedness){
+ let n=0;
+ /* MediaPipe labels are reported in camera coordinates; account for handedness so the thumb works for either hand. */
+ const label=handedness?.[0]?.[0]?.categoryName||handedness?.[0]?.[0]?.displayName||"";
+ const thumbExtended=label.toLowerCase()==="left" ? lm[4].x>lm[3].x : lm[4].x<lm[3].x;
+ if(thumbExtended)n++;
+ for(const [tip,pip] of [[8,6],[12,10],[16,14],[20,18]])if(lm[tip].y<lm[pip].y)n++;
+ return n;
+}
 function resize(){const r=preview.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function draw(results){
  ctx.clearRect(0,0,1,1);active=false;
  if(results.landmarks&&results.landmarks.length){
-  const lm=results.landmarks[0],count=countFingers(lm);
+  const lm=results.landmarks[0],count=countFingers(lm,results.handedness);
   /* Draw hand landmarks and finger bones continuously so tracking is visible. */
   const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
   ctx.save();ctx.lineWidth=.003;ctx.strokeStyle="#f0c66a";ctx.fillStyle="#fff0c9";
@@ -155,7 +175,7 @@ function draw(results){
  document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // FOUR-FINGER GESTURE':'Show four fingers to open the portal.';
 }
 async function loop(){if(!running)return;if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker){lastVideoTime=video.currentTime;try{draw(landmarker.detectForVideo(video,performance.now()))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
-start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep your whole hand visible, palm facing the camera, with good lighting.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
+start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep your whole hand visible, palm facing the camera, with good lighting. Tracking points appear when detected.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
 stop.addEventListener('click',()=>{running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);placeholder.style.display='block';start.disabled=false;stop.disabled=true;setStatus('Camera off');gesture.textContent='Waiting for camera';detail.textContent='Start the camera to detect hand gestures.'});
 fullscreen.addEventListener('click',async()=>{try{if(!document.fullscreenElement){await preview.requestFullscreen()}else{await document.exitFullscreen()}}catch(e){detail.textContent='Full screen was blocked by the browser. Try the browser full-screen shortcut.'}});
 document.addEventListener('fullscreenchange',()=>{fullscreen.textContent=document.fullscreenElement?'Exit full screen':'Full screen';setTimeout(resize,100)});
