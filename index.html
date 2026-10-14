@@ -3,86 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ANIME REALITY — Gesture Portal</title>
+<title>ANIME REALITY — AI Gesture Portal</title>
 <style>
-:root{color-scheme:dark;--bg:#090b13;--panel:#121624;--line:#293149;--accent:#a78bfa;--cyan:#67e8f9;--text:#f5f7ff;--muted:#aab2c8}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1a1d38 0%,var(--bg) 58%);font:15px/1.5 system-ui,Segoe UI,sans-serif;color:var(--text)}
-main{max-width:1100px;margin:auto;padding:28px 18px 48px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.brand{font-weight:900;letter-spacing:.16em}.brand span{color:var(--accent)}.tag{color:var(--muted);font-size:.9rem}
-h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.04;margin:34px 0 12px;letter-spacing:-.04em}h1 em{font-style:normal;color:var(--cyan)}p{color:var(--muted)}
-.layout{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-top:24px}.card{background:#111522eF;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 18px 55px #0004}.preview{position:relative;overflow:hidden;background:#05060b;border-radius:14px;aspect-ratio:16/10;display:grid;place-items:center}.preview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.preview canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:scaleX(-1)}.placeholder{position:absolute;text-align:center;padding:20px;color:var(--muted)}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}button,select,input{font:inherit;border-radius:11px;border:1px solid var(--line);background:#191e2e;color:var(--text);padding:10px 12px}button{cursor:pointer;font-weight:700}button.primary{background:var(--accent);border-color:var(--accent);color:#100d20}button:disabled{opacity:.5;cursor:not-allowed}label{display:block;font-size:.88rem;color:var(--muted);margin:10px 0 5px}.status{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.9rem}.dot{width:8px;height:8px;border-radius:50%;background:#64748b}.dot.on{background:#4ade80;box-shadow:0 0 12px #4ade80}.metric{font-size:1.3rem;font-weight:800;margin-top:4px}.small{font-size:.82rem;color:var(--muted)}.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--muted);font-size:.8rem}.effect{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .15s;background:radial-gradient(circle at 50% 45%,#a78bfa55,transparent 48%)}.effect.active{opacity:1}.note{border-left:3px solid var(--cyan);padding:10px 12px;background:#67e8f90c;border-radius:0 10px 10px 0;color:#dce7f7;font-size:.9rem;margin-top:14px}
-footer{margin-top:22px;color:var(--muted);font-size:.8rem}
-@media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:20px 12px}}
+:root{color-scheme:dark;--bg:#0c1018;--panel:#151b26;--line:#303a4d;--accent:#a78bfa;--cyan:#67e8f9;--text:#f4f6fb;--muted:#aab4c5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.5 system-ui,Segoe UI,sans-serif;color:var(--text)}
+main{max-width:1120px;margin:auto;padding:22px 16px 36px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.brand{font-weight:900;letter-spacing:.12em}.brand span{color:var(--accent)}.tag,.small,p{color:var(--muted)}h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1.05;margin:28px 0 8px}h1 em{font-style:normal;color:var(--cyan)}p{margin:8px 0}.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:14px;margin-top:20px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.preview{position:relative;overflow:hidden;background:#05070b;border-radius:10px;aspect-ratio:16/10;display:grid;place-items:center}.preview:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;background:#000}.preview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.preview canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:scaleX(-1)}.placeholder{position:absolute;text-align:center;padding:20px;color:var(--muted)}button,select,input{font:inherit;border-radius:9px;border:1px solid var(--line);background:#202838;color:var(--text);padding:10px 12px}button{cursor:pointer;font-weight:700}button.primary{background:var(--accent);border-color:var(--accent);color:#171022}button:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}label{display:block;font-size:.88rem;color:var(--muted);margin:12px 0 5px}.status{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.9rem}.dot{width:8px;height:8px;border-radius:50%;background:#64748b}.dot.on{background:#4ade80}.metric{font-size:1.15rem;font-weight:800;margin-top:6px}.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--muted);font-size:.78rem}.note{border-left:3px solid var(--cyan);padding:9px 11px;background:#202838;border-radius:0 8px 8px 0;color:#e1e8f3;font-size:.88rem;margin-top:12px}footer{margin-top:18px;color:var(--muted);font-size:.8rem}@media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:16px 10px}}
 </style>
 </head>
 <body><main>
-<header class="top"><div class="brand">ANIME <span>REALITY</span></div><div class="tag">Gesture-controlled camera prototype</div></header>
-<h1>Open a portal.<br><em>Become the scene.</em></h1>
-<p>A first working scaffold for the DIP + NLP + ML/NN assignment. Choose a style, start your camera, and use a four-finger gesture to activate the portal effect.</p>
+<header class="top"><div class="brand">ANIME <span>REALITY</span></div><div class="tag">AI Gesture Portal · DIP + NLP + ML/NN</div></header>
+<h1>Your hand. <em>Another world.</em></h1>
+<p>Choose a world, start the camera, then show four fingers to open a portal around your hand.</p>
 <div class="layout">
 <section class="card">
-<div class="preview" id="preview"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Camera is off<br><span class="small">Press “Start camera” and allow permission.</span></div><div class="effect" id="effect"></div></div>
-<div class="row"><button class="primary" id="start">Start camera</button><button id="stop" disabled>Stop camera</button><span class="status"><span class="dot" id="dot"></span><span id="status">Camera off</span></span></div>
-<div class="note" id="gestureNote">Gesture: show four fingers to activate the visual portal. Two fingers should leave it inactive.</div>
+<div class="preview" id="preview"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Camera is off<br><span class="small">Choose your world, then start the camera.</span></div></div>
+<div class="row"><button class="primary" id="start">Start camera</button><button id="stop" disabled>Stop camera</button><button id="fullscreen">Full screen</button><span class="status"><span class="dot" id="dot"></span><span id="status">Camera off</span></span></div>
+<div class="note" id="gestureNote">Portal inactive. Show four fingers to activate it; two fingers will not trigger it.</div>
 </section>
 <aside class="card">
-<h2 style="margin-top:0">Choose your world</h2>
-<label for="style">Anime-inspired visual style</label><select id="style" style="width:100%"><option value="shadow">Shadow Hunter (dark fantasy)</option><option value="pirate">Grand Voyage (pirate adventure)</option><option value="soul">Soul Reaper (spirit sword fantasy)</option><option value="ninja">Ninja Storm (shinobi fantasy)</option><option value="slayer">Demon Hunter (supernatural action)</option></select>
-<label for="command">Text command (NLP prototype)</label><div class="row" style="margin-top:0"><input id="command" placeholder="e.g. switch to ninja world" style="flex:1;min-width:160px"><button id="apply">Apply</button></div>
-<p class="small" id="commandStatus">Text commands currently use lightweight keyword parsing. A dedicated NLP model can be integrated later.</p>
-<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
-<div class="small">LIVE STATUS</div><div class="metric" id="gesture">Waiting for camera</div><p id="detail">The portal activates only when the gesture detector sees approximately four extended fingers.</p>
-<div class="row"><span class="chip">DIP: visual overlay</span><span class="chip">ML/NN: hand landmarks</span><span class="chip">NLP: text intent</span></div>
-<div class="note">Prototype honesty: this version demonstrates camera access, hand-landmark inference, a gesture trigger, and style switching. It does not yet replace your full body with a fully animated character.</div>
+<h2 style="margin:0">Choose your world</h2>
+<label for="style">Anime-inspired theme</label><select id="style" style="width:100%"><option value="shadow">Solo Leveling — Shadow Realm</option><option value="pirate">One Piece — Grand Voyage</option><option value="soul">Bleach — Soul Reaper</option><option value="ninja">Naruto — Ninja Storm</option><option value="slayer">Demon Slayer — Breathing Aura</option></select>
+<label for="command">Or type a quick command</label><div class="row" style="margin-top:0"><input id="command" placeholder="e.g. switch to Bleach" style="flex:1;min-width:150px"><button id="apply">Apply</button></div><div class="small" id="commandStatus">Simple text-intent matching demo.</div>
+<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<div class="small">GESTURE STATUS</div><div class="metric" id="gesture">Waiting for camera</div><p id="detail">The portal opens when the hand tracker detects four extended fingers.</p>
+<div class="row"><span class="chip">DIP · hand-region overlay</span><span class="chip">ML/NN · MediaPipe</span><span class="chip">NLP · text commands</span></div>
+<p class="small">This is an initial prototype. It creates a themed portal effect around the hand; full-body character replacement is a separate, more advanced stage.</p>
 </aside></div>
-<footer>Use on localhost or HTTPS. Camera permission and internet access for the MediaPipe model are required. Original anime-inspired labels are used; add only assets you have permission to use.</footer>
+<footer>Camera access generally requires HTTPS or localhost. MediaPipe model files require an internet connection. This demo uses anime-inspired visual themes, not official character footage.</footer>
 </main>
 <script type="module">
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const video=document.querySelector('#video'),canvas=document.querySelector('#overlay'),ctx=canvas.getContext('2d');
-const start=document.querySelector('#start'),stop=document.querySelector('#stop'),status=document.querySelector('#status'),dot=document.querySelector('#dot'),placeholder=document.querySelector('#placeholder'),effect=document.querySelector('#effect'),gesture=document.querySelector('#gesture'),detail=document.querySelector('#detail'),styleSelect=document.querySelector('#style');
+const start=document.querySelector('#start'),stop=document.querySelector('#stop'),fullscreen=document.querySelector('#fullscreen'),preview=document.querySelector('#preview'),status=document.querySelector('#status'),dot=document.querySelector('#dot'),placeholder=document.querySelector('#placeholder'),gesture=document.querySelector('#gesture'),detail=document.querySelector('#detail'),styleSelect=document.querySelector('#style');
 let stream=null,landmarker=null,running=false,lastVideoTime=-1,active=false;
 function setStatus(s,on=false){status.textContent=s;dot.classList.toggle('on',on)}
-async function setupModel(){
- if(landmarker)return landmarker;
- const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
- landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:2});
- return landmarker;
-}
-function countFingers(lm){
- // Approximate screen-space heuristic for a mirrored selfie. Thumb uses x direction; other fingers compare tip with PIP.
- let n=0;
- if((lm[4].x<lm[3].x))n++;
- for(const [tip,pip] of [[8,6],[12,10],[16,14],[20,18]]) if(lm[tip].y<lm[pip].y)n++;
- return n;
-}
-function resize(){const r=video.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
+async function setupModel(){if(landmarker)return landmarker;const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});return landmarker}
+function countFingers(lm){let n=0;if(lm[4].x<lm[3].x)n++;for(const [tip,pip] of [[8,6],[12,10],[16,14],[20,18]])if(lm[tip].y<lm[pip].y)n++;return n}
+function resize(){const r=preview.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function draw(results){
- ctx.clearRect(0,0,1,1);let detected=false,desc='No hand detected';
- if(results.landmarks?.length){
-  const hand=results.landmarks[0],count=countFingers(hand);detected=true;
-  // Draw hand skeleton points as a subtle tracking visualization.
-  ctx.fillStyle='#67e8f9';for(const p of hand){ctx.beginPath();ctx.arc(1-p.x,p.y,.006,0,Math.PI*2);ctx.fill()}
-  desc=count+' fingers detected';
-  active=count===4;
-  gesture.textContent=active?'PORTAL ACTIVE':desc;
-  detail.textContent=active?'Gesture recognized. The visual portal effect is active; full-body anime replacement is a future milestone.':'Show four fingers to activate. Other finger counts keep the portal closed.';
- }else{active=false;gesture.textContent='No hand detected';detail.textContent='Move your hand into the camera view.'}
- effect.classList.toggle('active',active);
- document.querySelector('#gestureNote').textContent=active?'Portal active — gesture recognized.':'Gesture: show four fingers to activate the visual portal effect. Two fingers should leave it inactive.';
+ ctx.clearRect(0,0,1,1);active=false;
+ if(results.landmarks&&results.landmarks.length){
+  const lm=results.landmarks[0],count=countFingers(lm);active=count===4;
+  if(active){
+   const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,w=Math.max(maxX-minX,maxY-minY)*1.8,h=w;
+   const x=Math.max(.02,Math.min(.98-w,cx-w/2)),y=Math.max(.02,Math.min(.98-h,cy-h/2));
+   const themes={shadow:['#9b5cff','#1c1038'],pirate:['#ffb454','#5a2b11'],soul:['#e8f5ff','#253a70'],ninja:['#ff5b6e','#4b152b'],slayer:['#65f0c8','#124d49']};
+   const t=themes[styleSelect.value]||themes.shadow;
+   ctx.save();ctx.shadowBlur=.025;ctx.shadowColor=t[0];ctx.lineWidth=.006;ctx.strokeStyle=t[0];ctx.fillStyle=t[1]+'bb';ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+   ctx.lineWidth=.0025;ctx.strokeStyle='#ffffffcc';ctx.strokeRect(x+.012,y+.012,Math.max(.01,w-.024),Math.max(.01,h-.024));
+   for(let i=0;i<4;i++){const a=i*Math.PI/2+performance.now()/900;ctx.beginPath();ctx.arc(cx,cy,w*(.28+.025*Math.sin(a)),a,a+.75);ctx.strokeStyle=t[0];ctx.lineWidth=.004;ctx.stroke()}
+   ctx.restore();
+  }
+  gesture.textContent=active?'PORTAL ACTIVE':count+' fingers detected';detail.textContent=active?'Four-finger gesture detected. The selected themed portal is surrounding your hand.':'Show four fingers to open the portal. Other gestures keep it closed.';
+ }else{gesture.textContent='No hand detected';detail.textContent='Move one hand into the camera view.'}
+ document.querySelector('#gestureNote').textContent=active?'Portal open — four fingers detected.':'Portal inactive. Show four fingers to activate it; two fingers will not trigger it.';
 }
-async function loop(){
- if(!running)return;
- if(video.readyState>=2&&video.currentTime!==lastVideoTime&&landmarker){
-  lastVideoTime=video.currentTime;try{const result=landmarker.detectForVideo(video,performance.now());draw(result)}catch(e){console.error(e)}
- }
- requestAnimationFrame(loop)
-}
-start.addEventListener('click',async()=>{
- start.disabled=true;setStatus('Starting camera…');
- try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Camera running',true);resize();loop()}
- catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start';detail.textContent=e.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings and retry.':'Camera or model failed to load. Use localhost/HTTPS, check internet access, and retry.';start.disabled=false}
-});
-stop.addEventListener('click',()=>{running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,canvas.width,canvas.height);effect.classList.remove('active');placeholder.style.display='block';start.disabled=false;stop.disabled=true;setStatus('Camera off');gesture.textContent='Waiting for camera';detail.textContent='Start the camera to detect hand gestures.'});
+async function loop(){if(!running)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime&&landmarker){lastVideoTime=video.currentTime;try{draw(landmarker.detectForVideo(video,performance.now()))}catch(e){console.error(e)}}requestAnimationFrame(loop)}
+start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Camera running',true);resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':'Check HTTPS or localhost and internet access, then retry.';start.disabled=false}});
+stop.addEventListener('click',()=>{running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);placeholder.style.display='block';start.disabled=false;stop.disabled=true;setStatus('Camera off');gesture.textContent='Waiting for camera';detail.textContent='Start the camera to detect hand gestures.'});
+fullscreen.addEventListener('click',async()=>{try{if(!document.fullscreenElement){await preview.requestFullscreen()}else{await document.exitFullscreen()}}catch(e){detail.textContent='Full screen was blocked by the browser. Try the browser full-screen shortcut.'}});
+document.addEventListener('fullscreenchange',()=>{fullscreen.textContent=document.fullscreenElement?'Exit full screen':'Full screen';setTimeout(resize,100)});
 window.addEventListener('resize',resize);
-document.querySelector('#apply').addEventListener('click',()=>{const q=document.querySelector('#command').value.toLowerCase();let value=null;if(/pirate|one piece|voyage/.test(q))value='pirate';else if(/bleach|soul|reaper/.test(q))value='soul';else if(/naruto|ninja|shinobi/.test(q))value='ninja';else if(/demon|slayer/.test(q))value='slayer';else if(/solo leveling|shadow|hunter/.test(q))value='shadow';if(value){styleSelect.value=value;document.querySelector('#commandStatus').textContent='Command understood: switched to '+styleSelect.options[styleSelect.selectedIndex].text+'.';}else document.querySelector('#commandStatus').textContent='Could not match that command. Try “ninja world”, “pirate world”, “soul reaper”, “demon hunter”, or “shadow hunter”.'});
+document.querySelector('#apply').addEventListener('click',()=>{const q=document.querySelector('#command').value.toLowerCase();let v=null;if(/pirate|one piece|voyage/.test(q))v='pirate';else if(/bleach|soul|reaper/.test(q))v='soul';else if(/naruto|ninja|shinobi/.test(q))v='ninja';else if(/demon|slayer|breathing/.test(q))v='slayer';else if(/solo leveling|shadow|hunter/.test(q))v='shadow';if(v){styleSelect.value=v;document.querySelector('#commandStatus').textContent='Selected: '+styleSelect.options[styleSelect.selectedIndex].text+'.'}else document.querySelector('#commandStatus').textContent='Try “One Piece”, “Bleach”, “Ninja”, “Demon Slayer”, or “Solo Leveling”.'});
 </script></body></html>
