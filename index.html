@@ -252,7 +252,7 @@ function setMenu(open){projectMenu.hidden=!open;menuToggle.setAttribute('aria-ex
 menuToggle.addEventListener('click',()=>setMenu(projectMenu.hidden));menuClose.addEventListener('click',()=>{setMenu(false);menuToggle.focus()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!projectMenu.hidden)setMenu(false)});
 let stream=null,landmarker=null,running=false,lastVideoTime=-1,active=false,gestureHistory=[],lastDetectAt=0;
 function setStatus(s,on=false){status.textContent=s;dot.classList.toggle('on',on)}
-async function setupModel(){if(landmarker)return landmarker;const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const modelAssetPath="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";try{landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"GPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.30,minHandPresenceConfidence:.30,minTrackingConfidence:.30})}catch(gpuError){console.warn("GPU hand tracking unavailable; retrying on CPU",gpuError);landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"CPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.40,minHandPresenceConfidence:.40,minTrackingConfidence:.40})}return landmarker}
+async function setupModel(){if(landmarker)return landmarker;const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const modelAssetPath="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";try{landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"GPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.25,minHandPresenceConfidence:.25,minTrackingConfidence:.25})}catch(gpuError){console.warn("GPU hand tracking unavailable; retrying on CPU",gpuError);landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"CPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.40,minHandPresenceConfidence:.40,minTrackingConfidence:.40})}return landmarker}
 function distance3(a,b){const dx=a.x-b.x,dy=a.y-b.y,dz=(a.z||0)-(b.z||0);return Math.hypot(dx,dy,dz)}
 function jointAngle(a,b,c){
  const ba=[a.x-b.x,a.y-b.y,(a.z||0)-(b.z||0)],bc=[c.x-b.x,c.y-b.y,(c.z||0)-(b.z||0)];
@@ -283,59 +283,78 @@ function smoothTip(key,p){
 function draw(results){
  ctx.clearRect(0,0,1,1);active=false;
  const hands=results.landmarks||[];
- if(hands.length>=2){
-  // Order hands by their screen position so each hand's own thumb/index pair stays together.
-  const pair=hands.slice(0,2).map(lm=>({lm,cx:lm.reduce((sum,p)=>sum+p.x,0)/lm.length}))
-    .sort((a,b)=>a.cx-b.cx);
-  const left=pair[0].lm,right=pair[1].lm;
-  // Draw only thumb and index finger chains; omit the other three fingers.
-  ctx.save();ctx.lineWidth=.0025;ctx.strokeStyle='#f0c66a';ctx.fillStyle='#fff0c9';
-  for(const lm of [left,right]){
-   for(const [u,v] of [[1,2],[2,3],[3,4],[0,1],[0,5],[5,6],[6,7],[7,8]]){
-    ctx.beginPath();ctx.moveTo(lm[u].x,lm[u].y);ctx.lineTo(lm[v].x,lm[v].y);ctx.stroke();
+ // A detected hand is useful immediately: draw its slim thumb/index stick lines,
+ // even while the other hand is outside the camera frame.
+ const ordered=hands.slice(0,2).map(lm=>({lm,cx:lm.reduce((sum,p)=>sum+p.x,0)/lm.length}))
+   .sort((a,b)=>a.cx-b.cx);
+ const drawFingerSticks=(lm)=>{
+   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+   ctx.strokeStyle='rgba(240,198,106,.92)';ctx.fillStyle='#fff5d8';ctx.lineWidth=.0017;
+   for(const [u,v] of [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8]]){
+     ctx.beginPath();ctx.moveTo(lm[u].x,lm[u].y);ctx.lineTo(lm[v].x,lm[v].y);ctx.stroke();
    }
-   for(const i of [4,8]){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.009,0,Math.PI*2);ctx.fill()}
-  }
-  ctx.restore();
-  const twoHandsReady=hasThumbAndIndexExtended(left)&&hasThumbAndIndexExtended(right);
-  gestureHistory.push(twoHandsReady);if(gestureHistory.length>2)gestureHistory.shift();
-  active=gestureHistory.length===2&&gestureHistory.every(Boolean);
-  if(active){
-   // Explicit fingertip mapping: left thumb↔left index, left index↔right index,
-   // right index↔right thumb, and right thumb↔left thumb.
-   const p={lt:smoothTip('lt',{x:left[4].x,y:left[4].y}),li:smoothTip('li',{x:left[8].x,y:left[8].y}),
-            ri:smoothTip('ri',{x:right[8].x,y:right[8].y}),rt:smoothTip('rt',{x:right[4].x,y:right[4].y})};
-   const themeMap={shadow:'#9b5cff',pirate:'#ffb454',soul:'#e8f5ff',ninja:'#ff5b6e',slayer:'#65f0c8',goku:'#ff9c32',gojo:'#7cc8ff',eren:'#a6c86a',deku:'#62e0a5',killua:'#8ceaff',zoro:'#9bd17b',rukia:'#d6e5ff'};
-   const color=themeMap[styleSelect.value]||themeMap.shadow;
-   const curveControl=(a,b,bend)=>{
-     const dx=b.x-a.x,dy=b.y-a.y;
-     const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
-     return {x:mx-dy*bend,y:my+dx*bend};
-    };
-    ctx.save();ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=.004;ctx.lineWidth=.0045;
-    // Draw one continuous freeform connection through the four fingertips.
-    ctx.beginPath();ctx.moveTo(p.lt.x,p.lt.y);
-    let cp=curveControl(p.lt,p.li,.13);ctx.quadraticCurveTo(cp.x,cp.y,p.li.x,p.li.y);
-    cp=curveControl(p.li,p.ri,.08);ctx.quadraticCurveTo(cp.x,cp.y,p.ri.x,p.ri.y);
-    cp=curveControl(p.ri,p.rt,.13);ctx.quadraticCurveTo(cp.x,cp.y,p.rt.x,p.rt.y);
-    cp=curveControl(p.rt,p.lt,.08);ctx.quadraticCurveTo(cp.x,cp.y,p.lt.x,p.lt.y);
-    ctx.stroke();
-    ctx.globalAlpha=.16;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
-   for(const tip of [p.lt,p.li,p.ri,p.rt]){
-    ctx.beginPath();ctx.arc(tip.x,tip.y,.008,0,Math.PI*2);ctx.fillStyle='#fff0c9';ctx.fill();
-    ctx.beginPath();ctx.arc(tip.x,tip.y,.013,0,Math.PI*2);ctx.strokeStyle=color;ctx.lineWidth=.003;ctx.stroke();
+   for(const i of [4,8]){
+     ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.004,0,Math.PI*2);ctx.fill();
    }
    ctx.restore();
-  }
-  gesture.textContent=active?'PORTAL ACTIVE':(twoHandsReady?'Hold both hands steady':'Extend thumb + index on both hands');
-  detail.textContent=active?'Left thumb connects to left index; both index fingertips connect; right index connects to right thumb; both thumbs connect.':'Show both hands with only thumb + index extended on each hand.';
+ };
+ for(const hand of ordered)drawFingerSticks(hand.lm);
+ if(ordered.length>=2){
+   const left=ordered[0].lm,right=ordered[1].lm;
+   const leftReady=hasThumbAndIndexExtended(left),rightReady=hasThumbAndIndexExtended(right);
+   const twoHandsReady=leftReady&&rightReady;
+   gestureHistory.push(twoHandsReady);if(gestureHistory.length>2)gestureHistory.shift();
+   active=gestureHistory.length===2&&gestureHistory.every(Boolean);
+   if(active){
+     const p={
+       lt:smoothTip('lt',{x:left[4].x,y:left[4].y}),
+       li:smoothTip('li',{x:left[8].x,y:left[8].y}),
+       ri:smoothTip('ri',{x:right[8].x,y:right[8].y}),
+       rt:smoothTip('rt',{x:right[4].x,y:right[4].y})
+     };
+     const themeMap={shadow:'#9b5cff',pirate:'#ffb454',soul:'#e8f5ff',ninja:'#ff5b6e',slayer:'#65f0c8',goku:'#ff9c32',gojo:'#7cc8ff',eren:'#a6c86a',deku:'#62e0a5',killua:'#8ceaff',zoro:'#9bd17b',rukia:'#d6e5ff'};
+     const color=themeMap[styleSelect.value]||themeMap.shadow;
+     const bend=(a,b,k)=>{const dx=b.x-a.x,dy=b.y-a.y;return{x:(a.x+b.x)/2-dy*k,y:(a.y+b.y)/2+dx*k}};
+     const path=()=>{
+       ctx.beginPath();ctx.moveTo(p.lt.x,p.lt.y);
+       let q=bend(p.lt,p.li,.13);ctx.quadraticCurveTo(q.x,q.y,p.li.x,p.li.y);
+       q=bend(p.li,p.ri,.08);ctx.quadraticCurveTo(q.x,q.y,p.ri.x,p.ri.y);
+       q=bend(p.ri,p.rt,.13);ctx.quadraticCurveTo(q.x,q.y,p.rt.x,p.rt.y);
+       q=bend(p.rt,p.lt,.08);ctx.quadraticCurveTo(q.x,q.y,p.lt.x,p.lt.y);ctx.closePath();
+     };
+     // A single continuous, thin, animated rope: soft outer glow plus a bright core
+     // and a moving highlight. No independent scribble strokes or fixed square.
+     const t=performance.now();
+     ctx.save();ctx.lineCap='round';ctx.lineJoin='round';path();
+     ctx.strokeStyle=color;ctx.globalAlpha=.36;ctx.shadowColor=color;ctx.shadowBlur=.012;ctx.lineWidth=.0042;ctx.stroke();
+     ctx.globalAlpha=1;ctx.shadowBlur=.003;ctx.lineWidth=.0019;ctx.strokeStyle=color;ctx.stroke();
+     const grad=ctx.createLinearGradient(.0,.0,1,1);
+     grad.addColorStop((t/1800)%1,'rgba(255,255,255,.95)');
+     grad.addColorStop(((t/1800)+.16)%1,color);
+     grad.addColorStop(((t/1800)+.5)%1,'rgba(255,255,255,.2)');
+     grad.addColorStop(((t/1800)+.8)%1,color);
+     ctx.strokeStyle=grad;ctx.lineWidth=.0011;ctx.stroke();
+     ctx.restore();
+     for(const tip of [p.lt,p.li,p.ri,p.rt]){
+       ctx.beginPath();ctx.arc(tip.x,tip.y,.0035,0,Math.PI*2);ctx.fillStyle='#fff5d8';ctx.fill();
+     }
+   }
+   gesture.textContent=active?'PORTAL ACTIVE':(leftReady||rightReady?'Hands detected — align both gestures':'Both hands detected — extend thumb + index');
+   detail.textContent=active?'Animated rope follows left thumb → left index → right index → right thumb → left thumb.':'Both hands are visible. Extend thumb and index on each hand to activate the rope portal.';
+ }else if(ordered.length===1){
+   gestureHistory=[];tipSmooth={};gesture.textContent='Hand detected — waiting for second hand';
+   detail.textContent='Tracking your visible hand now. When the second hand appears and both thumb/index gestures are shown, the rope portal will form.';
  }else{
-  gestureHistory=[];portalSmooth.lost=true;tipSmooth={};gesture.textContent=hands.length===1?'Show your other hand':'No hands detected';
-  detail.textContent=hands.length===1?'One hand found. Bring both hands back into view; tracking will reacquire automatically.':'Move both hands into the camera view.';
+   gestureHistory=[];tipSmooth={};gesture.textContent='No hands detected';
+   detail.textContent='Move one or both hands into view. Tracking will reacquire when they return.';
  }
- document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // FOUR EXPLICIT CURVED FINGER CONNECTIONS':'Show both hands with thumb + index extended on each hand. Thumb connects to thumb, index to index, and each hand connects its own two fingertips.';
+ document.querySelector('#gestureNote').textContent=active
+  ?'PORTAL OPEN // ANIMATED ROPE CONNECTING THUMB + INDEX FINGERTIPS'
+  :ordered.length===1
+   ?'ONE HAND TRACKED // SHOW THE SECOND HAND TO FORM THE PORTAL'
+   :'Show one or both hands. The thin animated finger sticks appear as soon as a hand is detected; the rope portal forms when both gestures are recognized.';
 }
-async function loop(){if(!running)return;const now=performance.now();if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker&&now-lastDetectAt>=16){lastVideoTime=video.currentTime;lastDetectAt=now;try{draw(landmarker.detectForVideo(video,now))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
+async function loop(){if(!running)return;const now=performance.now();if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker&&now-lastDetectAt>=0){lastVideoTime=video.currentTime;lastDetectAt=now;try{draw(landmarker.detectForVideo(video,now))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
 start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep both hands fully visible, palms toward the camera, and extend only thumb + index on each hand. Good lighting improves detection.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
 stop.addEventListener('click',()=>{running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);placeholder.style.display='block';start.disabled=false;stop.disabled=true;setStatus('Camera off');gesture.textContent='Waiting for camera';detail.textContent='Start the camera to detect hand gestures.'});
 fullscreen.addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(preview.requestFullscreen)await preview.requestFullscreen();else if(preview.webkitRequestFullscreen)preview.webkitRequestFullscreen();else throw new Error('Fullscreen is not supported by this browser')}else if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){detail.textContent='Full screen could not start. Use the browser full-screen shortcut, then try again.';console.error('Fullscreen error:',e)}});
