@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ANIME REALITY — AI Gesture Portal</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=Rajdhani:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oxanium:wght@400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
 :root{color-scheme:dark;--bg:#08050d;--panel:#130d1b;--line:#563047;--accent:#ff386b;--cyan:#ffc46b;--text:#fff6fb;--muted:#c2aab9}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;overflow-x:hidden;background:#09050d;font:15px/1.5 "Trebuchet MS",system-ui,sans-serif;color:var(--text);isolation:isolate}
@@ -230,6 +230,68 @@ button:hover:not(:disabled){border-color:#a5e4ff}
 .avatar-mark{background:linear-gradient(135deg,#e8f8ff,#68c9ff);color:#071522}
 .command-row input{background:#050e18;border-color:#315e7d}
 #animeBackground{ /* preserve original background source, opacity and placement */ }
+
+
+/* FINAL ART-DIRECTED TYPOGRAPHY + UI POLISH — preserve the existing background video and its treatment. */
+:root{
+ --bg:#050a12;--panel:#0a1420;--line:#29445e;--accent:#69c8ff;--cyan:#d8f1ff;
+ --text:#f5f9ff;--muted:#a9bacb;
+ --ui-font:'Inter','Noto Sans JP',system-ui,sans-serif;
+ --display-font:'Oxanium','Rajdhani','Noto Sans JP',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--ui-font);font-size:15px;line-height:1.55;letter-spacing:0}
+.brand,h1,h2,h3,.tag,.menu-kicker,.menu-footer,button,label,.metric,.chip{
+ font-family:var(--display-font);font-feature-settings:'ss01' on; 
+}
+.brand{font-size:1.02rem;font-weight:800;letter-spacing:.18em;color:#f6fbff}
+.brand span{color:#83d5ff;text-shadow:0 0 18px #54bfff2b}
+.hero-copy .tag,.tag,.menu-kicker{font-size:.72rem;font-weight:700;letter-spacing:.2em;color:#9bdcff}
+.hero-copy h1{
+ font-family:var(--display-font)!important;font-weight:800;letter-spacing:.015em;
+ font-size:clamp(2.55rem,6.8vw,5.25rem);line-height:.99;
+ text-shadow:0 2px 0 #173a55,0 10px 32px #0007;
+ transform:none;font-style:normal;
+}
+.hero-copy h1 em{font-family:var(--display-font)!important;font-weight:800;color:#a7e4ff;text-shadow:0 0 28px #67caff2b}
+.hero-copy p{max-width:66ch;font-size:clamp(.92rem,1.4vw,1.04rem);line-height:1.65;color:#c5d8e8}
+.card h2{font-family:var(--display-font)!important;font-size:1.02rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#f2f8ff}
+h3{font-size:.92rem;font-weight:700;letter-spacing:.025em}
+p,.small,.note,.menu-section p{font-family:var(--ui-font);letter-spacing:0}
+p,.menu-section p{line-height:1.6}
+label{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:#b9d2e5}
+button,select,input{font-family:var(--ui-font);font-size:.9rem;font-weight:600;letter-spacing:0}
+button{min-height:40px}
+button.primary{font-family:var(--display-font);font-size:.82rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+select,input{min-height:42px}
+.metric{font-size:1.02rem;font-weight:800;letter-spacing:.035em;color:#a8e1ff}
+#gesture{font-family:var(--display-font);font-weight:800;letter-spacing:.035em}
+#detail{font-family:var(--ui-font);font-size:.88rem;line-height:1.6;color:#b9cad9}
+.status,.note{font-family:var(--ui-font);font-size:.82rem;line-height:1.5}
+.card{border-color:#28445e;box-shadow:0 22px 60px #0005,inset 0 1px 0 #ffffff0b}
+.card:before{width:76px;height:2px;background:linear-gradient(90deg,#7bd3ff,#dff6ff);box-shadow:0 0 15px #5bbfff66}
+.layout .card:hover{border-color:#6bbce7}
+.preview{border-color:#35617f}
+.preview:after{font-family:var(--display-font);font-weight:700;letter-spacing:.16em;color:#c7edff}
+.menu-toggle{font-family:var(--display-font);font-weight:700;font-size:.78rem;letter-spacing:.04em}
+.menu-heading h2{font-family:var(--display-font)!important}
+.menu-section{transition:border-color .2s ease,background .2s ease}
+.menu-section:hover{border-color:#426c8b;background:#0c1b2a}
+.menu-section h3{font-family:var(--display-font);font-size:.78rem;letter-spacing:.04em}
+.menu-section strong{color:#a6e0ff}
+.menu-footer{font-size:.65rem;letter-spacing:.13em}
+.chip{font-size:.68rem}
+::selection{background:#7acfff55;color:#fff}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #91dcff;outline-offset:3px}
+@media(max-width:760px){
+ .hero-copy h1{font-size:clamp(2.35rem,10vw,4rem)}
+ .hero-copy p{font-size:.9rem}
+ .brand{font-size:.94rem}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ .layout .card,.menu-section,button{transition:none}
+}
 
 </style>
 </head>
