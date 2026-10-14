@@ -1,38 +1,34 @@
-# ANIME REALITY — Gesture-Controlled Anime Portal
+# ANIME REALITY — AI Gesture Portal
 
 A browser-based prototype for a BCA AI & ML assignment integrating Digital Image Processing (DIP), Natural Language Processing (NLP), and Machine Learning & Neural Networks (ML & NN).
 
 ## Current prototype
-- Simple character-style selector (anime-inspired original styles)
-- Webcam preview with start/stop controls
-- Hand landmark tracking using MediaPipe Tasks Vision
-- Four-finger gesture trigger (best-effort heuristic)
-- Person segmentation/visual effect is planned for the next iteration; this initial scaffold does not claim full-body anime replacement yet
-- Text command input for switching styles (simple command parsing; NLP model integration is planned)
+- Minimal interface with a camera start/stop control and full-screen/exit-full-screen button
+- Five selectable anime-inspired themes: Solo Leveling-inspired Shadow Realm, One Piece-inspired Grand Voyage, Bleach-inspired Soul Reaper, Naruto-inspired Ninja Storm, and Demon Slayer-inspired Breathing Aura
+- Live hand landmark tracking with MediaPipe Tasks Vision
+- Four-finger gesture opens a square themed portal overlay around the detected hand; two fingers do not activate it
+- Text commands can switch the selected theme using simple keyword-based intent matching
 
 ## Run locally
-Open `index.html` through a local web server (camera access generally requires HTTPS or localhost). For example:
+Serve this folder over localhost (camera access usually requires HTTPS or localhost):
 
 ```bash
 python -m http.server 8000
 ```
 
-Then visit `http://localhost:8000`.
+Then open http://localhost:8000 and allow camera access.
 
-## Important notes
-- Allow camera permission when prompted.
-- MediaPipe model assets and CDN access require an internet connection.
-- This is a prototype. It does not yet transform the whole body into a fully animated anime character.
-- For the assignment report, distinguish implemented features from planned enhancements.
+## Important limitations
+This is an early prototype. The portal is currently a themed animated graphic around the hand, not a rendered anime environment or full-body character replacement. Finger counting uses a simple landmark heuristic and may need calibration for different hand orientations. MediaPipe assets require internet access.
 
 ## Subject mapping
-- **DIP:** camera frames, visual overlay, and the next-stage person segmentation/masking pipeline.
-- **NLP:** text commands to select scene/style; can be upgraded to a dedicated NLP model.
-- **ML & NN:** MediaPipe hand landmark model and gesture interpretation; body-pose tracking can be added next.
+- **DIP:** camera frames and hand-region overlay positioning
+- **NLP:** keyword-based interpretation of text commands to select a world
+- **ML & NN:** MediaPipe's neural hand-landmark model and gesture interpretation
 
 ## Next milestones
-1. Add person segmentation and a masked anime-style shader/effect.
-2. Add body-pose tracking.
-3. Add robust finger counting and gesture calibration.
-4. Add an NLP intent classifier and scene descriptions.
-5. Test camera performance across browsers and devices.
+1. Improve hand tracking and finger-count reliability across orientations.
+2. Add person segmentation and a more convincing anime-scene effect inside the portal.
+3. Add body-pose tracking if the character should follow the user's body.
+4. Replace keyword matching with a proper NLP intent classifier if needed.
+5. Test the deployed site on multiple browsers and devices.
