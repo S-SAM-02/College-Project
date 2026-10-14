@@ -212,6 +212,25 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
  #animeBackground{animation:none!important}
 }
 
+
+/* FINAL REQUESTED UI THEME: white / ice-blue / black. Background video layer is intentionally unchanged. */
+:root{--bg:#050b13;--panel:#0a1522;--line:#284a67;--accent:#6fc9ff;--cyan:#dff5ff;--text:#f5fbff;--muted:#a8c1d4}
+.brand span,.tag,.metric,#gesture{color:#8bd6ff;text-shadow:0 0 12px #58bfff28}
+h1 em{color:#a6e1ff;text-shadow:0 0 18px #62c9ff33}
+.card,.project-menu{background:linear-gradient(145deg,#0d1b2aef,#050b13f7);border-color:#284a67}
+.card:before{background:#83d5ff;box-shadow:0 0 16px #64caff88}
+button,select,input{background:#0a1927;border-color:#2c526e;color:#f5fbff}
+button.primary{background:linear-gradient(135deg,#e9f8ff,#79cfff);border-color:#c7eeff;color:#06121d;box-shadow:0 0 18px #6fc9ff22}
+button:hover:not(:disabled){border-color:#a5e4ff}
+.preview{border-color:#39739b;box-shadow:inset 0 0 48px #6fc9ff12,0 0 26px #0006}
+.preview:after{color:#c8eeff;text-shadow:0 0 8px #55bfff}
+.note{background:#0d2030;border-left-color:#77ceff;color:#e7f6ff}
+.menu-section{background:#081521;border-color:#284a67}
+.menu-section strong,.menu-kicker,.menu-footer span,.menu-chevron,.icon-button{color:#8bd6ff}
+.avatar-mark{background:linear-gradient(135deg,#e8f8ff,#68c9ff);color:#071522}
+.command-row input{background:#050e18;border-color:#315e7d}
+#animeBackground{ /* preserve original background source, opacity and placement */ }
+
 </style>
 </head>
 <body><video id="animeBackground" autoplay muted loop playsinline aria-hidden="true"><source src="assets/anime-background.mp4" type="video/mp4"><source src="https://videos.pexels.com/video-files/6609509/6609509-hd_1920_1080_25fps.mp4" type="video/mp4"></video><script>document.getElementById("animeBackground").querySelector("source").addEventListener("error",function(){const v=document.getElementById("animeBackground");const fallback=v.querySelectorAll("source")[1];if(fallback&&!v.dataset.fallbackTried){v.dataset.fallbackTried="1";v.src="";v.innerHTML="";v.appendChild(fallback);v.load();v.play().catch(()=>{});}});</script><main>
@@ -222,7 +241,7 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
     <article class="menu-section"><div class="menu-kicker">01 / OVERVIEW</div><h3>About this website</h3><p>ANIME REALITY is an AI-assisted gesture portal concept that combines live hand tracking with anime-inspired visual themes.</p></article>
     <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a freeform portal when the two-hand thumb-and-index gesture is recognized. Choose a character to change the portal palette.</p></article>
     <article class="menu-section"><div class="menu-kicker">03 / TECHNOLOGY</div><h3>Technologies used</h3><p><strong>DIP</strong> — visual input and image handling. <strong><strong>NLP</strong> — typed anime and character name matching. <strong>ML / neural vision</strong> — MediaPipe hand-landmark detection and gesture logic. <strong>HTML, CSS and JavaScript</strong> — interface and interactions.</p></article>
-    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, two-hand thumb-and-index gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype renders a hand-anchored perspective hologram with animated energy, a character-themed HUD, and live hand landmarks. It does not generate a full animated anime world or include licensed character footage.</p></article>
+    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, two-hand thumb-and-index gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype connects matching fingertips with straight lines and renders an original anime-inspired avatar in the gap. Camera resolution and frame rate depend on device/browser capability; 4K/60 FPS is not guaranteed.</p></article>
     <article class="menu-section"><div class="menu-kicker">05 / QUICK GUIDE</div><h3>How to use</h3><p>1. Choose a character. 2. Start the camera and allow permission. 3. Show both hands and extend the thumb and index finger on each hand to open the portal. 4. Type an anime title or character name in the Recognize anime box if needed. 5. Open the preview in fullscreen when needed.</p></article>
     <article class="menu-section"><div class="menu-kicker">06 / REQUIREMENTS</div><h3>Browser & access</h3><p>Camera access generally requires HTTPS or localhost. MediaPipe model files need an internet connection. Character recognition uses the text you type; no microphone is required.</p></article>
   </div>
@@ -272,7 +291,7 @@ function hasThumbAndIndexExtended(lm){
  const thumbExtended=thumbAngle>115&&thumbSpread>palm*0.45&&distance3(lm[4],wrist)>distance3(lm[2],wrist)*1.02;
  return thumbExtended&&indexExtended;
 }
-function resize(){const r=preview.getBoundingClientRect();const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,1.5));const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}ctx.setTransform(w,0,0,h,0,0)}
+function resize(){const r=preview.getBoundingClientRect();const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,2));const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}ctx.setTransform(w,0,0,h,0,0)}
 let portalSmooth={x:.5,y:.5,size:.22,lost:true},tipSmooth={};
 function smoothTip(key,p){
  const previous=tipSmooth[key];
@@ -283,104 +302,92 @@ function smoothTip(key,p){
 function draw(results){
   ctx.clearRect(0,0,1,1);
   active=false;
-  const hands=(results.landmarks||[]).slice(0,2).map(lm=>({lm,cx:lm.reduce((sum,p)=>sum+p.x,0)/lm.length})).sort((a,b)=>a.cx-b.cx);
+  const hands=(results.landmarks||[]).slice(0,2).map((lm,index)=>({lm,cx:lm.reduce((sum,p)=>sum+p.x,0)/lm.length,index})).sort((a,b)=>a.cx-b.cx);
   const themeMap={
-    shadow:{color:'#b99aff',name:'SHADOW REALM',symbol:'✦'},
-    pirate:{color:'#ffd16b',name:'GRAND LINE',symbol:'☠'},
-    soul:{color:'#d9f5ff',name:'SOUL SOCIETY',symbol:'✧'},
-    ninja:{color:'#ff697c',name:'SHINOBI WORLD',symbol:'火'},
-    slayer:{color:'#77f3c7',name:'BREATHING STYLE',symbol:'滅'},
-    goku:{color:'#ff9e45',name:'POWER LEVEL',symbol:'界'},
-    gojo:{color:'#83d8ff',name:'INFINITE VOID',symbol:'六'},
-    eren:{color:'#b6d58b',name:'WALL TITAN',symbol:'進'},
-    deku:{color:'#78e7ad',name:'HERO ACADEMIA',symbol:'PLUS ULTRA'},
+    shadow:{color:'#75cfff',name:'SHADOW REALM',symbol:'✦'},
+    pirate:{color:'#8bdcff',name:'GRAND LINE',symbol:'☠'},
+    soul:{color:'#e2f6ff',name:'SOUL SOCIETY',symbol:'✧'},
+    ninja:{color:'#79baff',name:'SHINOBI WORLD',symbol:'火'},
+    slayer:{color:'#91eaff',name:'BREATHING STYLE',symbol:'滅'},
+    goku:{color:'#83caff',name:'POWER LEVEL',symbol:'界'},
+    gojo:{color:'#b6e9ff',name:'INFINITE VOID',symbol:'六'},
+    eren:{color:'#b2d8ed',name:'WALL TITAN',symbol:'進'},
+    deku:{color:'#90e2d0',name:'HERO ACADEMIA',symbol:'PLUS ULTRA'},
     killua:{color:'#a7f0ff',name:'GOD SPEED',symbol:'⚡'},
-    zoro:{color:'#a6dc8e',name:'THREE SWORD STYLE',symbol:'三'},
-    rukia:{color:'#e0eaff',name:'SODE NO SHIRAYUKI',symbol:'❄'}
+    zoro:{color:'#a6dcce',name:'THREE SWORD STYLE',symbol:'三'},
+    rukia:{color:'#e0f5ff',name:'SODE NO SHIRAYUKI',symbol:'❄'}
   };
   const theme=themeMap[styleSelect.value]||themeMap.shadow;
-  const point=(lm,i)=>smoothTip('h'+hands.indexOf(hands.find(h=>h.lm===lm))+'-'+i,{x:lm[i].x,y:lm[i].y});
-  // Draw the complete MediaPipe hand skeleton, not just two isolated fingers.
-  for(let hi=0;hi<hands.length;hi++){
-    const lm=hands[hi].lm;
-    const bones=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=theme.color;ctx.globalAlpha=.8;ctx.lineWidth=.0018;
+  const bones=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  // Draw all 21 landmarks and all five fingers on each detected hand.
+  for(const hand of hands){
+    const lm=hand.lm;
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=theme.color;ctx.globalAlpha=.92;ctx.lineWidth=.0018;
     for(const [a,b] of bones){ctx.beginPath();ctx.moveTo(lm[a].x,lm[a].y);ctx.lineTo(lm[b].x,lm[b].y);ctx.stroke()}
-    for(const i of [4,8,12,16,20]){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.0032,0,Math.PI*2);ctx.fillStyle='#fff';ctx.shadowColor=theme.color;ctx.shadowBlur=.008;ctx.fill()}
+    for(const i of [4,8,12,16,20]){
+      ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.004,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.shadowColor=theme.color;ctx.shadowBlur=.006;ctx.fill();
+      ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.007,0,Math.PI*2);ctx.strokeStyle=theme.color;ctx.globalAlpha=.55;ctx.lineWidth=.001;ctx.stroke();ctx.globalAlpha=.92;
+    }
     ctx.restore();
   }
   if(hands.length>=2){
     const left=hands[0].lm,right=hands[1].lm;
     const leftReady=hasThumbAndIndexExtended(left),rightReady=hasThumbAndIndexExtended(right);
-    const twoHandsReady=leftReady&&rightReady;
-    gestureHistory.push(twoHandsReady);if(gestureHistory.length>2)gestureHistory.shift();
+    gestureHistory.push(leftReady&&rightReady);if(gestureHistory.length>2)gestureHistory.shift();
     active=gestureHistory.length===2&&gestureHistory.every(Boolean);
-    if(active){
-      const p={
-        lt:smoothTip('portal-lt',{x:left[4].x,y:left[4].y}),
-        li:smoothTip('portal-li',{x:left[8].x,y:left[8].y}),
-        ri:smoothTip('portal-ri',{x:right[8].x,y:right[8].y}),
-        rt:smoothTip('portal-rt',{x:right[4].x,y:right[4].y})
-      };
-      const mid={x:(p.lt.x+p.li.x+p.ri.x+p.rt.x)/4,y:(p.lt.y+p.li.y+p.ri.y+p.rt.y)/4};
-      const t=performance.now()/1000;
-      const mix=(a,b,n)=>({x:a.x+(b.x-a.x)*n,y:a.y+(b.y-a.y)*n});
-      const q=(a,b,c,d)=>{ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.closePath()};
-      // Perspective glass panel: corners follow the four thumb/index tips.
-      ctx.save();q(p.lt,p.li,p.ri,p.rt);
-      const fill=ctx.createLinearGradient(p.lt.x,p.lt.y,p.ri.x,p.ri.y);
-      fill.addColorStop(0,'rgba(9,24,45,.66)');fill.addColorStop(.5,'rgba(24,71,103,.48)');fill.addColorStop(1,'rgba(7,18,36,.68)');
-      ctx.fillStyle=fill;ctx.fill();ctx.clip();
-      // Soft energy bloom and an animated core make the panel feel like an anime gateway.
-      const radius=Math.max(.08,Math.min(.32,Math.hypot(p.ri.x-p.lt.x,p.ri.y-p.lt.y)*.42));
-      const bloom=ctx.createRadialGradient(mid.x,mid.y,.005,mid.x,mid.y,radius);
-      bloom.addColorStop(0,theme.color+'66');bloom.addColorStop(.48,theme.color+'20');bloom.addColorStop(1,'rgba(4,12,28,0)');
-      ctx.fillStyle=bloom;ctx.fillRect(0,0,1,1);
-      ctx.strokeStyle=theme.color;ctx.globalAlpha=.16;ctx.lineWidth=.001;ctx.setLineDash([.006,.009]);
-      for(let i=0;i<12;i++){const yy=(i/12+(t*.035)%1);ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(1,yy);ctx.stroke()}
-      ctx.setLineDash([]);ctx.globalAlpha=.9;ctx.strokeStyle='#ffffff';ctx.lineWidth=.0008;
-      ctx.beginPath();ctx.arc(mid.x,mid.y,.025+Math.sin(t*2.2)*.004,0,Math.PI*2);ctx.stroke();
-      ctx.globalAlpha=.65;ctx.beginPath();ctx.arc(mid.x,mid.y,.045+Math.cos(t*1.4)*.006,0,Math.PI*2);ctx.stroke();
-      ctx.globalAlpha=.95;ctx.fillStyle='#fff';ctx.shadowColor=theme.color;ctx.shadowBlur=.012;
-      ctx.beginPath();ctx.arc(mid.x,mid.y,.004,0,Math.PI*2);ctx.fill();
-      // Tiny HUD marks and star-like energy particles inside the clipped glass.
-      ctx.shadowBlur=0;ctx.font='700 .018px monospace';ctx.textAlign='center';ctx.fillStyle='#ffffff';
-      ctx.fillText(theme.symbol,mid.x,mid.y-.07);
-      ctx.font='700 .012px monospace';ctx.fillStyle=theme.color;
-      ctx.fillText(theme.name,mid.x,mid.y+.075);
-      ctx.font='600 .008px monospace';ctx.fillStyle='rgba(255,255,255,.8)';
-      ctx.fillText('ANIME REALITY  /  GESTURE LINK ESTABLISHED',mid.x,mid.y+.095);
-      for(let i=0;i<18;i++){
-        const angle=i*2.399+t*.18,rr=.025+((i%6)/6)*.08;
-        const x=mid.x+Math.cos(angle)*rr,y=mid.y+Math.sin(angle)*rr;
-        ctx.fillStyle=i%3===0?'#fff':theme.color;ctx.globalAlpha=.35+.45*Math.abs(Math.sin(t+i));
-        ctx.beginPath();ctx.arc(x,y,.0015,0,Math.PI*2);ctx.fill();
-      }
-      ctx.restore();
-      // High-energy edge: wide glow, crisp border, and bright fingertip anchors.
-      ctx.save();ctx.lineJoin='round';ctx.lineCap='round';q(p.lt,p.li,p.ri,p.rt);
-      ctx.strokeStyle=theme.color;ctx.globalAlpha=.35;ctx.lineWidth=.009;ctx.shadowColor=theme.color;ctx.shadowBlur=.018;ctx.stroke();
-      ctx.globalAlpha=1;ctx.lineWidth=.002;ctx.strokeStyle=theme.color;ctx.shadowBlur=.009;ctx.stroke();
-      ctx.lineWidth=.0009;ctx.strokeStyle='#fff';ctx.shadowBlur=.004;ctx.stroke();
-      for(const tip of [p.lt,p.li,p.ri,p.rt]){
-        ctx.beginPath();ctx.arc(tip.x,tip.y,.007,0,Math.PI*2);ctx.fillStyle=theme.color;ctx.globalAlpha=.28;ctx.fill();
-        ctx.beginPath();ctx.arc(tip.x,tip.y,.0032,0,Math.PI*2);ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.fill();
-      }
+    // Connect corresponding fingertips with five STRAIGHT lines. These remain visible
+    // as the hands move; no curved rope and no forced rectangle.
+    const fingerPairs=[[4,4],[8,8],[12,12],[16,16],[20,20]];
+    const pairs=fingerPairs.map(([li,ri])=>({
+      a:smoothTip('straight-L-'+li,{x:left[li].x,y:left[li].y}),
+      b:smoothTip('straight-R-'+ri,{x:right[ri].x,y:right[ri].y}),
+      li,ri
+    }));
+    ctx.save();ctx.lineCap='round';
+    for(let i=0;i<pairs.length;i++){
+      const p=pairs[i];
+      ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
+      ctx.strokeStyle=theme.color;ctx.globalAlpha=.26;ctx.lineWidth=.008;ctx.shadowColor=theme.color;ctx.shadowBlur=.012;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
+      ctx.globalAlpha=.98;ctx.lineWidth=.0018;ctx.shadowBlur=.004;ctx.strokeStyle='#f5fbff';ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
+      ctx.globalAlpha=.95;ctx.lineWidth=.0008;ctx.strokeStyle=theme.color;ctx.stroke();
+    }
+    ctx.restore();
+    // Put the anime figure in the open gap between hands, not over the finger links.
+    const leftEdge=left[9],rightEdge=right[9];
+    const center={x:(leftEdge.x+rightEdge.x)/2,y:(leftEdge.y+rightEdge.y)/2};
+    const gap=Math.hypot(rightEdge.x-leftEdge.x,rightEdge.y-leftEdge.y);
+    if(gap>.12){
+      const size=Math.max(.035,Math.min(.105,gap*.20));
+      const bob=Math.sin(performance.now()*.0018)*.004;
+      ctx.save();ctx.translate(center.x,center.y+bob);
+      // Original stylized anime avatar: glowing hair silhouette, face, eyes and collar.
+      ctx.globalAlpha=.22;ctx.fillStyle=theme.color;ctx.shadowColor=theme.color;ctx.shadowBlur=.025;
+      ctx.beginPath();ctx.ellipse(0,0,size*.78,size*1.35,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;ctx.shadowBlur=.01;ctx.fillStyle='#071522';
+      ctx.beginPath();ctx.moveTo(-size*.48,-size*.12);ctx.lineTo(-size*.44,-size*.72);ctx.lineTo(-size*.1,-size*.95);ctx.lineTo(size*.2,-size*.83);ctx.lineTo(size*.48,-size*.45);ctx.lineTo(size*.37,-size*.08);ctx.lineTo(size*.27,size*.2);ctx.lineTo(size*.35,size*.62);ctx.lineTo(-size*.34,size*.62);ctx.lineTo(-size*.25,size*.2);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=theme.color;ctx.lineWidth=.0013;ctx.stroke();
+      ctx.fillStyle='#dff7ff';ctx.beginPath();ctx.ellipse(0,-size*.32,size*.27,size*.32,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#071522';ctx.beginPath();ctx.moveTo(-size*.29,-size*.43);ctx.lineTo(-size*.35,-size*.85);ctx.lineTo(-size*.06,-size*.66);ctx.lineTo(size*.18,-size*.9);ctx.lineTo(size*.35,-size*.45);ctx.lineTo(size*.18,-size*.5);ctx.lineTo(0,-size*.43);ctx.lineTo(-size*.16,-size*.49);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#071522';ctx.beginPath();ctx.ellipse(-size*.105,-size*.3,size*.045,size*.065,0,0,Math.PI*2);ctx.ellipse(size*.105,-size*.3,size*.045,size*.065,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=theme.color;ctx.lineWidth=.0012;ctx.beginPath();ctx.moveTo(-size*.28,size*.16);ctx.lineTo(0,size*.04);ctx.lineTo(size*.28,size*.16);ctx.lineTo(size*.36,size*.62);ctx.lineTo(-size*.36,size*.62);ctx.closePath();ctx.stroke();
+      ctx.globalAlpha=.85;ctx.fillStyle='#ffffff';ctx.font='700 .012px monospace';ctx.textAlign='center';ctx.fillText(theme.name,0,size*.83);
       ctx.restore();
     }
-    gesture.textContent=active?'HOLOGRAM LINK ACTIVE':(leftReady||rightReady?'Both hands seen — align both gestures':'Both hands detected — extend thumb + index');
-    detail.textContent=active?'Perspective hologram follows your hands. Move them apart or together to resize and rotate the portal.':'Extend thumb and index on both hands. The complete finger skeleton is tracked while you position the hologram.';
+    gesture.textContent=active?'FIVE-LINK HOLOGRAM ACTIVE':(leftReady||rightReady?'Hands tracked — align both gestures':'Both hands detected — all five links connected');
+    detail.textContent='Five straight links connect thumb-to-thumb, index-to-index, middle-to-middle, ring-to-ring and little-finger-to-little-finger. The anime avatar sits in the open gap.';
   }else if(hands.length===1){
     gestureHistory=[];gesture.textContent='ONE HAND LOCKED — SEARCHING SECOND HAND';
-    detail.textContent='Your full hand skeleton is tracked. Bring the second hand into view to build the hologram.';
+    detail.textContent='All five fingers and the hand skeleton are visible. Bring the second hand into frame to connect matching fingertips.';
   }else{
-    gestureHistory=[];gesture.textContent='SCANNING FOR HANDS';
-    detail.textContent='Move both hands into view. Use good lighting and keep fingertips inside the camera frame.';
+    gestureHistory=[];detail.textContent='Move both hands into view. Good lighting and visible fingertips improve tracking.';
+    gesture.textContent='SCANNING FOR HANDS';
   }
-  document.querySelector('#gestureNote').textContent=active?'HOLOGRAM ACTIVE // LIVE PERSPECTIVE PANEL LOCKED TO BOTH HANDS':hands.length===1?'ONE HAND LOCKED // SHOW YOUR SECOND HAND':'Full hand landmarks are tracked. Show both hands and extend thumb + index on each hand to activate the hologram.';
+  document.querySelector('#gestureNote').textContent=hands.length>=2?'FIVE STRAIGHT FINGER LINKS // LEFT HAND TO RIGHT HAND':hands.length===1?'ONE HAND TRACKED // SHOW YOUR SECOND HAND':'Full hand skeleton tracking is active. Show both hands to connect all five corresponding fingertips.';
 }
-async function loop(){if(!running)return;const now=performance.now();if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker&&now-lastDetectAt>=28){lastVideoTime=video.currentTime;lastDetectAt=now;try{draw(landmarker.detectForVideo(video,now))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
-start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep both hands fully visible, palms toward the camera, and extend only thumb + index on each hand. Good lighting improves detection.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
+async function loop(){if(!running)return;const now=performance.now();if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker&&now-lastDetectAt>=24){lastVideoTime=video.currentTime;lastDetectAt=now;try{draw(landmarker.detectForVideo(video,now))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
+start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep both hands fully visible, palms toward the camera, and extend only thumb + index on each hand. Good lighting improves detection.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
 stop.addEventListener('click',()=>{running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);placeholder.style.display='block';start.disabled=false;stop.disabled=true;setStatus('Camera off');gesture.textContent='Waiting for camera';detail.textContent='Start the camera to detect hand gestures.'});
 fullscreen.addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(preview.requestFullscreen)await preview.requestFullscreen();else if(preview.webkitRequestFullscreen)preview.webkitRequestFullscreen();else throw new Error('Fullscreen is not supported by this browser')}else if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){detail.textContent='Full screen could not start. Use the browser full-screen shortcut, then try again.';console.error('Fullscreen error:',e)}});
 document.addEventListener('fullscreenchange',()=>{fullscreen.textContent=document.fullscreenElement?'Exit full screen':'Full screen';requestAnimationFrame(()=>{resize();if(running&&landmarker&&video.readyState>=2){try{draw(landmarker.detectForVideo(video,performance.now()))}catch(e){console.warn('Tracking will resume on the next frame',e)}}})});
