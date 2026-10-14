@@ -47,6 +47,44 @@ main{position:relative;max-width:1320px;margin:auto;padding:24px 22px 42px;min-h
 .menu-footer span{color:var(--cyan)}.menu-footer .menu-stack{margin-left:auto}
 @media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:16px 10px}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.command-row{flex-direction:column}.hero-copy{margin-top:28px}.menu-grid{grid-template-columns:1fr}.menu-footer .menu-stack{margin-left:0}}
+
+/* CLASSIC SOLO-LEVELING-INSPIRED CINEMATIC UI — refined, not punk */
+:root{color-scheme:dark;--bg:#070b12;--panel:#0e1622;--line:#26384b;--accent:#8db8ff;--cyan:#d8e8ff;--text:#edf4ff;--muted:#a4b4c8}
+body{background:#070b12;font-family:Inter,"Segoe UI",system-ui,sans-serif;color:var(--text)}
+body:before{background:radial-gradient(ellipse at 78% 25%,#254d8066,transparent 36%),radial-gradient(ellipse at 18% 82%,#142a4566,transparent 40%),linear-gradient(125deg,#060a11,#101a29 48%,#070b12);animation:realmDrift 22s ease-in-out infinite alternate}
+body:after{opacity:.1;background-image:linear-gradient(#a9caff0c 1px,transparent 1px),linear-gradient(90deg,#a9caff0c 1px,transparent 1px);background-size:48px 48px}
+.brand{font-size:.92rem;letter-spacing:.2em}.brand span{color:#a9caff}
+.tag{color:#a9caff;letter-spacing:.16em}
+h1{font-weight:800;letter-spacing:.015em}h1 em{color:#c6dcff;text-shadow:0 0 26px #6fa9ff30}
+.hero-copy{border-left:2px solid #8db8ff;margin:38px 0 22px;padding:18px 0 12px 22px}
+.hero-copy p{color:#b9c9dc}
+.layout{gap:20px}
+.card{background:linear-gradient(145deg,#101a29f2,#0a111cf7);border:1px solid #293d54;border-radius:14px;box-shadow:0 22px 60px #0006,inset 0 1px 0 #ffffff0b}
+.layout .card:hover{transform:translateY(-2px);border-color:#587ca8}
+.preview{border:1px solid #344e6c;border-radius:12px;background:radial-gradient(ellipse at 65% 45%,#1c3555,#070b12 70%);box-shadow:inset 0 0 60px #568ed51a,0 10px 35px #0005}
+.preview:before{background:linear-gradient(115deg,transparent 35%,#c3dcff0a 50%,transparent 65%);background-size:220% 100%}
+.preview:after{content:"LIVE CAMERA  /  REALITY GATE";color:#d3e4ff;text-shadow:0 0 8px #5c9eff66}
+button,select,input{border-radius:9px;border:1px solid #30455d;background:#101b2a;color:var(--text)}
+button{transition:background .2s,border-color .2s,transform .2s}
+button:hover:not(:disabled){border-color:#8db8ff;transform:translateY(-1px)}
+button.primary{background:linear-gradient(135deg,#dbeaff,#7daeff);border-color:#b7d1ff;color:#08111e;font-weight:800}
+.menu-toggle{background:#101b2a;border-color:#344a63;border-radius:10px}
+.avatar-mark{background:linear-gradient(135deg,#dbeaff,#729ee0);color:#08111e;border-radius:8px}
+.menu-chevron,.icon-button{color:#c6dcff}
+.project-menu{background:linear-gradient(145deg,#101a29,#0a111c);border-color:#30455d}
+.menu-heading{border-color:#293d54}
+.command-box{border-color:#293d54}
+.command-row input{background:#080f19;border-color:#344a63;color:#edf4ff;border-radius:9px}
+.command-row button{border-radius:9px}
+.metric{color:#e5efff;letter-spacing:.03em}
+.note{background:#111f30;border-left-color:#8db8ff;color:#dbe8fa;border-radius:0 9px 9px 0}
+.menu-section{border-color:#293d54;background:#0b1420;border-radius:10px}
+.menu-section h3{color:#e6efff}
+.menu-section p{color:#aabbd0}
+.menu-section strong,.menu-kicker,.menu-footer span{color:#c6dcff}
+.menu-warning{border-left-color:#8db8ff}
+.menu-footer,.menu-heading{border-color:#293d54}
+@media(prefers-reduced-motion:no-preference){.brand span{animation:none}}
 </style>
 </head>
 <body><main>
@@ -56,8 +94,8 @@ main{position:relative;max-width:1320px;margin:auto;padding:24px 22px 42px;min-h
   <div class="menu-grid">
     <article class="menu-section"><div class="menu-kicker">01 / OVERVIEW</div><h3>About this website</h3><p>ANIME REALITY is an AI-assisted gesture portal concept that combines live hand tracking with anime-inspired visual themes.</p></article>
     <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a themed square portal when the four-finger gesture is recognized. Choose a character to change the portal palette.</p></article>
-    <article class="menu-section"><div class="menu-kicker">03 / TECHNOLOGY</div><h3>Technologies used</h3><p><strong>DIP</strong> — visual input and image handling. <strong>NLP</strong> — voice-command interpretation. <strong>ML / neural vision</strong> — MediaPipe hand-landmark detection and gesture logic. <strong>HTML, CSS and JavaScript</strong> — interface and interactions.</p></article>
-    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, four-finger gesture check, character-theme selector, fullscreen preview, and optional browser speech recognition.</p><p class="menu-warning">This prototype currently renders a themed portal overlay; it does not yet replace the camera view with a fully generated anime world.</p></article>
+    <article class="menu-section"><div class="menu-kicker">03 / TECHNOLOGY</div><h3>Technologies used</h3><p><strong>DIP</strong> — visual input and image handling. <strong><strong>NLP</strong> — text-based anime and character name matching. <strong>ML / neural vision</strong> — MediaPipe hand-landmark detection and gesture logic. <strong>HTML, CSS and JavaScript</strong> — interface and interactions.</p></article>
+    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, four-finger gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype currently renders a themed portal overlay; it does not yet replace the camera view with a fully generated anime world.</p></article>
     <article class="menu-section"><div class="menu-kicker">05 / QUICK GUIDE</div><h3>How to use</h3><p>1. Choose a character. 2. Start the camera and allow permission. 3. Hold one hand in view and show four fingers. 4. Or type an anime title or character name in the Recognize anime box and submit it. 5. Open the preview in fullscreen when needed.</p></article>
     <article class="menu-section"><div class="menu-kicker">06 / REQUIREMENTS</div><h3>Browser & access</h3><p>Camera access generally requires HTTPS or localhost. MediaPipe model files need an internet connection. Character recognition uses the text you type; no microphone is required.</p></article>
   </div>
