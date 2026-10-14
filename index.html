@@ -190,6 +190,28 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
  .row button{padding:8px 9px}
 }
 
+
+/* RESPONSIVE CENTERED BACKGROUND VIDEO — phone, tablet and desktop */
+#animeBackground{
+ position:fixed!important;left:50%!important;top:50%!important;
+ right:auto!important;bottom:auto!important;
+ width:100vw!important;height:100vh!important;height:100dvh!important;
+ min-width:100vw;min-height:100vh;min-height:100dvh;
+ max-width:none!important;max-height:none!important;
+ transform:translate(-50%,-50%)!important;
+ object-fit:cover!important;object-position:50% 50%!important;
+ z-index:-2;pointer-events:none;display:block;
+}
+@media (max-width:760px){
+ #animeBackground{width:100vw!important;height:100vh!important;height:100dvh!important;object-position:center center!important}
+}
+@media (orientation:portrait) and (max-width:760px){
+ #animeBackground{object-fit:cover!important;object-position:center center!important}
+}
+@media (prefers-reduced-motion:reduce){
+ #animeBackground{animation:none!important}
+}
+
 </style>
 </head>
 <body><video id="animeBackground" autoplay muted loop playsinline aria-hidden="true"><source src="https://videos.pexels.com/video-files/6609509/6609509-hd_1920_1080_25fps.mp4" type="video/mp4"></video><main>
