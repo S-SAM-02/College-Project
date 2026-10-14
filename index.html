@@ -261,15 +261,14 @@ function jointAngle(a,b,c){
  return Math.acos(Math.max(-1,Math.min(1,dot/(la*lc))))*180/Math.PI;
 }
 function hasThumbAndIndexExtended(lm){
- /* The intended portal gesture is thumb + index finger on EACH hand. */
+ /* Detect ONLY the requested thumb + index gesture; do not count the other three fingers. */
  const wrist=lm[0];
  const indexAngle=jointAngle(lm[5],lm[6],lm[7]);
  const indexTipReach=distance3(lm[8],wrist),indexPipReach=distance3(lm[6],wrist);
- const indexExtended=indexAngle>145&&indexTipReach>indexPipReach*1.04;
- /* Thumb tip should be extended away from the index-finger base, beyond the thumb IP joint. */
- const thumbTipToIndexBase=distance3(lm[4],lm[5]);
- const thumbJointToIndexBase=distance3(lm[3],lm[5]);
- const thumbExtended=thumbTipToIndexBase>thumbJointToIndexBase*1.12;
+ const indexExtended=indexAngle>135&&indexTipReach>indexPipReach*1.02;
+ const thumbTipReach=distance3(lm[4],lm[0]),thumbJointReach=distance3(lm[3],lm[0]);
+ const thumbSpread=distance3(lm[4],lm[5]),thumbBaseReach=distance3(lm[3],lm[5]);
+ const thumbExtended=thumbTipReach>thumbJointReach*1.08&&thumbSpread>thumbBaseReach*1.03;
  return thumbExtended&&indexExtended;
 }
 function resize(){const r=preview.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
@@ -278,11 +277,12 @@ function draw(results){
  ctx.clearRect(0,0,1,1);active=false;
  const hands=results.landmarks||[];
  if(hands.length){
-  const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  /* Draw only thumb and index landmarks so the UI matches the two-finger control. */
+  const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8]];
   ctx.save();ctx.lineWidth=.003;ctx.strokeStyle="#f0c66a";ctx.fillStyle="#fff0c9";
   for(const lm of hands){
    for(const [a,b] of links){ctx.beginPath();ctx.moveTo(lm[a].x,lm[a].y);ctx.lineTo(lm[b].x,lm[b].y);ctx.stroke()}
-   for(let i=0;i<lm.length;i++){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,[4,8,12,16,20].includes(i)?.009:.005,0,Math.PI*2);ctx.fill()}
+   for(const i of [0,1,2,3,4,5,6,7,8]){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,[4,8].includes(i)?.009:.005,0,Math.PI*2);ctx.fill()}
   }
   ctx.restore();
   const twoHandsReady=hands.length>=2&&hasThumbAndIndexExtended(hands[0])&&hasThumbAndIndexExtended(hands[1]);
