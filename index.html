@@ -220,7 +220,7 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
   <div class="menu-heading"><div><div class="tag">PROJECT ARCHIVE // 01</div><h2>About Anime Reality</h2></div><button id="menuClose" class="icon-button" aria-label="Close project menu">×</button></div>
   <div class="menu-grid">
     <article class="menu-section"><div class="menu-kicker">01 / OVERVIEW</div><h3>About this website</h3><p>ANIME REALITY is an AI-assisted gesture portal concept that combines live hand tracking with anime-inspired visual themes.</p></article>
-    <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a themed square portal when the two-hand thumb-and-index gesture is recognized. Choose a character to change the portal palette.</p></article>
+    <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a freeform portal when the two-hand thumb-and-index gesture is recognized. Choose a character to change the portal palette.</p></article>
     <article class="menu-section"><div class="menu-kicker">03 / TECHNOLOGY</div><h3>Technologies used</h3><p><strong>DIP</strong> — visual input and image handling. <strong><strong>NLP</strong> — typed anime and character name matching. <strong>ML / neural vision</strong> — MediaPipe hand-landmark detection and gesture logic. <strong>HTML, CSS and JavaScript</strong> — interface and interactions.</p></article>
     <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, two-hand thumb-and-index gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype currently renders a themed portal overlay; it does not yet replace the camera view with a fully generated anime world.</p></article>
     <article class="menu-section"><div class="menu-kicker">05 / QUICK GUIDE</div><h3>How to use</h3><p>1. Choose a character. 2. Start the camera and allow permission. 3. Show both hands and extend the thumb and index finger on each hand to open the portal. 4. Type an anime title or character name in the Recognize anime box if needed. 5. Open the preview in fullscreen when needed.</p></article>
@@ -282,10 +282,12 @@ function draw(results){
   const pair=hands.slice(0,2).map(lm=>({lm,cx:lm.reduce((sum,p)=>sum+p.x,0)/lm.length}))
     .sort((a,b)=>a.cx-b.cx);
   const left=pair[0].lm,right=pair[1].lm;
-  const links=[[1,2],[2,3],[3,4],[0,1],[0,5],[5,6],[6,7],[7,8]];
+  // Draw only thumb and index finger chains; omit the other three fingers.
   ctx.save();ctx.lineWidth=.0025;ctx.strokeStyle='#f0c66a';ctx.fillStyle='#fff0c9';
   for(const lm of [left,right]){
-   for(const [u,v] of links){ctx.beginPath();ctx.moveTo(lm[u].x,lm[u].y);ctx.lineTo(lm[v].x,lm[v].y);ctx.stroke()}
+   for(const [u,v] of [[1,2],[2,3],[3,4],[0,1],[0,5],[5,6],[6,7],[7,8]]){
+    ctx.beginPath();ctx.moveTo(lm[u].x,lm[u].y);ctx.lineTo(lm[v].x,lm[v].y);ctx.stroke();
+   }
    for(const i of [4,8]){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.009,0,Math.PI*2);ctx.fill()}
   }
   ctx.restore();
@@ -299,21 +301,20 @@ function draw(results){
             ri:{x:right[8].x,y:right[8].y},rt:{x:right[4].x,y:right[4].y}};
    const themeMap={shadow:'#9b5cff',pirate:'#ffb454',soul:'#e8f5ff',ninja:'#ff5b6e',slayer:'#65f0c8',goku:'#ff9c32',gojo:'#7cc8ff',eren:'#a6c86a',deku:'#62e0a5',killua:'#8ceaff',zoro:'#9bd17b',rukia:'#d6e5ff'};
    const color=themeMap[styleSelect.value]||themeMap.shadow;
-   const drawCurve=(a,b,bend)=>{
-    const dx=b.x-a.x,dy=b.y-a.y,len=Math.max(Math.hypot(dx,dy),.001);
-    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
-    // A small perpendicular offset gives a flowing, hand-shaped curve instead of a square.
-    const cx=mx-(dy/len)*len*bend,cy=my+(dx/len)*len*bend;
-    ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(cx,cy,b.x,b.y);
-   };
-   ctx.save();ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=.018;ctx.lineWidth=.006;
-   ctx.beginPath();
-   drawCurve(p.lt,p.li,.13); // left hand: thumb to index
-   drawCurve(p.li,p.ri,.08); // index to index across both hands
-   drawCurve(p.ri,p.rt,.13); // right hand: index to thumb
-   drawCurve(p.rt,p.lt,.08); // thumb to thumb across both hands
-   ctx.closePath();ctx.stroke();
-   ctx.globalAlpha=.16;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
+   const curveControl=(a,b,bend)=>{
+     const dx=b.x-a.x,dy=b.y-a.y;
+     const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+     return {x:mx-dy*bend,y:my+dx*bend};
+    };
+    ctx.save();ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=.012;ctx.lineWidth=.0045;
+    // Draw one continuous freeform connection through the four fingertips.
+    ctx.beginPath();ctx.moveTo(p.lt.x,p.lt.y);
+    let cp=curveControl(p.lt,p.li,.13);ctx.quadraticCurveTo(cp.x,cp.y,p.li.x,p.li.y);
+    cp=curveControl(p.li,p.ri,.08);ctx.quadraticCurveTo(cp.x,cp.y,p.ri.x,p.ri.y);
+    cp=curveControl(p.ri,p.rt,.13);ctx.quadraticCurveTo(cp.x,cp.y,p.rt.x,p.rt.y);
+    cp=curveControl(p.rt,p.lt,.08);ctx.quadraticCurveTo(cp.x,cp.y,p.lt.x,p.lt.y);
+    ctx.stroke();
+    ctx.globalAlpha=.16;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
    for(const tip of [p.lt,p.li,p.ri,p.rt]){
     ctx.beginPath();ctx.arc(tip.x,tip.y,.008,0,Math.PI*2);ctx.fillStyle='#fff0c9';ctx.fill();
     ctx.beginPath();ctx.arc(tip.x,tip.y,.013,0,Math.PI*2);ctx.strokeStyle=color;ctx.lineWidth=.003;ctx.stroke();
