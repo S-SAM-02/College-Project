@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ANIME REALITY — AI Gesture Portal</title>
 <style>
+
 :root{color-scheme:dark;--bg:#08050d;--panel:#130d1b;--line:#563047;--accent:#ff386b;--cyan:#ffc46b;--text:#fff6fb;--muted:#c2aab9}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;overflow-x:hidden;background:#09050d;font:15px/1.5 "Trebuchet MS",system-ui,sans-serif;color:var(--text);isolation:isolate}
 body:before{content:"";position:fixed;inset:-10%;z-index:-3;pointer-events:none;background:radial-gradient(ellipse at 78% 28%,#8c153c66,transparent 32%),radial-gradient(ellipse at 18% 76%,#5120a566,transparent 38%),linear-gradient(125deg,#08050d,#170817 45%,#09050d);animation:realmDrift 16s ease-in-out infinite alternate}
@@ -110,9 +111,16 @@ body:before{background:radial-gradient(ellipse at 75% 22%,#246f9366,transparent 
 body:after{opacity:.15;background-image:radial-gradient(ellipse at 15% 35%,#f0c66a1c 0 1px,transparent 3px),radial-gradient(ellipse at 72% 60%,#dcefff1b 0 1px,transparent 3px),linear-gradient(180deg,transparent 70%,#04101b66);background-size:80px 100px,110px 130px,100% 100%;animation:seaSparkle 20s linear infinite}
 .hero-copy{border-left:3px solid #e94d4d}
 .preview:after{content:"GRAND LINE // LIVE CAMERA";font-family:'Rajdhani',sans-serif;letter-spacing:.18em;font-size:12px}
+
+/* Full-screen cinematic sea video behind the UI; live camera remains in its own panel. */
+#animeBackground{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none;opacity:.32;filter:saturate(1.25) contrast(1.12)}
+body{background:transparent}
+body:before{z-index:-3;background:linear-gradient(90deg,#04111df0 0%,#071a2be0 52%,#071522d9 100%),radial-gradient(ellipse at 72% 22%,#246f9355,transparent 38%);animation:grandLineDrift 22s ease-in-out infinite alternate}
+body:after{z-index:-1;opacity:.2;background:linear-gradient(180deg,#03101a44,#06152288),radial-gradient(circle at 15% 25%,#f0c66a2b 0 1px,transparent 2px),radial-gradient(circle at 78% 68%,#f0c66a22 0 1px,transparent 2px);background-size:100% 100%,70px 70px,110px 110px;animation:seaSparkle 20s linear infinite}
+main{z-index:1}
 </style>
 </head>
-<body><main>
+<body><video id="animeBackground" autoplay muted loop playsinline aria-hidden="true"><source src="https://videos.pexels.com/video-files/6609509/6609509-hd_1920_1080_25fps.mp4" type="video/mp4"></video><main>
 <header class="top"><div class="brand">ANIME <span>REALITY</span></div><button id="menuToggle" class="menu-toggle" aria-expanded="false" aria-controls="projectMenu"><span class="avatar-mark">AR</span><span>Project menu</span><span class="menu-chevron">⌄</span></button></header>
 <section class="project-menu card" id="projectMenu" hidden aria-label="Project information menu">
   <div class="menu-heading"><div><div class="tag">PROJECT ARCHIVE // 01</div><h2>About Anime Reality</h2></div><button id="menuClose" class="icon-button" aria-label="Close project menu">×</button></div>
