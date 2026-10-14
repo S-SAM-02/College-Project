@@ -228,34 +228,44 @@ const start=document.querySelector('#start'),stop=document.querySelector('#stop'
 const menuToggle=document.querySelector('#menuToggle'),projectMenu=document.querySelector('#projectMenu'),menuClose=document.querySelector('#menuClose'),characterCommand=document.querySelector('#characterCommand'),applyCommand=document.querySelector('#applyCommand'),commandStatus=document.querySelector('#commandStatus');
 function setMenu(open){projectMenu.hidden=!open;menuToggle.setAttribute('aria-expanded',String(open));menuToggle.querySelector('.menu-chevron').textContent=open?'⌃':'⌄'}
 menuToggle.addEventListener('click',()=>setMenu(projectMenu.hidden));menuClose.addEventListener('click',()=>{setMenu(false);menuToggle.focus()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!projectMenu.hidden)setMenu(false)});
-let stream=null,landmarker=null,running=false,lastVideoTime=-1,active=false;
+let stream=null,landmarker=null,running=false,lastVideoTime=-1,active=false,gestureHistory=[];
 function setStatus(s,on=false){status.textContent=s;dot.classList.toggle('on',on)}
 async function setupModel(){if(landmarker)return landmarker;const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const modelAssetPath="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";try{landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"GPU"},runningMode:"VIDEO",numHands:1,minHandDetectionConfidence:.45,minHandPresenceConfidence:.45,minTrackingConfidence:.45})}catch(gpuError){console.warn("GPU hand tracking unavailable; retrying on CPU",gpuError);landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"CPU"},runningMode:"VIDEO",numHands:1,minHandDetectionConfidence:.45,minHandPresenceConfidence:.45,minTrackingConfidence:.45})}return landmarker}
-function countFingers(lm,handedness){
- let n=0;
- /* MediaPipe labels are reported in camera coordinates; account for handedness so the thumb works for either hand. */
- const label=handedness?.[0]?.[0]?.categoryName||handedness?.[0]?.[0]?.displayName||"";
- const thumbExtended=label.toLowerCase()==="left" ? lm[4].x>lm[3].x : lm[4].x<lm[3].x;
- if(thumbExtended)n++;
- for(const [tip,pip] of [[8,6],[12,10],[16,14],[20,18]])if(lm[tip].y<lm[pip].y)n++;
- return n;
+function distance3(a,b){const dx=a.x-b.x,dy=a.y-b.y,dz=(a.z||0)-(b.z||0);return Math.hypot(dx,dy,dz)}
+function jointAngle(a,b,c){
+ const ba=[a.x-b.x,a.y-b.y,(a.z||0)-(b.z||0)],bc=[c.x-b.x,c.y-b.y,(c.z||0)-(b.z||0)];
+ const dot=ba[0]*bc[0]+ba[1]*bc[1]+ba[2]*bc[2],la=Math.hypot(...ba),lc=Math.hypot(...bc);
+ if(!la||!lc)return 0;
+ return Math.acos(Math.max(-1,Math.min(1,dot/(la*lc))))*180/Math.PI;
+}
+function countFingers(lm){
+ /* Count the four long fingers, independent of whether the hand is tilted or held at a different distance. */
+ const wrist=lm[0],fingers=[[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]];
+ let extended=0;
+ for(const [mcp,pip,dip,tip] of fingers){
+  const angle=jointAngle(lm[mcp],lm[pip],lm[dip]);
+  const tipReach=distance3(lm[tip],wrist),pipReach=distance3(lm[pip],wrist);
+  if(angle>148&&tipReach>pipReach*1.06)extended++;
+ }
+ return extended;
 }
 function resize(){const r=preview.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function draw(results){
  ctx.clearRect(0,0,1,1);active=false;
  if(results.landmarks&&results.landmarks.length){
-  const lm=results.landmarks[0],count=countFingers(lm,results.handedness);
+  const lm=results.landmarks[0],count=countFingers(lm);
   /* Draw hand landmarks and finger bones continuously so tracking is visible. */
   const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
   ctx.save();ctx.lineWidth=.003;ctx.strokeStyle="#f0c66a";ctx.fillStyle="#fff0c9";
   for(const [a,b] of links){ctx.beginPath();ctx.moveTo(lm[a].x,lm[a].y);ctx.lineTo(lm[b].x,lm[b].y);ctx.stroke()}
   for(let i=0;i<lm.length;i++){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,i===4||i===8||i===12||i===16||i===20?.009:.005,0,Math.PI*2);ctx.fill()}
   ctx.restore();
-  active=count===4;
+  gestureHistory.push(count===4);if(gestureHistory.length>6)gestureHistory.shift();
+  active=gestureHistory.filter(Boolean).length>=4;
   if(active){
    const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
-   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,w=Math.max(maxX-minX,maxY-minY)*1.8,h=w;
-   const x=Math.max(.02,Math.min(.98-w,cx-w/2)),y=Math.max(.02,Math.min(.98-h,cy-h/2));
+   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,w=Math.min(.9,Math.max(.12,Math.max(maxX-minX,maxY-minY)*1.8)),h=w;
+   const x=Math.max(.01,Math.min(1-w,cx-w/2)),y=Math.max(.01,Math.min(1-h,cy-h/2));
    const themes={shadow:['#9b5cff','#1c1038'],pirate:['#ffb454','#5a2b11'],soul:['#e8f5ff','#253a70'],ninja:['#ff5b6e','#4b152b'],slayer:['#65f0c8','#124d49'],goku:['#ff9c32','#49200a'],gojo:['#7cc8ff','#102c58'],eren:['#a6c86a','#23331a'],deku:['#62e0a5','#103c2a'],killua:['#8ceaff','#153b5a'],zoro:['#9bd17b','#243b1b'],rukia:['#d6e5ff','#283b64']};
    const t=themes[styleSelect.value]||themes.shadow;
    ctx.save();ctx.shadowBlur=.025;ctx.shadowColor=t[0];ctx.lineWidth=.006;ctx.strokeStyle=t[0];ctx.fillStyle=t[1]+'bb';ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
@@ -264,7 +274,7 @@ function draw(results){
    ctx.restore();
   }
   gesture.textContent=active?'PORTAL ACTIVE':count+' fingers detected';detail.textContent=active?'Four-finger gesture detected. The selected themed portal is surrounding your hand.':'Show four fingers to open the portal. Other gestures keep it closed.';
- }else{gesture.textContent='No hand detected';detail.textContent='Move one hand into the camera view.'}
+ }else{gestureHistory=[];gesture.textContent='No hand detected';detail.textContent='Move one hand into the camera view.'}
  document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // FOUR-FINGER GESTURE':'Show four fingers to open the portal.';
 }
 async function loop(){if(!running)return;if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker){lastVideoTime=video.currentTime;try{draw(landmarker.detectForVideo(video,performance.now()))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
