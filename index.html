@@ -220,10 +220,10 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
   <div class="menu-heading"><div><div class="tag">PROJECT ARCHIVE // 01</div><h2>About Anime Reality</h2></div><button id="menuClose" class="icon-button" aria-label="Close project menu">×</button></div>
   <div class="menu-grid">
     <article class="menu-section"><div class="menu-kicker">01 / OVERVIEW</div><h3>About this website</h3><p>ANIME REALITY is an AI-assisted gesture portal concept that combines live hand tracking with anime-inspired visual themes.</p></article>
-    <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a themed square portal when the four-finger gesture is recognized. Choose a character to change the portal palette.</p></article>
+    <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a themed square portal when the two-hand thumb-and-index gesture is recognized. Choose a character to change the portal palette.</p></article>
     <article class="menu-section"><div class="menu-kicker">03 / TECHNOLOGY</div><h3>Technologies used</h3><p><strong>DIP</strong> — visual input and image handling. <strong><strong>NLP</strong> — typed anime and character name matching. <strong>ML / neural vision</strong> — MediaPipe hand-landmark detection and gesture logic. <strong>HTML, CSS and JavaScript</strong> — interface and interactions.</p></article>
-    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, four-finger gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype currently renders a themed portal overlay; it does not yet replace the camera view with a fully generated anime world.</p></article>
-    <article class="menu-section"><div class="menu-kicker">05 / QUICK GUIDE</div><h3>How to use</h3><p>1. Choose a character. 2. Start the camera and allow permission. 3. Hold one hand in view and show four fingers. 4. Or type an anime title or character name in the Recognize anime box and submit it. 5. Open the preview in fullscreen when needed.</p></article>
+    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, two-hand thumb-and-index gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype currently renders a themed portal overlay; it does not yet replace the camera view with a fully generated anime world.</p></article>
+    <article class="menu-section"><div class="menu-kicker">05 / QUICK GUIDE</div><h3>How to use</h3><p>1. Choose a character. 2. Start the camera and allow permission. 3. Show both hands and extend the thumb and index finger on each hand to open the portal. 4. Type an anime title or character name in the Recognize anime box if needed. 5. Open the preview in fullscreen when needed.</p></article>
     <article class="menu-section"><div class="menu-kicker">06 / REQUIREMENTS</div><h3>Browser & access</h3><p>Camera access generally requires HTTPS or localhost. MediaPipe model files need an internet connection. Character recognition uses the text you type; no microphone is required.</p></article>
   </div>
   <div class="menu-footer">ANIME REALITY <span>· AI GESTURE PORTAL</span><span class="menu-stack">DIP / NLP / ML / NN</span></div>
@@ -233,13 +233,13 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
 <section class="card">
 <div class="preview" id="preview"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Camera is off<br><span class="small">Select your realm, then start the camera.</span></div></div>
 <div class="row"><button class="primary" id="start">Start camera</button><button id="stop" disabled>Stop camera</button><button id="fullscreen">Full screen</button><span class="status"><span class="dot" id="dot"></span><span id="status">Camera off</span></span></div>
-<div class="note" id="gestureNote">Show four fingers to open the portal.</div>
+<div class="note" id="gestureNote">Show both hands with thumb + index extended on each hand to open the portal.</div>
 </section>
 <aside class="card">
 <h2 style="margin:0">Choose your character</h2>
 <label for="style">Character · anime</label><select id="style" style="width:100%"><option value="shadow">Sung Jin-Woo — Solo Leveling</option><option value="pirate">Monkey D. Luffy — One Piece</option><option value="soul">Ichigo Kurosaki — Bleach</option><option value="ninja">Naruto Uzumaki — Naruto</option><option value="slayer">Tanjiro Kamado — Demon Slayer</option><option value="goku">Son Goku — Dragon Ball</option><option value="gojo">Satoru Gojo — Jujutsu Kaisen</option><option value="eren">Eren Yeager — Attack on Titan</option><option value="deku">Izuku Midoriya — My Hero Academia</option><option value="killua">Killua Zoldyck — Hunter x Hunter</option><option value="zoro">Roronoa Zoro — One Piece</option><option value="rukia">Rukia Kuchiki — Bleach</option></select>
 <div class="command-box"><label for="characterCommand">RECOGNIZE ANIME · TYPE A NAME</label><div class="command-row"><input id="characterCommand" type="text" placeholder="e.g. Gojo, Naruto, Luffy…" autocomplete="off"><button class="primary" id="applyCommand" type="button">Recognize anime</button></div><div class="small" id="commandStatus" aria-live="polite">Type a character or anime, then press Recognize anime.</div></div>
-<div class="metric" id="gesture">Waiting for camera</div><p id="detail">Four fingers opens the portal.</p>
+<div class="metric" id="gesture">Waiting for camera</div><p id="detail">Thumb + index on both hands opens the portal.</p>
 </aside></div>
 
 </main>
@@ -323,7 +323,7 @@ function selectFromText(q){
  {v:'shadow',keys:['sung jin woo','jinwoo','jin-woo','solo leveling','shadow']},{v:'pirate',keys:['luffy','one piece','monkey d luffy']},{v:'soul',keys:['ichigo','bleach']},{v:'ninja',keys:['naruto','shinobi']},{v:'slayer',keys:['tanjiro','demon slayer']},{v:'goku',keys:['goku','dragon ball','dragonball']},{v:'gojo',keys:['gojo','jujutsu kaisen','jjk','satoru']},{v:'eren',keys:['eren','attack on titan','aot']},{v:'deku',keys:['deku','izuku','my hero academia','mha']},{v:'killua',keys:['killua','hunter x hunter','hxh']},{v:'zoro',keys:['zoro','roronoa']},{v:'rukia',keys:['rukia','kuchiki']}
  ];
  const found=choices.find(c=>c.keys.some(k=>q.includes(k)));
- if(found){styleSelect.value=found.v;commandStatus.textContent='REALM SELECTED // '+styleSelect.options[styleSelect.selectedIndex].text.toUpperCase();gesture.textContent='Realm selected';detail.textContent='Show four fingers to activate the portal for this character.';return}
+ if(found){styleSelect.value=found.v;commandStatus.textContent='REALM SELECTED // '+styleSelect.options[styleSelect.selectedIndex].text.toUpperCase();gesture.textContent='Realm selected';detail.textContent='Show both hands with thumb + index extended on each hand to activate the portal for this character.';return}
  commandStatus.textContent='No match found. Try Gojo, Goku, Naruto, Luffy, Ichigo, Tanjiro, Eren, Deku, Killua, Zoro, or Rukia.';
 }
 applyCommand.addEventListener('click',()=>selectFromText(characterCommand.value));
