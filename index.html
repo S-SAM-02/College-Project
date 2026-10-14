@@ -97,6 +97,19 @@ body:after{opacity:.12;background-image:linear-gradient(120deg,transparent 0 46%
 .preview:before{z-index:1}
 .preview:after{z-index:4}
 #gesture{color:#f0c66a}
+
+/* Pirate typography and cinematic background layer */
+@import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=Rajdhani:wght@400;500;600;700&display=swap');
+body{font-family:'Rajdhani','Trebuchet MS',system-ui,sans-serif}
+.brand,h1,.card h2,.hero-copy .tag{font-family:'Pirata One','Rajdhani',serif;letter-spacing:.045em}
+.brand{font-size:1.45rem;letter-spacing:.09em}
+.hero-copy h1{font-family:'Pirata One',serif;font-size:clamp(2.7rem,7vw,5.4rem);font-weight:400;letter-spacing:.025em}
+.hero-copy h1 em{font-family:'Pirata One',serif}
+button,select,input,label,.small,.note,.metric,.status{font-family:'Rajdhani','Segoe UI',sans-serif}
+body:before{background:radial-gradient(ellipse at 75% 22%,#246f9366,transparent 38%),radial-gradient(ellipse at 20% 82%,#a83a3a40,transparent 36%),linear-gradient(130deg,#03101b,#0a2b40 48%,#061522);background-size:180% 180%;animation:grandLineDrift 22s ease-in-out infinite alternate}
+body:after{opacity:.15;background-image:radial-gradient(ellipse at 15% 35%,#f0c66a1c 0 1px,transparent 3px),radial-gradient(ellipse at 72% 60%,#dcefff1b 0 1px,transparent 3px),linear-gradient(180deg,transparent 70%,#04101b66);background-size:80px 100px,110px 130px,100% 100%;animation:seaSparkle 20s linear infinite}
+.hero-copy{border-left:3px solid #e94d4d}
+.preview:after{content:"GRAND LINE // LIVE CAMERA";font-family:'Rajdhani',sans-serif;letter-spacing:.18em;font-size:12px}
 </style>
 </head>
 <body><main>
