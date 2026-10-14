@@ -277,38 +277,45 @@ let portalSmooth={x:.5,y:.5,size:.22};
 function draw(results){
  ctx.clearRect(0,0,1,1);active=false;
  const hands=results.landmarks||[];
- if(hands.length){
-  /* Draw only thumb and index landmarks so the UI matches the two-finger control. */
-  const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8]];
-  ctx.save();ctx.lineWidth=.003;ctx.strokeStyle="#f0c66a";ctx.fillStyle="#fff0c9";
-  for(const lm of hands){
-   for(const [a,b] of links){ctx.beginPath();ctx.moveTo(lm[a].x,lm[a].y);ctx.lineTo(lm[b].x,lm[b].y);ctx.stroke()}
-   for(const i of [0,1,2,3,4,5,6,7,8]){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,[4,8].includes(i)?.009:.005,0,Math.PI*2);ctx.fill()}
+ if(hands.length>=2){
+  // Draw only the thumb and index finger bones for both hands.
+  const links=[[1,2],[2,3],[3,4],[0,1],[0,5],[5,6],[6,7],[7,8]];
+  ctx.save();ctx.lineWidth=.0025;ctx.strokeStyle='#f0c66a';ctx.fillStyle='#fff0c9';
+  for(const lm of hands.slice(0,2)){
+   for(const [u,v] of links){ctx.beginPath();ctx.moveTo(lm[u].x,lm[u].y);ctx.lineTo(lm[v].x,lm[v].y);ctx.stroke()}
+   for(const i of [4,8]){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.009,0,Math.PI*2);ctx.fill()}
   }
   ctx.restore();
-  const twoHandsReady=hands.length>=2&&hasThumbAndIndexExtended(hands[0])&&hasThumbAndIndexExtended(hands[1]);
+  const twoHandsReady=hasThumbAndIndexExtended(hands[0])&&hasThumbAndIndexExtended(hands[1]);
   gestureHistory.push(twoHandsReady);if(gestureHistory.length>2)gestureHistory.shift();
   active=gestureHistory.length===2&&gestureHistory.every(Boolean);
   if(active){
-   const centers=hands.slice(0,2).map(lm=>({x:(lm[4].x+lm[8].x)/2,y:(lm[4].y+lm[8].y)/2}));
-   const targetX=(centers[0].x+centers[1].x)/2,targetY=(centers[0].y+centers[1].y)/2;
-   const span=Math.max(Math.abs(centers[0].x-centers[1].x),Math.abs(centers[0].y-centers[1].y));
-   const targetSize=Math.min(.9,Math.max(.12,span*1.45));
-   if(!Number.isFinite(portalSmooth.x)){portalSmooth={x:targetX,y:targetY,size:targetSize}}
-   portalSmooth.x+=(targetX-portalSmooth.x)*.55;portalSmooth.y+=(targetY-portalSmooth.y)*.55;portalSmooth.size+=(targetSize-portalSmooth.size)*.55;
-   const cx=portalSmooth.x,cy=portalSmooth.y,w=portalSmooth.size,h=w;
-   const x=Math.max(.01,Math.min(1-w,cx-w/2)),y=Math.max(.01,Math.min(1-h,cy-h/2));
-   const themes={shadow:['#9b5cff','#1c1038'],pirate:['#ffb454','#5a2b11'],soul:['#e8f5ff','#253a70'],ninja:['#ff5b6e','#4b152b'],slayer:['#65f0c8','#124d49'],goku:['#ff9c32','#49200a'],gojo:['#7cc8ff','#102c58'],eren:['#a6c86a','#23331a'],deku:['#62e0a5','#103c2a'],killua:['#8ceaff','#153b5a'],zoro:['#9bd17b','#243b1b'],rukia:['#d6e5ff','#283b64']};
-   const t=themes[styleSelect.value]||themes.shadow;
-   ctx.save();ctx.shadowBlur=.025;ctx.shadowColor=t[0];ctx.lineWidth=.006;ctx.strokeStyle=t[0];ctx.fillStyle=t[1]+'bb';ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
-   ctx.lineWidth=.0025;ctx.strokeStyle='#ffffffcc';ctx.strokeRect(x+.012,y+.012,Math.max(.01,w-.024),Math.max(.01,h-.024));
-   for(let i=0;i<4;i++){const a=i*Math.PI/2+performance.now()/900;ctx.beginPath();ctx.arc(cx,cy,w*(.28+.025*Math.sin(a)),a,a+.75);ctx.strokeStyle=t[0];ctx.lineWidth=.004;ctx.stroke()}
+   // Four real fingertip positions define an organic outline; never force a square.
+   const points=[];for(const lm of hands.slice(0,2)){points.push({x:lm[4].x,y:lm[4].y},{x:lm[8].x,y:lm[8].y})}
+   const center=points.reduce((p,q)=>({x:p.x+q.x/4,y:p.y+q.y/4}),{x:0,y:0});
+   points.sort((p,q)=>Math.atan2(p.y-center.y,p.x-center.x)-Math.atan2(q.y-center.y,q.x-center.x));
+   const targetX=center.x,targetY=center.y;
+   if(!Number.isFinite(portalSmooth.x)||portalSmooth.lost){portalSmooth={x:targetX,y:targetY,lost:false}}
+   const alpha=.72;portalSmooth.x+=(targetX-portalSmooth.x)*alpha;portalSmooth.y+=(targetY-portalSmooth.y)*alpha;
+   const smoothed=points.map(p=>({x:p.x,y:p.y}));
+   const themeMap={shadow:'#9b5cff',pirate:'#ffb454',soul:'#e8f5ff',ninja:'#ff5b6e',slayer:'#65f0c8',goku:'#ff9c32',gojo:'#7cc8ff',eren:'#a6c86a',deku:'#62e0a5',killua:'#8ceaff',zoro:'#9bd17b',rukia:'#d6e5ff'};
+   const color=themeMap[styleSelect.value]||themeMap.shadow;
+   ctx.save();ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=.018;ctx.lineWidth=.006;
+   // Smooth curved connections follow the four fingertip points as they move.
+   ctx.beginPath();
+   for(let i=0;i<smoothed.length;i++){const p=smoothed[i],n=smoothed[(i+1)%smoothed.length];const mx=(p.x+n.x)/2,my=(p.y+n.y)/2;if(i===0)ctx.moveTo(mx,my);ctx.quadraticCurveTo(p.x,p.y,mx,my)}
+   ctx.closePath();ctx.stroke();
+   ctx.globalAlpha=.16;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
+   for(const p of smoothed){ctx.beginPath();ctx.arc(p.x,p.y,.008,0,Math.PI*2);ctx.fillStyle='#fff0c9';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,.013,0,Math.PI*2);ctx.strokeStyle=color;ctx.lineWidth=.003;ctx.stroke()}
    ctx.restore();
   }
-  gesture.textContent=active?'PORTAL ACTIVE':(hands.length<2?'Show both hands':(twoHandsReady?'Hold both hands steady':'Extend thumb + index on both hands'));
-  detail.textContent=active?'Both hands detected with thumb and index extended on each hand. The square portal spans the space between your hands.':'Show both hands with thumb and index finger extended on each hand to open the portal.';
- }else{gestureHistory=[];gesture.textContent='No hand detected';detail.textContent='Move both hands into the camera view.'}
- document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // TWO-HAND THUMB + INDEX GESTURE':'Show both hands with thumb and index finger extended on each hand to open the portal.';
+  gesture.textContent=active?'PORTAL ACTIVE':(twoHandsReady?'Hold both hands steady':'Extend thumb + index on both hands');
+  detail.textContent=active?'Four fingertip points are connected by a freeform portal outline that follows both hands.':'Show both hands with only thumb + index extended on each hand.';
+ }else{
+  gestureHistory=[];portalSmooth.lost=true;gesture.textContent=hands.length===1?'Show your other hand':'No hands detected';
+  detail.textContent=hands.length===1?'One hand found. Bring both hands back into view; tracking will reacquire automatically.':'Move both hands into the camera view.';
+ }
+ document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // FREEFORM FOUR-POINT TRACKING':'Show both hands with thumb + index extended on each hand. The four fingertips form a freeform line, not a box.';
 }
 async function loop(){if(!running)return;const now=performance.now();if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker&&now-lastDetectAt>=25){lastVideoTime=video.currentTime;lastDetectAt=now;try{draw(landmarker.detectForVideo(video,now))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
 start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep both hands fully visible, palms toward the camera, and extend only thumb + index on each hand. Good lighting improves detection.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
