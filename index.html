@@ -214,7 +214,7 @@ body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc
 
 </style>
 </head>
-<body><video id="animeBackground" autoplay muted loop playsinline aria-hidden="true"><source src="https://videos.pexels.com/video-files/6609509/6609509-hd_1920_1080_25fps.mp4" type="video/mp4"></video><main>
+<body><video id="animeBackground" autoplay muted loop playsinline aria-hidden="true"><source src="assets/anime-background.mp4" type="video/mp4"><source src="https://videos.pexels.com/video-files/6609509/6609509-hd_1920_1080_25fps.mp4" type="video/mp4"></video><script>document.getElementById("animeBackground").querySelector("source").addEventListener("error",function(){const v=document.getElementById("animeBackground");const fallback=v.querySelectorAll("source")[1];if(fallback&&!v.dataset.fallbackTried){v.dataset.fallbackTried="1";v.src="";v.innerHTML="";v.appendChild(fallback);v.load();v.play().catch(()=>{});}});</script><main>
 <header class="top"><div class="brand">ANIME <span>REALITY</span></div><button id="menuToggle" class="menu-toggle" aria-expanded="false" aria-controls="projectMenu"><span class="avatar-mark">AR</span><span>Project menu</span><span class="menu-chevron">⌄</span></button></header>
 <section class="project-menu card" id="projectMenu" hidden aria-label="Project information menu">
   <div class="menu-heading"><div><div class="tag">PROJECT ARCHIVE // 01</div><h2>About Anime Reality</h2></div><button id="menuClose" class="icon-button" aria-label="Close project menu">×</button></div>
