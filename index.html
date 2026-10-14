@@ -276,7 +276,7 @@ function resize(){const r=preview.getBoundingClientRect();const dpr=Math.max(1,M
 let portalSmooth={x:.5,y:.5,size:.22,lost:true},tipSmooth={};
 function smoothTip(key,p){
  const previous=tipSmooth[key];
- const alpha=previous?.72:1;
+ const alpha=previous?.78:1;
  const next=previous?{x:previous.x+(p.x-previous.x)*alpha,y:previous.y+(p.y-previous.y)*alpha}:{x:p.x,y:p.y};
  tipSmooth[key]=next;return next;
 }
@@ -317,23 +317,23 @@ function draw(results){
      const bend=(a,b,k)=>{const dx=b.x-a.x,dy=b.y-a.y;return{x:(a.x+b.x)/2-dy*k,y:(a.y+b.y)/2+dx*k}};
      const path=()=>{
        ctx.beginPath();ctx.moveTo(p.lt.x,p.lt.y);
-       let q=bend(p.lt,p.li,.13);ctx.quadraticCurveTo(q.x,q.y,p.li.x,p.li.y);
-       q=bend(p.li,p.ri,.08);ctx.quadraticCurveTo(q.x,q.y,p.ri.x,p.ri.y);
-       q=bend(p.ri,p.rt,.13);ctx.quadraticCurveTo(q.x,q.y,p.rt.x,p.rt.y);
-       q=bend(p.rt,p.lt,.08);ctx.quadraticCurveTo(q.x,q.y,p.lt.x,p.lt.y);ctx.closePath();
+       let q=bend(p.lt,p.li,.035);ctx.quadraticCurveTo(q.x,q.y,p.li.x,p.li.y);
+       q=bend(p.li,p.ri,.018);ctx.quadraticCurveTo(q.x,q.y,p.ri.x,p.ri.y);
+       q=bend(p.ri,p.rt,.035);ctx.quadraticCurveTo(q.x,q.y,p.rt.x,p.rt.y);
+       q=bend(p.rt,p.lt,.018);ctx.quadraticCurveTo(q.x,q.y,p.lt.x,p.lt.y);ctx.closePath();
      };
      // A single continuous, thin, animated rope: soft outer glow plus a bright core
      // and a moving highlight. No independent scribble strokes or fixed square.
      const t=performance.now();
      ctx.save();ctx.lineCap='round';ctx.lineJoin='round';path();
-     ctx.strokeStyle=color;ctx.globalAlpha=.36;ctx.shadowColor=color;ctx.shadowBlur=.012;ctx.lineWidth=.0042;ctx.stroke();
-     ctx.globalAlpha=1;ctx.shadowBlur=.003;ctx.lineWidth=.0019;ctx.strokeStyle=color;ctx.stroke();
+     ctx.strokeStyle=color;ctx.globalAlpha=.24;ctx.shadowColor=color;ctx.shadowBlur=.008;ctx.lineWidth=.0032;ctx.stroke();
+     ctx.globalAlpha=1;ctx.shadowBlur=.002;ctx.lineWidth=.0015;ctx.strokeStyle=color;ctx.stroke();
      const grad=ctx.createLinearGradient(.0,.0,1,1);
      grad.addColorStop((t/1800)%1,'rgba(255,255,255,.95)');
      grad.addColorStop(((t/1800)+.16)%1,color);
      grad.addColorStop(((t/1800)+.5)%1,'rgba(255,255,255,.2)');
      grad.addColorStop(((t/1800)+.8)%1,color);
-     ctx.strokeStyle=grad;ctx.lineWidth=.0011;ctx.stroke();
+     ctx.strokeStyle=grad;ctx.lineWidth=.0009;ctx.stroke();
      ctx.restore();
      for(const tip of [p.lt,p.li,p.ri,p.rt]){
        ctx.beginPath();ctx.arc(tip.x,tip.y,.0035,0,Math.PI*2);ctx.fillStyle='#fff5d8';ctx.fill();
