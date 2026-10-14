@@ -5,25 +5,42 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ANIME REALITY — AI Gesture Portal</title>
 <style>
-:root{color-scheme:dark;--bg:#0c1018;--panel:#151b26;--line:#303a4d;--accent:#a78bfa;--cyan:#67e8f9;--text:#f4f6fb;--muted:#aab4c5}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.5 system-ui,Segoe UI,sans-serif;color:var(--text)}
+:root{color-scheme:dark;--bg:#080c14;--panel:#101827;--line:#34445e;--accent:#b5a0ff;--cyan:#75f2ff;--text:#f4f8ff;--muted:#9eafc6}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#080c14,#0d1424 55%,#080c14);font:15px/1.5 "Arial",system-ui,sans-serif;color:var(--text)}
+/* Anime sci-fi HUD typography: sharp, readable, with restrained holographic depth. */
+.brand,h1,h2,.metric,button,label,.tag,.chip{font-family:"Arial Narrow","Trebuchet MS",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.07em}
+.brand{font-size:1.05rem;text-shadow:0 0 12px #b5a0ff55}.brand span{color:var(--cyan);text-shadow:0 0 14px #75f2ff88}
+h1{font-weight:900;letter-spacing:.015em;text-shadow:2px 2px 0 #6548a655,0 0 22px #75f2ff22;transform:perspective(500px) rotateX(2deg)}
+h1 em{display:inline-block;text-shadow:0 0 16px #75f2ff66,2px 2px 0 #4d5ca8}
+h2{font-size:1rem;letter-spacing:.12em;color:#e7eaff}
+.card{position:relative;background:linear-gradient(145deg,#111b2b,#0d1420);border:1px solid #34445e;border-radius:12px;box-shadow:inset 0 1px 0 #ffffff0b}
+.card:before{content:"";position:absolute;top:-1px;left:18px;width:62px;height:2px;background:var(--cyan);box-shadow:0 0 10px #75f2ff77}
+button{letter-spacing:.04em;text-transform:uppercase}button.primary{box-shadow:0 0 16px #b5a0ff22}
+.metric{color:var(--cyan);letter-spacing:.1em;text-shadow:0 0 12px #75f2ff44}
+label{letter-spacing:.1em;font-size:.76rem}
+.tag{font-size:.72rem;letter-spacing:.12em;color:var(--cyan)}
+.chip{font-size:.68rem;letter-spacing:.05em;border-color:#34445e}
+.note{background:#101d2d;border-left-color:var(--cyan)}
+.preview{border:1px solid #34445e;box-shadow:inset 0 0 28px #75f2ff0a}
+.preview:after{content:"LIVE FEED // PORTAL VIEW";position:absolute;top:10px;left:12px;z-index:2;pointer-events:none;font:700 10px/1.2 monospace;letter-spacing:.14em;color:#b8f8ff;text-shadow:0 0 8px #75f2ff;opacity:.8}
+@media(prefers-reduced-motion:no-preference){.brand span{animation:hudPulse 3s ease-in-out infinite}@keyframes hudPulse{0%,100%{text-shadow:0 0 8px #75f2ff55}50%{text-shadow:0 0 17px #75f2ffbb}}}
 main{max-width:1120px;margin:auto;padding:22px 16px 36px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.brand{font-weight:900;letter-spacing:.12em}.brand span{color:var(--accent)}.tag,.small,p{color:var(--muted)}h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1.05;margin:28px 0 8px}h1 em{font-style:normal;color:var(--cyan)}p{margin:8px 0}.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:14px;margin-top:20px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.preview{position:relative;overflow:hidden;background:#05070b;border-radius:10px;aspect-ratio:16/10;display:grid;place-items:center}.preview:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;background:#000}.preview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.preview canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:scaleX(-1)}.placeholder{position:absolute;text-align:center;padding:20px;color:var(--muted)}button,select,input{font:inherit;border-radius:9px;border:1px solid var(--line);background:#202838;color:var(--text);padding:10px 12px}button{cursor:pointer;font-weight:700}button.primary{background:var(--accent);border-color:var(--accent);color:#171022}button:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}label{display:block;font-size:.88rem;color:var(--muted);margin:12px 0 5px}.status{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.9rem}.dot{width:8px;height:8px;border-radius:50%;background:#64748b}.dot.on{background:#4ade80}.metric{font-size:1.15rem;font-weight:800;margin-top:6px}.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--muted);font-size:.78rem}.note{border-left:3px solid var(--cyan);padding:9px 11px;background:#202838;border-radius:0 8px 8px 0;color:#e1e8f3;font-size:.88rem;margin-top:12px}footer{margin-top:18px;color:var(--muted);font-size:.8rem}@media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:16px 10px}}
 </style>
 </head>
 <body><main>
 <header class="top"><div class="brand">ANIME <span>REALITY</span></div><div class="tag">AI Gesture Portal · DIP + NLP + ML/NN</div></header>
-<h1>Your hand. <em>Another world.</em></h1>
+<h1>Your hand. <em>Reality breached.</em></h1>
 <p>Choose a world, start the camera, then show four fingers to open a portal around your hand.</p>
 <div class="layout">
 <section class="card">
-<div class="preview" id="preview"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Camera is off<br><span class="small">Choose your world, then start the camera.</span></div></div>
+<div class="preview" id="preview"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Camera is off<br><span class="small">Select your realm, then start the camera.</span></div></div>
 <div class="row"><button class="primary" id="start">Start camera</button><button id="stop" disabled>Stop camera</button><button id="fullscreen">Full screen</button><span class="status"><span class="dot" id="dot"></span><span id="status">Camera off</span></span></div>
 <div class="note" id="gestureNote">Portal inactive. Show four fingers to activate it; two fingers will not trigger it.</div>
 </section>
 <aside class="card">
 <h2 style="margin:0">Choose your world</h2>
 <label for="style">Anime-inspired theme</label><select id="style" style="width:100%"><option value="shadow">Solo Leveling — Shadow Realm</option><option value="pirate">One Piece — Grand Voyage</option><option value="soul">Bleach — Soul Reaper</option><option value="ninja">Naruto — Ninja Storm</option><option value="slayer">Demon Slayer — Breathing Aura</option></select>
-<label for="command">Or type a quick command</label><div class="row" style="margin-top:0"><input id="command" placeholder="e.g. switch to Bleach" style="flex:1;min-width:150px"><button id="apply">Apply</button></div><div class="small" id="commandStatus">Simple text-intent matching demo.</div>
+<label for="command">Enter a world command</label><div class="row" style="margin-top:0"><input id="command" placeholder="e.g. switch to Bleach" style="flex:1;min-width:150px"><button id="apply">Apply</button></div><div class="small" id="commandStatus">Simple text-intent matching demo.</div>
 <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
 <div class="small">GESTURE STATUS</div><div class="metric" id="gesture">Waiting for camera</div><p id="detail">The portal opens when the hand tracker detects four extended fingers.</p>
 <div class="row"><span class="chip">DIP · hand-region overlay</span><span class="chip">ML/NN · MediaPipe</span><span class="chip">NLP · text commands</span></div>
