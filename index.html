@@ -260,16 +260,17 @@ function jointAngle(a,b,c){
  if(!la||!lc)return 0;
  return Math.acos(Math.max(-1,Math.min(1,dot/(la*lc))))*180/Math.PI;
 }
-function countFingers(lm){
- /* Count the four long fingers, independent of whether the hand is tilted or held at a different distance. */
- const wrist=lm[0],fingers=[[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]];
- let extended=0;
- for(const [mcp,pip,dip,tip] of fingers){
-  const angle=jointAngle(lm[mcp],lm[pip],lm[dip]);
-  const tipReach=distance3(lm[tip],wrist),pipReach=distance3(lm[pip],wrist);
-  if(angle>148&&tipReach>pipReach*1.06)extended++;
- }
- return extended;
+function hasThumbAndIndexExtended(lm){
+ /* The intended portal gesture is thumb + index finger on EACH hand. */
+ const wrist=lm[0];
+ const indexAngle=jointAngle(lm[5],lm[6],lm[7]);
+ const indexTipReach=distance3(lm[8],wrist),indexPipReach=distance3(lm[6],wrist);
+ const indexExtended=indexAngle>145&&indexTipReach>indexPipReach*1.04;
+ /* Thumb tip should be extended away from the index-finger base, beyond the thumb IP joint. */
+ const thumbTipToIndexBase=distance3(lm[4],lm[5]);
+ const thumbJointToIndexBase=distance3(lm[3],lm[5]);
+ const thumbExtended=thumbTipToIndexBase>thumbJointToIndexBase*1.12;
+ return thumbExtended&&indexExtended;
 }
 function resize(){const r=preview.getBoundingClientRect();canvas.width=Math.max(1,Math.round(r.width*devicePixelRatio));canvas.height=Math.max(1,Math.round(r.height*devicePixelRatio));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function draw(results){
@@ -283,7 +284,7 @@ function draw(results){
    for(let i=0;i<lm.length;i++){ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,[4,8,12,16,20].includes(i)?.009:.005,0,Math.PI*2);ctx.fill()}
   }
   ctx.restore();
-  const twoHandsReady=hands.length>=2&&countFingers(hands[0])===4&&countFingers(hands[1])===4;
+  const twoHandsReady=hands.length>=2&&hasThumbAndIndexExtended(hands[0])&&hasThumbAndIndexExtended(hands[1]);
   gestureHistory.push(twoHandsReady);if(gestureHistory.length>6)gestureHistory.shift();
   active=gestureHistory.filter(Boolean).length>=4;
   if(active){
@@ -299,10 +300,10 @@ function draw(results){
    for(let i=0;i<4;i++){const a=i*Math.PI/2+performance.now()/900;ctx.beginPath();ctx.arc(cx,cy,w*(.28+.025*Math.sin(a)),a,a+.75);ctx.strokeStyle=t[0];ctx.lineWidth=.004;ctx.stroke()}
    ctx.restore();
   }
-  gesture.textContent=active?'PORTAL ACTIVE':(hands.length<2?'Show both hands':(twoHandsReady?'Hold both hands steady':countFingers(hands[0])+' / '+countFingers(hands[1])+' fingers'));
-  detail.textContent=active?'Both hands detected with four fingers each. The square portal spans the space between your hands.':'Show both hands with four fingers extended on each hand to open the portal.';
+  gesture.textContent=active?'PORTAL ACTIVE':(hands.length<2?'Show both hands':(twoHandsReady?'Hold both hands steady':'Extend thumb + index on both hands'));
+  detail.textContent=active?'Both hands detected with thumb and index extended on each hand. The square portal spans the space between your hands.':'Show both hands with thumb and index finger extended on each hand to open the portal.';
  }else{gestureHistory=[];gesture.textContent='No hand detected';detail.textContent='Move both hands into the camera view.'}
- document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // TWO-HAND FOUR-FINGER GESTURE':'Show both hands with four fingers each to open the portal.';
+ document.querySelector('#gestureNote').textContent=active?'PORTAL OPEN // TWO-HAND THUMB + INDEX GESTURE':'Show both hands with thumb and index finger extended on each hand to open the portal.';
 }
 async function loop(){if(!running)return;if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker){lastVideoTime=video.currentTime;try{draw(landmarker.detectForVideo(video,performance.now()))}catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}}requestAnimationFrame(loop)}
 start.addEventListener('click',async()=>{start.disabled=true;setStatus('Starting…');try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();await setupModel();running=true;placeholder.style.display='none';stop.disabled=false;setStatus('Hand tracking active — show your hand',true);gesture.textContent='Show your hand to the camera';detail.textContent='Keep your whole hand visible, palm facing the camera, with good lighting. Tracking points appear when detected.';resize();loop()}catch(e){console.error(e);setStatus('Camera/model error');gesture.textContent='Could not start tracking';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in browser settings and retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':'Check internet access, camera permissions, and run the site on HTTPS or localhost. Then retry.';start.disabled=false}});
