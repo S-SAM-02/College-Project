@@ -452,12 +452,12 @@ function draw(results){
     ctx.restore();
     // Put the anime figure in the open gap between hands, not over the finger links.
     const leftEdge=left[9],rightEdge=right[9];
-    const center={x:(leftEdge.x+rightEdge.x)/2,y:(leftEdge.y+rightEdge.y)/2};
+    const avatarCenter={x:(leftEdge.x+rightEdge.x)/2,y:(leftEdge.y+rightEdge.y)/2};
     const gap=Math.hypot(rightEdge.x-leftEdge.x,rightEdge.y-leftEdge.y);
     if(gap>.12){
       const size=Math.max(.035,Math.min(.105,gap*.20));
       const bob=Math.sin(performance.now()*.0018)*.004;
-      ctx.save();ctx.translate(center.x,center.y+bob);
+      ctx.save();ctx.translate(avatarCenter.x,avatarCenter.y+bob);
       // Original stylized anime avatar: glowing hair silhouette, face, eyes and collar.
       ctx.globalAlpha=.22;ctx.fillStyle=theme.color;ctx.shadowColor=theme.color;ctx.shadowBlur=.025;
       ctx.beginPath();ctx.ellipse(0,0,size*.78,size*1.35,0,0,Math.PI*2);ctx.fill();
