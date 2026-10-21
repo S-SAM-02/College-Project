@@ -44,9 +44,9 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d');
+const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
-let stream=null,handModel=null,objectModel=null,visionModule=null,running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0;
+let stream=null,handModel=null,objectModel=null,visionModule=null,running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0;
 const history=[];
 function status(text,on=false){$('cameraStatus').textContent=text;$('cameraDot').classList.toggle('on',on);$('systemPill').textContent=on?'Camera connected':text}
 function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
@@ -59,8 +59,8 @@ async function loadModels(){
  if(!visionModule)visionModule=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
  const resolver=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
  const jobs=await Promise.allSettled([
-  visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.35,minHandPresenceConfidence:.35,minTrackingConfidence:.35}),
-  visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},runningMode:'VIDEO',scoreThreshold:.22,maxResults:12})
+  visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.25,minHandPresenceConfidence:.25,minTrackingConfidence:.25}),
+  visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},runningMode:'VIDEO',scoreThreshold:.18,maxResults:15})
  ]);
  if(jobs[0].status==='fulfilled')handModel=jobs[0].value;
  if(jobs[1].status==='fulfilled')objectModel=jobs[1].value;
@@ -80,7 +80,7 @@ function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.vi
 function detect(){
  if(!running||video.readyState<2||!handModel||!objectModel){raf=requestAnimationFrame(detect);return}
  raf=requestAnimationFrame(detect);
- const now=performance.now();if(modelBusy||now-lastInference<65||video.currentTime===lastInferenceVideo)return;
+ const now=performance.now();if(modelBusy||now-lastInference<33||video.currentTime===lastInferenceVideo)return;
  lastInference=now;lastInferenceVideo=video.currentTime;modelBusy=true;
  try{
   const hands=handModel.detectForVideo(video,now).landmarks||[];
@@ -91,27 +91,28 @@ function detect(){
    const bb=d.boundingBox,cat=d.categories&&d.categories[0];if(!bb||!cat)continue;
    const overlap=handBoxes.reduce((m,h)=>Math.max(m,overlaps(bb,h)),0);
    if(overlap<=0)continue;
-   const score=cat.score||0;if(score<.22)continue;
-   if(!best||score>best.score)best={name:cat.categoryName||'Unknown object',score,box:bb};
+   const score=cat.score||0;if(score<.18)continue;
+   const name=cat.categoryName||'Unknown object';
+   const rank=score*(1+Math.min(overlap,.35)*1.25);
+   if(!best||rank>best.rank)best={name,score,rank,box:bb};
   }
   drawOverlay(hands,best);
-  if(best)labelResult(best.name,best.score);else if(performance.now()-lastSeenAt>650)clearResult(hands.length?'Hand detected — move the object closer to your hand and keep it visible.':'Show a hand holding an object inside the camera view.');
+  if(best){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score)}else if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible.':'Show an item in your hand. Try a phone, bottle, cup, book or keyboard.');}
   frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='Scan: '+currentFps+' FPS (approx.)'}
  }catch(e){console.error('Inference error:',e);status('Detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
  finally{modelBusy=false}
 }
-let lastInferenceVideo=-1;
 function drawOverlay(hands,best){
  ctx.clearRect(0,0,1,1);ctx.save();ctx.scale(-1,1);ctx.translate(-1,0);
  for(const lm of hands){const b=boxOfLandmarks(lm);ctx.strokeStyle='#bd9140';ctx.lineWidth=.0025;ctx.strokeRect(b.x,b.y,b.w,b.h);for(const p of lm){ctx.beginPath();ctx.arc(p.x,p.y,.003,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#bd9140';ctx.lineWidth=.001;ctx.stroke()}}
- if(best){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.004;ctx.strokeRect(x,y,bw,bh);ctx.fillStyle='#bd9140';ctx.fillRect(x,y,Math.min(bw,.55),.035);ctx.fillStyle='#fff';ctx.font='bold .024px Inter';ctx.fillText(best.name,x+.008,y+.024)}
+ if(best){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.003;ctx.strokeRect(x,y,bw,bh)}
  ctx.restore()
 }
 start.addEventListener('click',async()=>{
  start.disabled=true;status('Requesting camera…');
  try{
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access requires HTTPS and a modern browser.');
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false});
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false});
   video.srcObject=stream;await video.play();$('placeholder').style.display='none';stop.disabled=false;running=true;resize();$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;status('Camera live · loading models…',true);clearResult('Camera is on. Loading recognition models…');raf=requestAnimationFrame(detect);
   try{await loadModels();if(!running)return;status('Ready · hold an object',true);$('systemPill').textContent='recognition models loaded';lastFpsTime=performance.now();}catch(modelErr){console.error(modelErr);status('Camera live · models failed to load',true);$('objectDescription').textContent='Camera works, but the recognition models did not load. Check internet access, then stop and restart.';start.disabled=false}
  }catch(e){console.error(e);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;running=false;status('Camera unavailable');$('objectDescription').textContent=e.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings and retry.':e.name==='NotFoundError'?'No camera was found on this device.':e.message||'Check camera permission and try again.';start.disabled=false}
