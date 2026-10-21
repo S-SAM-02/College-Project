@@ -105,6 +105,7 @@ async function loadFaceApi(){
   faceApi=window.faceapi;
   if(!faceApi)throw new Error('Face analysis library unavailable');
   const bases=[
+   'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights',
    'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights',
    'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights',
    'https://justadudewhohacks.github.io/face-api.js/models'
@@ -162,9 +163,28 @@ function detect(){
 }
 function drawOverlay(hands,best,faces=[]){
  ctx.clearRect(0,0,1,1);ctx.save();
- if(mode==='anime'){for(const lm of hands){const b=boxOfLandmarks(lm,.025);ctx.strokeStyle='#f2c94c';ctx.lineWidth=.0025;ctx.strokeRect(b.x,b.y,b.w,b.h);for(const p of lm){ctx.beginPath();ctx.arc(p.x,p.y,.003,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#bd9140';ctx.lineWidth=.001;ctx.stroke()}}}
+ // People View: outline faces only; never draw hand boxes in this mode.
  if(mode==='people'){for(const f of faces){const b=f.boundingBox;if(b){ctx.strokeStyle='#bd9140';ctx.lineWidth=.003;ctx.strokeRect(b.originX/video.videoWidth,b.originY/video.videoHeight,b.width/video.videoWidth,b.height/video.videoHeight)}}}
- if(mode==='anime'&&hands.length>=2){const a=hands[0][8],b=hands[1][8],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,time=performance.now()/330,c1x=mx+Math.sin(time)*.075,c1y=my+Math.cos(time*.7)*.09,c2x=mx-Math.sin(time*.8)*.09,c2y=my+Math.cos(time)*.065;ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowColor='#ffd85c';ctx.shadowBlur=20;ctx.strokeStyle='rgba(255,203,64,.4)';ctx.lineWidth=.018;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,b.x,b.y);ctx.stroke();ctx.shadowBlur=9;ctx.strokeStyle='#ffe9a3';ctx.lineWidth=.005;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,b.x,b.y);ctx.stroke();ctx.shadowBlur=0;for(let k=0;k<9;k++){const t=((time*.18+k/9)%1),u=1-t,x=u*u*u*a.x+3*u*u*t*c1x+3*u*t*t*c2x+t*t*t*b.x,y=u*u*u*a.y+3*u*u*t*c1y+3*u*t*t*c2y+t*t*t*b.y;ctx.beginPath();ctx.arc(x,y,.0035,0,Math.PI*2);ctx.fillStyle='#fff7cf';ctx.fill()}ctx.restore()}
+ // Anime Portal: five flowing energy strands connect corresponding fingertips across both hands.
+ if(mode==='anime'&&hands.length>=2){
+  const tips=[4,8,12,16,20],time=performance.now()/280;
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  for(let i=0;i<tips.length;i++){
+   const p=hands[0][tips[i]],q=hands[1][tips[i]];
+   if(!p||!q)continue;
+   const mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
+   const wave=.018+i*.006;
+   const c1x=mx+Math.sin(time+i*.8)*wave,c1y=my+Math.cos(time+i*.6)*wave*2;
+   const c2x=mx-Math.sin(time*.9+i*.7)*wave,c2y=my+Math.cos(time+i)*wave*2;
+   ctx.shadowColor='#ffd85c';ctx.shadowBlur=16;ctx.strokeStyle='rgba(255,203,64,.42)';ctx.lineWidth=.012;
+   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,q.x,q.y);ctx.stroke();
+   ctx.shadowBlur=7;ctx.strokeStyle=i===1?'#fff2b6':'#ffe19a';ctx.lineWidth=.0035;
+   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,q.x,q.y);ctx.stroke();
+   // Bright fingertip endpoints, with no bounding boxes.
+   for(const pt of [p,q]){ctx.beginPath();ctx.arc(pt.x,pt.y,.006,0,Math.PI*2);ctx.fillStyle='#fff8d6';ctx.fill();ctx.beginPath();ctx.arc(pt.x,pt.y,.011,0,Math.PI*2);ctx.strokeStyle='#f2c94c';ctx.lineWidth=.002;ctx.stroke();}
+  }
+  ctx.restore();
+ }
  if(best&&mode==='objects'){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.003;ctx.strokeRect(x,y,bw,bh)}
  ctx.restore()
 }
