@@ -124,13 +124,49 @@ function drawOverlay(hands,best,faces=[]){
  ctx.restore()
 }
 start.addEventListener('click',async()=>{
+ if(running)return;
  start.disabled=true;status('Requesting camera…');
  try{
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access requires HTTPS and a modern browser.');
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false});$('flipCamera').classList.add('visible');
-  video.srcObject=stream;await video.play();$('placeholder').style.display='none';stop.disabled=false;running=true;resize();$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;status('Camera live · loading models…',true);clearResult('Camera is on. Loading recognition models…');raf=requestAnimationFrame(detect);
-  try{await loadModels();if(!running)return;status('Ready · camera models loaded',true);$('systemPill').textContent='recognition models loaded';lastFpsTime=performance.now();}catch(modelErr){console.error(modelErr);status('Camera live · models failed to load',true);$('objectDescription').textContent='Camera works, but the recognition models did not load. Check internet access, then stop and restart.';start.disabled=false}
- }catch(e){console.error(e);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;running=false;status('Camera unavailable');$('objectDescription').textContent=e.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings and retry.':e.name==='NotFoundError'?'No camera was found on this device.':e.message||'Check camera permission and try again.';start.disabled=false}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access requires HTTPS. Open this site on GitHub Pages in an updated browser.');
+  // Try preferred camera first, then retry with basic constraints for devices that reject facingMode/resolution.
+  try{
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false});
+  }catch(firstCameraError){
+   console.warn('Preferred camera constraints failed; retrying with default camera.',firstCameraError);
+   stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+  }
+  video.srcObject=stream;
+  video.muted=true;video.setAttribute('playsinline','');
+  await new Promise((resolve,reject)=>{
+   if(video.readyState>=2&&video.videoWidth){resolve();return;}
+   const onReady=()=>{cleanup();resolve();};
+   const onError=()=>{cleanup();reject(new Error('The camera opened but video could not start. Reload the page and retry.'));};
+   const timer=setTimeout(()=>{cleanup();reject(new Error('Camera video timed out. Check that another app is not using the camera.'));},10000);
+   function cleanup(){clearTimeout(timer);video.removeEventListener('loadedmetadata',onReady);video.removeEventListener('canplay',onReady);video.removeEventListener('error',onError);}
+   video.addEventListener('loadedmetadata',onReady,{once:true});video.addEventListener('canplay',onReady,{once:true});video.addEventListener('error',onError,{once:true});
+  });
+  await video.play();
+  $('flipCamera').classList.add('visible');$('placeholder').style.display='none';stop.disabled=false;running=true;resize();
+  $('resolution').textContent='Resolution: '+(video.videoWidth||'unknown')+' × '+(video.videoHeight||'unknown');
+  status('Camera live · loading models…',true);clearResult('Camera is on. Loading recognition models…');raf=requestAnimationFrame(detect);
+  try{
+   await loadModels();
+   if(!running)return;
+   status('Ready · camera models loaded',true);$('systemPill').textContent='recognition models loaded';lastFpsTime=performance.now();start.disabled=true;
+  }catch(modelErr){
+   console.error('Recognition model load failed:',modelErr);
+   status('Camera live · model download failed',true);
+   $('objectDescription').textContent='The camera is working, but recognition models could not download. Check internet access, then press Stop and Start again.';
+   $('fps').textContent='Camera on · recognition unavailable';start.disabled=true;
+  }
+ }catch(e){
+  console.error('Could not start live camera:',e);
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=null;video.srcObject=null;running=false;stop.disabled=true;start.disabled=false;
+  status('Camera unavailable');
+  const message=e.name==='NotAllowedError'?'Camera permission was blocked. Click the site icon beside the address bar, allow Camera, and try again.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera and retry.':e.name==='NotReadableError'?'The camera may be in use by another app. Close other camera apps and retry.':e.name==='OverconstrainedError'?'This camera does not support the requested settings. Retry using the default camera.':e.message||'Check camera permission and try again.';
+  $('objectDescription').textContent=message;$('placeholder').style.display='block';
+ }
 });
 $('flipCamera').addEventListener('click',async()=>{if(!running)return;const oldStream=stream;facingMode=facingMode==='environment'?'user':'environment';try{const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:640},height:{ideal:480}},audio:false});stream=next;video.srcObject=next;await video.play();oldStream?.getTracks().forEach(t=>t.stop());$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;lastInferenceVideo=-1;}catch(e){facingMode=facingMode==='environment'?'user':'environment';status('Could not switch camera',true);console.error(e)}});
 stop.addEventListener('click',()=>{$('flipCamera').classList.remove('visible');running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
