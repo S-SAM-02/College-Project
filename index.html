@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#fffdf8">
-<title>OBJECT MIND — Live Vision Studio</title>
+<meta name="theme-color" content="#72caff">
+<title>ANIME REALITY — 3D Vision Portal</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 :root{color-scheme:light;--ink:#20231f;--muted:#77796f;--gold:#bd9140;--gold2:#ead7a8;--paper:#fffdf8;--panel:#fff;--line:#e9e2d3;--green:#2e7557;--red:#b34e3e;--shadow:0 18px 55px #5b47200d}
@@ -13,22 +13,43 @@
 .mode-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.mode-btn{border:1px solid #e6dcc5;background:#fffdf7;border-radius:12px;padding:11px 16px;font-weight:800;color:#6f654e}.mode-btn.active{background:linear-gradient(135deg,#c6a257,#aa7e2f);color:#fff;border-color:#b18a40;box-shadow:0 7px 18px #b18a4025}.mode-note{font-size:.82rem;color:var(--muted);margin:8px 2px 0}.portal-aura{position:absolute;inset:0;z-index:3;pointer-events:none;display:none}.portal-aura.active{display:block}.camera-stage.anime-mode .portal-aura{inset:0}.camera-flip{display:none}.camera-flip.visible{display:inline-block}.camera-stage.anime-mode canvas{z-index:4}.camera-stage.people-mode .portal-aura{display:none}
 
 @media(max-width:520px){.mode-btn{flex:1;padding:10px 8px;font-size:.78rem}}
+
+/* ANIME REALITY sky-blue glass interface */
+:root{color-scheme:light;--ink:#09284a;--muted:#53738f;--gold:#168bdb;--gold2:#bfeaff;--paper:#eefaff;--panel:rgba(255,255,255,.64);--line:rgba(124,204,255,.5);--green:#16885e;--red:#b34e3e;--shadow:0 22px 65px rgba(18,100,174,.17)}
+html{background:#dff5ff}body{background:linear-gradient(180deg,#67c6ff,#c5edff 27%,#f3fbff 63%,#d9f1ff);color:var(--ink)}
+body:before{z-index:0;opacity:.65;background:radial-gradient(ellipse at 8% 19%,rgba(255,255,255,.95) 0 5%,transparent 14%),radial-gradient(ellipse at 88% 27%,rgba(255,255,255,.88) 0 6%,transparent 17%),radial-gradient(ellipse at 72% 77%,rgba(81,191,255,.18) 0 7%,transparent 20%),radial-gradient(circle at 12% 24%,#fff 0 1px,transparent 2px),radial-gradient(circle at 83% 68%,#75cfff 0 1px,transparent 2px);background-size:100% 100%,100% 100%,100% 100%,42px 42px,58px 58px;animation:skyDrift 30s linear infinite}
+@keyframes skyDrift{to{background-position:0 0,0 0,0 0,42px 42px,-58px -58px}}
+.shell{position:relative;z-index:1;max-width:1360px}
+.topbar{border:1px solid #ffffffbb;border-radius:22px;padding:14px 18px;background:linear-gradient(135deg,#0a68becf,#43b5ff8c);box-shadow:0 14px 40px #0056a333,inset 0 1px #ffffffcc;backdrop-filter:blur(22px);color:#fff}
+.brand{color:#fff}.brand-mark{background:linear-gradient(145deg,#fff,#b9eaff);border-color:#fff;color:#0879c9;box-shadow:0 0 24px #a9e8ff88}.brand small{color:#e4f7ff}
+.top-pill{background:#ffffffd1;border-color:#d5f2ff;color:#165b8b}
+.hero{padding:30px 0 22px}.eyebrow{color:#087fcb}.hero h1{color:#07345d;text-shadow:0 3px #ffffff73,0 12px 35px #1b87cf24}.hero h1 span{color:#087fc7;text-shadow:0 2px #fff,0 0 30px #9fe5ff}.hero p{color:#3c6686}
+.mind-visual{height:94px;background:linear-gradient(145deg,#ffffffcc,#ade6ff77);border-color:#ffffffed;box-shadow:0 18px 42px #1b87cf2b,inset 0 1px #fff}.mind-visual:before,.mind-visual:after{border-color:#26a7ef66}.brain{color:#168bd8;filter:drop-shadow(0 8px 20px #28a9ff55)}.node{background:#20a8ff;box-shadow:0 0 0 5px #5fcaff55,0 0 18px #26aaff}
+.panel{background:#ffffffab;border-color:#ffffffed;box-shadow:0 22px 60px #0f6eb92b,inset 0 1px #fff;backdrop-filter:blur(22px);border-radius:24px}.panel-head{border-color:#72c7f54d;background:linear-gradient(115deg,#ffffffb8,#d8f3ff73)}.panel-head h2{color:#0b3e67}.panel-head p{color:#527894}
+.camera-stage{background:linear-gradient(145deg,#b6e8ff,#f8fdff 45%,#7ccfff);border-color:#ffffffed;box-shadow:inset 0 0 35px #1994e721,0 10px 28px #1994e71f}.placeholder{color:#4c7795}.placeholder b{color:#0b426d}.camera-symbol{background:linear-gradient(145deg,#fff,#aee7ff);color:#0786d4;box-shadow:0 8px 22px #279be533}
+.btn{border-color:#b8e8ff;background:linear-gradient(145deg,#fff,#d9f4ff);color:#07548a;box-shadow:0 5px 0 #a9dff8,0 10px 25px #268fd51a}.btn:hover{border-color:#4bbcff;box-shadow:0 7px 0 #a9dff8,0 14px 26px #268fd533}.btn.primary{background:linear-gradient(135deg,#17a7ff,#0874d1);border-color:#a7eaff;color:#fff;box-shadow:0 0 0 1px #fff7,0 9px 26px #0788e455,inset 0 1px #ffffffb8}
+.live-label{background:#f5fcffe8;border-color:#7fd6ff;color:#075a94;box-shadow:0 0 25px #5bc7ff55,0 8px 30px #00365d22}.live-label small{color:#0787cf}
+.inline-result,.result-card{background:linear-gradient(135deg,#ffffffe0,#dff6ffb8);border-color:#bce8ff}.inline-result strong,.object-name{color:#0879c2}.result-label{color:#087fc7}.meter span{background:linear-gradient(90deg,#8fe4ff,#087fd3)}.history-chip{background:#f0faff;border-color:#bce8ff;color:#17618d}.hint{background:#e9f8ff;border-color:#bceaff;color:#376b8a}
+.menu-panel{background:#f8fdffee;border-color:#b4e5ff;box-shadow:0 18px 42px #0b6ba522;backdrop-filter:blur(20px)}.menu-panel strong{color:#087fc7}.mode-btn{border-color:#b6e7ff;background:linear-gradient(145deg,#fff,#e2f7ff);color:#15557e}.mode-btn.active{background:linear-gradient(135deg,#119be9,#0868bc);color:#fff;border-color:#b4eaff;box-shadow:0 0 20px #28aaff44}
+.bottom-note{color:#386d8c}.bottom-note strong{color:#087fc7}.camera-stage.anime-mode{background:linear-gradient(145deg,#d9f4ff,#9bdcff 50%,#f9fdff)}.camera-stage.anime-mode:after{content:"";position:absolute;inset:5%;pointer-events:none;border:1px solid #ffffff66;border-radius:22px;box-shadow:inset 0 0 38px #32b0ff2e}.camera-stage.anime-mode .live-label{border-color:#9de8ff;box-shadow:0 0 25px #42caff77,0 0 55px #ffffff88}.portal-aura{border-color:#7be1ff;box-shadow:0 0 28px #2ab8ff66,inset 0 0 28px #ffffff66}
+@media(max-width:850px){.shell{padding:14px 12px 28px}.topbar{border-radius:17px}.hero{padding-top:24px}.panel{border-radius:18px}.camera-stage{min-height:250px}}
+@media(prefers-reduced-motion:reduce){body:before,.mind-visual:before,.mind-visual:after,.brain{animation:none}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header class="topbar">
-  <div class="brand"><div class="brand-mark" aria-hidden="true">✳</div><div>OBJECT MIND<small>LIVE OBJECT RECOGNITION</small></div></div>
+  <div class="brand"><div class="brand-mark" aria-hidden="true">✦</div><div>ANIME REALITY<small>3D VISION · MAGIC PORTAL STUDIO</small></div></div>
   <div class="top-pill"><span class="pulse"></span><span id="systemPill">Recognition engine ready</span></div>
 </header>
 <nav class="menu-row"><button class="menu-toggle btn" id="menuToggle" type="button" aria-expanded="false">☰ Project menu</button><div class="menu-panel" id="menuPanel" hidden><strong>Choose a camera mode</strong><div class="mode-tabs" role="tablist" aria-label="Vision modes"><button class="mode-btn active" data-mode="objects" role="tab" aria-selected="true">Object Finder</button><button class="mode-btn" data-mode="people" role="tab" aria-selected="false">People View</button><button class="mode-btn" data-mode="anime" role="tab" aria-selected="false">Anime Portal</button></div><p>OBJECT MIND</p><p>Three camera modes share one interface. Object Finder labels supported objects near hands. People View detects visible faces and counts people. Anime Portal connects two detected hands with an animated gold portal.</p><p>Age and gender cannot be reliably calculated from this face detector alone; this build does not invent those estimates. Camera processing runs locally in your browser.</p></div></nav><section class="hero">
-  <div><div class="eyebrow">Computer vision · Live recognition</div><h1>See it. Hold it.<br><span>Know it.</span></h1><p>A smart camera designed to identify everyday objects only when they appear to be held in a person's hand. Point the camera at a phone, bottle, pen, hat or other item to see its predicted name and confidence.</p></div>
+  <div><div class="eyebrow">Sky vision · real-time interaction</div><h1>Enter the <span>Anime Reality.</span></h1><p>Explore a floating sky world with live hand tracking, object recognition and a magical portal effect. Choose a mode and start your camera to interact with the world around you.</p></div>
   <div class="mind-visual" aria-label="Animated animated mind illustration"><span class="node n1"></span><span class="node n2"></span><span class="node n3"></span><span class="node n4"></span><svg class="brain" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M48 17C40 7 24 14 25 27C12 29 10 45 20 51C12 64 22 78 34 76C39 89 51 85 50 75V23C50 20 49 18 48 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M52 17C60 7 76 14 75 27C88 29 90 45 80 51C88 64 78 78 66 76C61 89 49 85 50 75V23C50 20 51 18 52 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M26 35C37 32 42 40 39 48M21 57C31 52 40 60 37 69M72 34C62 31 57 40 61 47M79 57C68 52 60 60 64 69M50 30V68" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="38" cy="27" r="3" fill="#E2C477"/><circle cx="65" cy="26" r="3" fill="#E2C477"/></svg></div>
 </section>
 <section class="workspace">
   <article class="panel">
     <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
-    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><button class="btn camera-flip" id="flipCamera" type="button" title="Switch front/rear camera" aria-label="Switch front/rear camera">↻ Flip camera</button><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your camera, your object</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand and labels the best match. Tiny items such as safety pins, loose wires, and some lamps may not be supported by the built-in model.</div></div>
+    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><button class="btn camera-flip" id="flipCamera" type="button" title="Switch front/rear camera" aria-label="Switch front/rear camera">↻ Flip camera</button><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand and labels the best match. Tiny items such as safety pins, loose wires, and some lamps may not be supported by the built-in model.</div></div>
     <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
   </article>
   <aside class="panel">
@@ -42,7 +63,7 @@
     </div>
   </aside>
 </section>
-<div class="bottom-note">Designed in <strong>ivory white + champagne gold</strong> · No background video · Camera processing stays in this browser.</div>
+<div class="bottom-note">ANIME REALITY · <strong>Sky blue · crystal white · magical cyan</strong> · Camera processing stays in this browser.</div>
 </div>
 <script>
 (function(){
