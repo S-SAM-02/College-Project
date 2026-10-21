@@ -162,31 +162,34 @@ function detect(){
  finally{modelBusy=false}
 }
 function drawOverlay(hands,best,faces=[]){
- ctx.clearRect(0,0,1,1);ctx.save();
- // People View: outline faces only; never draw hand boxes in this mode.
- if(mode==='people'){for(const f of faces){const b=f.boundingBox;if(b){ctx.strokeStyle='#bd9140';ctx.lineWidth=.003;ctx.strokeRect(b.originX/video.videoWidth,b.originY/video.videoHeight,b.width/video.videoWidth,b.height/video.videoHeight)}}}
- // Anime Portal: five flowing energy strands connect corresponding fingertips across both hands.
+ ctx.clearRect(0,0,1,1);
+ // Never render hand rectangles or hand landmark dots in any mode.
+ if(mode==='people'){
+  ctx.save();
+  for(const f of faces){const b=f.boundingBox;if(b&&video.videoWidth&&video.videoHeight){ctx.strokeStyle='#bd9140';ctx.lineWidth=.0025;ctx.strokeRect(b.originX/video.videoWidth,b.originY/video.videoHeight,b.width/video.videoWidth,b.height/video.videoHeight)}}
+  ctx.restore();
+ }
  if(mode==='anime'&&hands.length>=2){
-  const tips=[4,8,12,16,20],time=performance.now()/280;
+  const tips=[4,8,12,16,20];
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(let i=0;i<tips.length;i++){
    const p=hands[0][tips[i]],q=hands[1][tips[i]];
    if(!p||!q)continue;
-   const mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
-   const wave=.018+i*.006;
-   const c1x=mx+Math.sin(time+i*.8)*wave,c1y=my+Math.cos(time+i*.6)*wave*2;
-   const c2x=mx-Math.sin(time*.9+i*.7)*wave,c2y=my+Math.cos(time+i)*wave*2;
-   ctx.shadowColor='#ffd85c';ctx.shadowBlur=16;ctx.strokeStyle='rgba(255,203,64,.42)';ctx.lineWidth=.012;
-   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,q.x,q.y);ctx.stroke();
-   ctx.shadowBlur=7;ctx.strokeStyle=i===1?'#fff2b6':'#ffe19a';ctx.lineWidth=.0035;
-   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,q.x,q.y);ctx.stroke();
-   // Bright fingertip endpoints, with no bounding boxes.
-   for(const pt of [p,q]){ctx.beginPath();ctx.arc(pt.x,pt.y,.006,0,Math.PI*2);ctx.fillStyle='#fff8d6';ctx.fill();ctx.beginPath();ctx.arc(pt.x,pt.y,.011,0,Math.PI*2);ctx.strokeStyle='#f2c94c';ctx.lineWidth=.002;ctx.stroke();}
+   // A direct, straight connection between each matching fingertip on the left and right hand.
+   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
+   ctx.strokeStyle='rgba(255,194,45,.30)';ctx.lineWidth=.018;ctx.shadowColor='#ffca45';ctx.shadowBlur=18;ctx.stroke();
+   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
+   ctx.strokeStyle=i===1?'#fff5bd':'#ffd86b';ctx.lineWidth=.0045;ctx.shadowBlur=8;ctx.stroke();
+   for(const pt of [p,q]){
+    ctx.beginPath();ctx.arc(pt.x,pt.y,.0055,0,Math.PI*2);ctx.fillStyle='#fff9de';ctx.shadowBlur=9;ctx.fill();
+   }
   }
   ctx.restore();
  }
- if(best&&mode==='objects'){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.003;ctx.strokeRect(x,y,bw,bh)}
- ctx.restore()
+ if(best&&mode==='objects'&&video.videoWidth&&video.videoHeight){
+  const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;
+  ctx.save();ctx.strokeStyle='#c49a49';ctx.lineWidth=.003;ctx.strokeRect(x,y,bw,bh);ctx.restore();
+ }
 }
 start.addEventListener('click',async()=>{
  if(running)return;
