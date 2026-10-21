@@ -49,7 +49,7 @@
 const $=id=>document.getElementById(id);
 const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
-let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…';
+let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0;
 const history=[];
 function status(text,on=false){$('cameraStatus').textContent=text;$('cameraDot').classList.toggle('on',on);$('systemPill').textContent=on?'Camera connected':text}
 function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
@@ -93,13 +93,13 @@ function detect(){
   const hands=handModel.detectForVideo(video,now).landmarks||[];
   const detections=mode==='objects'&&objectModel?(objectModel.detectForVideo(video,now).detections||[]):[];
   const faces=mode==='people'&&faceModel?(faceModel.detectForVideo(video,now).detections||[]):[];
-  const handBoxes=hands.map(lm=>boxOfLandmarks(lm,.12));
+  const handBoxes=hands.map(lm=>boxOfLandmarks(lm,.20));
   let best=null;
   for(const d of detections){
    const bb=d.boundingBox,cat=d.categories&&d.categories[0];if(!bb||!cat)continue;
    const overlap=handBoxes.reduce((m,h)=>Math.max(m,overlaps(bb,h)),0);
-   if(overlap<.055)continue;
-   const score=cat.score||0;if(score<.22)continue;
+   if(overlap<.025)continue;
+   const score=cat.score||0;if(score<.32)continue;
    const name=cat.categoryName||'Unknown object';if(name.toLowerCase()==='person')continue;
    const rank=score*(1+Math.min(overlap,.5)*1.8);
    if(!best||rank>best.rank)best={name,score,rank,box:bb};
@@ -107,7 +107,7 @@ function detect(){
   drawOverlay(hands,best,faces);
   if(mode==='people'){const count=faces.length;liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=count+' '+(count===1?'face':'faces')+' detected';const s=document.createElement('small');s.textContent=lastFaceDetails||faceAnalysisStatus;liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent='Faces detected: '+count+' · live';
    if(!faceApiReady&&!faceApiLoading&&!faceApiError&&now-lastFaceScan>2500){lastFaceScan=now;loadFaceApi();}
-   if(faceApiReady&&!faceAnalysisBusy&&now-lastFaceScan>900){lastFaceScan=now;faceAnalysisBusy=true;faceApi.detectAllFaces(video,new faceApi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:.25})).withAgeAndGender().then(results=>{if(!running||mode!=='people')return;lastFaceDetails=results.map((r,i)=>{const low=Math.max(0,Math.floor(r.age/5)*5),high=low+5;const gender=r.gender==='male'?'masculine appearance':r.gender==='female'?'feminine appearance':'unclear appearance';return 'Person '+(i+1)+': estimated '+low+'–'+high+' years · '+gender}).join(' | ');faceAnalysisStatus=lastFaceDetails||'Face found, but age/appearance estimate is unavailable.';const label=liveLabel.querySelector('small');if(label)label.textContent=faceAnalysisStatus;}).catch(e=>{console.warn('Face analysis failed',e);faceAnalysisStatus='Face analysis failed. Check connection and reload.';const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus}).finally(()=>{faceAnalysisBusy=false});}
+   if(faceApiReady&&!faceAnalysisBusy&&now-lastFaceAnalysisAt>1800){lastFaceAnalysisAt=now;lastFaceScan=now;faceAnalysisBusy=true;faceApi.detectAllFaces(video,new faceApi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.30})).withAgeAndGender().then(results=>{if(!running||mode!=='people')return;faceResultCache=results.map((r,i)=>{const low=Math.max(0,Math.floor(r.age/5)*5),high=low+5;const gender=r.gender==='male'?'male-presenting':r.gender==='female'?'female-presenting':'uncertain';return 'Person '+(i+1)+': approx. '+low+'–'+high+' years · '+gender+' (estimate)'});lastFaceDetails=faceResultCache.join(' | ');faceAnalysisStatus=lastFaceDetails||'Face detected; age/gender estimate unavailable for this frame.';const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus;}).catch(e=>{console.warn('Face analysis failed',e);faceAnalysisStatus='Age/gender model failed. Check model downloads in the browser console.';const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus}).finally(()=>{faceAnalysisBusy=false});}
   }
   else if(mode==='anime'){$('portalAura').classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=2?'PORTAL OPEN':'SHOW BOTH HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'GOLD ENERGY LINK':'TWO HANDS REQUIRED';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Portal connected':'Waiting for both hands';}
   else if(best){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score)}else if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible.':'Show an item in your hand. Try a phone, bottle, cup, book or keyboard.');}
