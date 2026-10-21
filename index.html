@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#fffdf8">
-<title>OBJECT MIND AI — Live Vision Studio</title>
+<title>OBJECT MIND — Live Vision Studio</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 :root{color-scheme:light;--ink:#20231f;--muted:#77796f;--gold:#bd9140;--gold2:#ead7a8;--paper:#fffdf8;--panel:#fff;--line:#e9e2d3;--green:#2e7557;--red:#b34e3e;--shadow:0 18px 55px #5b47200d}
@@ -14,23 +14,23 @@
 <body>
 <div class="shell">
 <header class="topbar">
-  <div class="brand"><div class="brand-mark" aria-hidden="true">✳</div><div>OBJECT MIND AI<small>HANDHELD OBJECT INTELLIGENCE</small></div></div>
-  <div class="top-pill"><span class="pulse"></span><span id="systemPill">AI engine ready to initialize</span></div>
+  <div class="brand"><div class="brand-mark" aria-hidden="true">✳</div><div>OBJECT MIND<small>LIVE OBJECT RECOGNITION</small></div></div>
+  <div class="top-pill"><span class="pulse"></span><span id="systemPill">Recognition engine ready</span></div>
 </header>
-<nav class="menu-row"><button class="menu-toggle btn" id="menuToggle" type="button" aria-expanded="false">☰ Project menu</button><div class="menu-panel" id="menuPanel" hidden><strong>OBJECT MIND AI</strong><p>Live object detection combines a pretrained object model with hand landmarks. Only model-supported object labels can be named. Person age estimation is not supported by this model.</p><p>Camera processing runs locally in your browser. Results are predictions, not guaranteed identifications.</p></div></nav><section class="hero">
-  <div><div class="eyebrow">Computer vision · Real-time detection</div><h1>See it. Hold it.<br><span>Know it.</span></h1><p>An AI camera designed to identify everyday objects only when they appear to be held in a person's hand. Point the camera at a phone, bottle, pen, hat or other item to see its predicted name and confidence.</p></div>
-  <div class="mind-visual" aria-label="Animated AI mind illustration"><span class="node n1"></span><span class="node n2"></span><span class="node n3"></span><span class="node n4"></span><svg class="brain" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M48 17C40 7 24 14 25 27C12 29 10 45 20 51C12 64 22 78 34 76C39 89 51 85 50 75V23C50 20 49 18 48 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M52 17C60 7 76 14 75 27C88 29 90 45 80 51C88 64 78 78 66 76C61 89 49 85 50 75V23C50 20 51 18 52 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M26 35C37 32 42 40 39 48M21 57C31 52 40 60 37 69M72 34C62 31 57 40 61 47M79 57C68 52 60 60 64 69M50 30V68" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="38" cy="27" r="3" fill="#E2C477"/><circle cx="65" cy="26" r="3" fill="#E2C477"/></svg></div>
+<nav class="menu-row"><button class="menu-toggle btn" id="menuToggle" type="button" aria-expanded="false">☰ Project menu</button><div class="menu-panel" id="menuPanel" hidden><strong>OBJECT MIND</strong><p>Live object detection combines a pretrained object model with hand landmarks. Only model-supported object labels can be named. Person age estimation is not supported by this model.</p><p>Camera processing runs locally in your browser. Results are predictions, not guaranteed identifications.</p></div></nav><section class="hero">
+  <div><div class="eyebrow">Computer vision · Live recognition</div><h1>See it. Hold it.<br><span>Know it.</span></h1><p>A smart camera designed to identify everyday objects only when they appear to be held in a person's hand. Point the camera at a phone, bottle, pen, hat or other item to see its predicted name and confidence.</p></div>
+  <div class="mind-visual" aria-label="Animated animated mind illustration"><span class="node n1"></span><span class="node n2"></span><span class="node n3"></span><span class="node n4"></span><svg class="brain" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M48 17C40 7 24 14 25 27C12 29 10 45 20 51C12 64 22 78 34 76C39 89 51 85 50 75V23C50 20 49 18 48 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M52 17C60 7 76 14 75 27C88 29 90 45 80 51C88 64 78 78 66 76C61 89 49 85 50 75V23C50 20 51 18 52 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M26 35C37 32 42 40 39 48M21 57C31 52 40 60 37 69M72 34C62 31 57 40 61 47M79 57C68 52 60 60 64 69M50 30V68" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="38" cy="27" r="3" fill="#E2C477"/><circle cx="65" cy="26" r="3" fill="#E2C477"/></svg></div>
 </section>
 <section class="workspace">
   <article class="panel">
-    <div class="panel-head"><div><h2>AI Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
-    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your camera, your object</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Live AI: waiting for camera</span></div><div class="inline-result" id="inlineResult"><strong id="inlineName">AI is ready</strong><span id="inlineDescription">Turn on the camera to identify objects held in your hand.</span></div></div>
-    <div class="actions"><button class="btn primary full" id="start" type="button">Start AI Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
+    <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
+    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your camera, your object</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="inline-result" id="inlineResult"><strong id="inlineName">Ready to recognize</strong><span id="inlineDescription">Turn on the camera to identify objects held in your hand.</span></div></div>
+    <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
   </article>
   <aside class="panel">
-    <div class="panel-head"><div><h2>Recognition result</h2><p>Objects associated with your hand</p></div><span class="top-pill">LIVE AI</span></div>
+    <div class="panel-head"><div><h2>Recognition result</h2><p>Objects associated with your hand</p></div><span class="top-pill">LIVE</span></div>
     <div class="results">
-      <p class="results-intro">The label appears only when a detected object's bounding box is close to a detected hand.</p>
+      <p class="results-intro">A label appears when an object is detected near your hand. Keep the object fully visible.</p>
       <div class="result-card" aria-live="polite"><div class="result-label">Currently holding</div><div class="object-name" id="objectName">Nothing detected</div><p class="object-sub" id="objectDescription">Hold a visible object in your hand to begin recognition.</p><div class="confidence"><span>Model confidence</span><strong id="confidence">—</strong></div><div class="meter"><span id="meter"></span></div></div>
       <div class="result-empty" id="empty"><strong>Ready when you are</strong>Only common object classes supported by the model can be named. Unrecognized objects may not receive a label.</div>
       <div class="history-title">Recent detections</div><div class="history" id="history"><span class="object-sub">No detections yet</span></div>
@@ -51,10 +51,11 @@ const history=[];
 function status(text,on=false){$('cameraStatus').textContent=text;$('cameraDot').classList.toggle('on',on);$('systemPill').textContent=on?'Camera connected':text}
 function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function clearResult(message){$('objectName').textContent='Nothing detected';$('objectDescription').textContent=message||'Hold a visible object in your hand to begin recognition.';$('confidence').textContent='—';$('meter').style.width='0%';$('empty').style.display='block';$('inlineName').textContent='Searching the scene…';$('inlineDescription').textContent=message||'Show an object clearly in your hand.';liveLabel.hidden=true}
-function labelResult(name,score){lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected in the hand area.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';$('inlineName').textContent=name;$('inlineDescription').textContent='Object identified · model confidence '+Math.round(score*100)+'%';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent='AI OBJECT · '+Math.round(score*100)+'% CONFIDENCE';liveLabel.append(title,sub);liveLabel.hidden=false;if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
+function labelResult(name,score){lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected in the hand area.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';$('inlineName').textContent=name;$('inlineDescription').textContent='Object identified · model confidence '+Math.round(score*100)+'%';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent='OBJECT · '+Math.round(score*100)+'% CONFIDENCE';liveLabel.append(title,sub);liveLabel.hidden=false;if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
 async function loadModels(){
  if(handModel&&objectModel)return;if(modelsLoading)return;modelsLoading=true;
- status('Loading AI models…',true);
+ try{
+ status('Loading recognition models…',true);
  if(!visionModule)visionModule=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
  const resolver=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
  const jobs=await Promise.allSettled([
@@ -66,15 +67,16 @@ async function loadModels(){
  if(!handModel||!objectModel){
    const cpuJobs=await Promise.allSettled([
     !handModel?visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'CPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.35,minHandPresenceConfidence:.35,minTrackingConfidence:.35}):Promise.resolve(handModel),
-    !objectModel?visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'CPU'},runningMode:'VIDEO',scoreThreshold:.35,maxResults:8}):Promise.resolve(objectModel)
+    !objectModel?visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'CPU'},runningMode:'VIDEO',scoreThreshold:.22,maxResults:12}):Promise.resolve(objectModel)
    ]);
    if(cpuJobs[0].status==='fulfilled')handModel=cpuJobs[0].value;
    if(cpuJobs[1].status==='fulfilled')objectModel=cpuJobs[1].value;
  }
- if(!handModel||!objectModel){modelsLoading=false;throw new Error('The AI models could not load. Check your internet connection or browser support.');}modelsLoading=false;
+ if(!handModel||!objectModel)throw new Error('The recognition models could not load. Check your internet connection or browser support.');
+ }finally{modelsLoading=false}
 }
-function boxOfLandmarks(lm){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y);return{x:Math.max(0,Math.min(...xs)-.06),y:Math.max(0,Math.min(...ys)-.06),w:Math.min(1,Math.max(...xs)-Math.min(...xs)+.12),h:Math.min(1,Math.max(...ys)-Math.min(...ys)+.12)}}
-function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2<=x1||y2<=y1)return 0;const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}
+function boxOfLandmarks(lm){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=.18,padY=.18;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
+function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2>x1&&y2>y1){const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}const cx=ax+aw/2,cy=ay+ah/2,dx=Math.max(b.x-cx,0,cx-(b.x+b.w)),dy=Math.max(b.y-cy,0,cy-(b.y+b.h));return Math.hypot(dx,dy)<.10?.025:0}
 function detect(){
  if(!running||video.readyState<2||!handModel||!objectModel){raf=requestAnimationFrame(detect);return}
  raf=requestAnimationFrame(detect);
@@ -88,19 +90,19 @@ function detect(){
   for(const d of detections){
    const bb=d.boundingBox,cat=d.categories&&d.categories[0];if(!bb||!cat)continue;
    const overlap=handBoxes.reduce((m,h)=>Math.max(m,overlaps(bb,h)),0);
-   if(overlap<.008)continue;
+   if(overlap<=0)continue;
    const score=cat.score||0;if(score<.22)continue;
    if(!best||score>best.score)best={name:cat.categoryName||'Unknown object',score,box:bb};
   }
   drawOverlay(hands,best);
   if(best)labelResult(best.name,best.score);else if(performance.now()-lastSeenAt>650)clearResult(hands.length?'Hand detected — move the object closer to your hand and keep it visible.':'Show a hand holding an object inside the camera view.');
-  frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='AI scan: '+currentFps+' FPS (approx.)'}
- }catch(e){console.error('Inference error:',e);status('AI detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
+  frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='Scan: '+currentFps+' FPS (approx.)'}
+ }catch(e){console.error('Inference error:',e);status('Detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
  finally{modelBusy=false}
 }
 let lastInferenceVideo=-1;
 function drawOverlay(hands,best){
- ctx.clearRect(0,0,1,1);ctx.save();
+ ctx.clearRect(0,0,1,1);ctx.save();ctx.scale(-1,1);ctx.translate(-1,0);
  for(const lm of hands){const b=boxOfLandmarks(lm);ctx.strokeStyle='#bd9140';ctx.lineWidth=.0025;ctx.strokeRect(b.x,b.y,b.w,b.h);for(const p of lm){ctx.beginPath();ctx.arc(p.x,p.y,.003,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#bd9140';ctx.lineWidth=.001;ctx.stroke()}}
  if(best){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.004;ctx.strokeRect(x,y,bw,bh);ctx.fillStyle='#bd9140';ctx.fillRect(x,y,Math.min(bw,.55),.035);ctx.fillStyle='#fff';ctx.font='bold .024px Inter';ctx.fillText(best.name,x+.008,y+.024)}
  ctx.restore()
@@ -110,8 +112,8 @@ start.addEventListener('click',async()=>{
  try{
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access requires HTTPS and a modern browser.');
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false});
-  video.srcObject=stream;await video.play();$('placeholder').style.display='none';stop.disabled=false;running=true;resize();$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;status('Camera live · loading AI…',true);clearResult('Camera is on. Loading object and hand recognition models…');raf=requestAnimationFrame(detect);
-  try{await loadModels();if(!running)return;status('AI ready · hold an object',true);$('systemPill').textContent='AI models loaded';lastFpsTime=performance.now();}catch(modelErr){console.error(modelErr);status('Camera live · AI failed to load',true);$('objectDescription').textContent='Camera works, but the AI models did not load. Check internet access, then stop and restart.';start.disabled=false}
+  video.srcObject=stream;await video.play();$('placeholder').style.display='none';stop.disabled=false;running=true;resize();$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;status('Camera live · loading models…',true);clearResult('Camera is on. Loading recognition models…');raf=requestAnimationFrame(detect);
+  try{await loadModels();if(!running)return;status('Ready · hold an object',true);$('systemPill').textContent='recognition models loaded';lastFpsTime=performance.now();}catch(modelErr){console.error(modelErr);status('Camera live · models failed to load',true);$('objectDescription').textContent='Camera works, but the recognition models did not load. Check internet access, then stop and restart.';start.disabled=false}
  }catch(e){console.error(e);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;running=false;status('Camera unavailable');$('objectDescription').textContent=e.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings and retry.':e.name==='NotFoundError'?'No camera was found on this device.':e.message||'Check camera permission and try again.';start.disabled=false}
 });
 stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
