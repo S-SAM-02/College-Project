@@ -51,7 +51,14 @@ const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:tru
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
 let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0;
 const history=[];
-function status(text,on=false){$('cameraStatus').textContent=text;$('cameraDot').classList.toggle('on',on);$('systemPill').textContent=on?'Camera connected':text}
+function status(text,on=false){const s=$('cameraStatus'),d=$('cameraDot'),p=$('systemPill');if(s)s.textContent=text;if(d)d.classList.toggle('on',on);if(p)p.textContent=on?'Camera connected':text}
+function showFatalError(message){
+ let panel=$('runtimeError');
+ if(!panel){panel=document.createElement('div');panel.id='runtimeError';panel.setAttribute('role','alert');panel.style.cssText='position:sticky;top:8px;z-index:99999;margin:12px auto;padding:14px 16px;max-width:1000px;border:2px solid #b34e3e;border-radius:12px;background:#fff0ed;color:#812d22;font:600 14px/1.5 system-ui;white-space:pre-wrap';const shell=document.querySelector('.shell');if(shell)shell.prepend(panel);else document.body.prepend(panel)}
+ panel.textContent='Project error: '+message;
+}
+window.addEventListener('error',event=>{console.error('Project runtime error:',event.error||event.message);showFatalError(event.message||'A script failed to run. Refresh the page and check the browser console.')});
+window.addEventListener('unhandledrejection',event=>{console.error('Project async error:',event.reason);const message=event.reason&&event.reason.message?event.reason.message:String(event.reason||'Unknown asynchronous error');showFatalError(message)});
 function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function clearResult(message){$('objectName').textContent='Nothing detected';$('objectDescription').textContent=message||'Hold a visible object in your hand to begin recognition.';$('confidence').textContent='—';$('meter').style.width='0%';$('empty').style.display='block';liveLabel.hidden=true}
 function labelResult(name,score){if(mode!=='objects')return;lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected in the hand area.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent='OBJECT · '+Math.round(score*100)+'% CONFIDENCE';liveLabel.append(title,sub);liveLabel.hidden=false;if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
@@ -171,7 +178,12 @@ start.addEventListener('click',async()=>{
 $('flipCamera').addEventListener('click',async()=>{if(!running)return;const oldStream=stream;facingMode=facingMode==='environment'?'user':'environment';try{const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:640},height:{ideal:480}},audio:false});stream=next;video.srcObject=next;await video.play();oldStream?.getTracks().forEach(t=>t.stop());$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;lastInferenceVideo=-1;}catch(e){facingMode=facingMode==='environment'?'user':'environment';status('Could not switch camera',true);console.error(e)}});
 stop.addEventListener('click',()=>{$('flipCamera').classList.remove('visible');running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
 full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
-$('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});window.addEventListener('resize',resize);if('ResizeObserver'in window)new ResizeObserver(resize).observe($('cameraStage'));setMode('objects');resize();
+// Bind controls defensively so one optional feature cannot disable the whole interface.
+$('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});
+window.addEventListener('resize',resize);
+if('ResizeObserver'in window){try{new ResizeObserver(resize).observe($('cameraStage'));}catch(observerError){console.warn('Resize observer unavailable',observerError);}}
+try{setMode('objects');resize();}catch(initError){console.error('Interface initialization failed:',initError);showFatalError(initError.message||String(initError));}
+
 })();
 </script>
 </body>
