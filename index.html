@@ -3,515 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ANIME REALITY — AI Gesture Portal</title>
+<meta name="theme-color" content="#fffdf8">
+<title>OBJECT MIND AI — Handheld Object Recognition</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oxanium:wght@400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
-
-:root{color-scheme:dark;--bg:#08050d;--panel:#130d1b;--line:#563047;--accent:#ff386b;--cyan:#ffc46b;--text:#fff6fb;--muted:#c2aab9}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;overflow-x:hidden;background:#09050d;font:15px/1.5 "Trebuchet MS",system-ui,sans-serif;color:var(--text);isolation:isolate}
-body:before{content:"";position:fixed;inset:-10%;z-index:-3;pointer-events:none;background:radial-gradient(ellipse at 78% 28%,#8c153c66,transparent 32%),radial-gradient(ellipse at 18% 76%,#5120a566,transparent 38%),linear-gradient(125deg,#08050d,#170817 45%,#09050d);animation:realmDrift 16s ease-in-out infinite alternate}
-body:after{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.2;background-image:linear-gradient(#ffb3d011 1px,transparent 1px),linear-gradient(90deg,#ffb3d011 1px,transparent 1px);background-size:54px 54px;mask-image:linear-gradient(to bottom,transparent,#000 25%,#000 80%,transparent)}
-@keyframes realmDrift{to{transform:scale(1.08) translate3d(-1%,1%,0);filter:hue-rotate(24deg)}}
-/* Anime sci-fi HUD typography: sharp, readable, with restrained holographic depth. */
-.brand,h1,h2,.metric,button,label,.tag,.chip{font-family:"Arial Narrow","Trebuchet MS",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.07em}
-.brand{font-size:1.15rem;text-shadow:0 0 16px #ff386b66}.brand span{color:var(--accent);text-shadow:0 0 16px #ff386b88}
-h1{font-weight:1000;letter-spacing:.035em;text-shadow:3px 3px 0 #66102f,0 0 28px #ff386b55;transform:perspective(700px) rotateX(4deg);font-style:italic}
-h1 em{display:inline-block;color:#ffc46b;text-shadow:0 0 18px #ffc46b77,3px 3px 0 #5b172f}
-h2{font-size:1rem;letter-spacing:.12em;color:#fff0f5}
-.card{position:relative;background:linear-gradient(145deg,#1c101ddf,#100b17eF);backdrop-filter:blur(18px);border:1px solid #65334d;border-radius:5px;box-shadow:0 18px 55px #0008,inset 0 1px 0 #ffffff12}
-.card:before{content:"";position:absolute;top:-1px;left:18px;width:82px;height:2px;background:var(--accent);box-shadow:0 0 18px #ff386b99}
-button{letter-spacing:.04em;text-transform:uppercase}button.primary{box-shadow:0 0 16px #b5a0ff22}
-.metric{color:var(--accent);letter-spacing:.1em;text-shadow:0 0 12px #75f2ff44}
-label{letter-spacing:.1em;font-size:.76rem}
-.tag{font-size:.72rem;letter-spacing:.12em;color:var(--cyan)}
-.chip{font-size:.68rem;letter-spacing:.05em;border-color:#34445e}
-.note{background:#21101d;border-left-color:var(--accent)}
-.preview{border:1px solid #7c3658;box-shadow:inset 0 0 48px #ff386b22,0 0 34px #8d1d5033}
-.preview:before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(115deg,transparent 35%,#ff386b12 50%,transparent 65%);background-size:220% 100%;animation:scanSweep 7s linear infinite}.preview:after{content:"LIVE FEED // PORTAL VIEW";position:absolute;top:10px;left:12px;z-index:2;pointer-events:none;font:700 10px/1.2 monospace;letter-spacing:.14em;color:#ffd3e0;text-shadow:0 0 8px #75f2ff;opacity:.9;color:#ffd0df}
-@keyframes scanSweep{to{background-position:-220% 0}} @media(prefers-reduced-motion:no-preference){.brand span{animation:hudPulse 3s ease-in-out infinite}@keyframes hudPulse{0%,100%{text-shadow:0 0 8px #ff386b55}50%{text-shadow:0 0 20px #ffc46bbb}}}
-main{position:relative;max-width:1320px;margin:auto;padding:24px 22px 42px;min-height:100vh}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.brand{font-weight:900;letter-spacing:.12em}.brand span{color:var(--accent)}.tag,.small,p{color:var(--muted)}h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1.05;margin:28px 0 8px}h1 em{font-style:normal;color:var(--cyan)}p{margin:8px 0}.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,.9fr);gap:18px;margin-top:24px}.card{background:linear-gradient(145deg,#24101fef,#100914f5);border:1px solid #73304d;border-radius:5px;padding:18px;box-shadow:0 18px 50px #0008,inset 0 1px 0 #ffffff10}.preview{position:relative;overflow:hidden;background:radial-gradient(ellipse at 65% 45%,#36102c,#08050b 68%);border-radius:10px;aspect-ratio:16/10;display:grid;place-items:center}.preview:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;background:#000}.preview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.preview canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:scaleX(-1)}.placeholder{position:absolute;text-align:center;padding:20px;color:var(--muted)}button,select,input{font:inherit;border-radius:9px;border:1px solid var(--line);background:#20121f;color:var(--text);padding:10px 12px}button{cursor:pointer;font-weight:700}button.primary{background:linear-gradient(115deg,#ff386b,#ff7b62);border-color:#ff6688;color:#fff}button:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}label{display:block;font-size:.88rem;color:var(--muted);margin:12px 0 5px}.status{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.9rem}.dot{width:8px;height:8px;border-radius:50%;background:#64748b}.dot.on{background:#4ade80}.metric{font-size:1.15rem;font-weight:800;margin-top:6px}.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:var(--muted);font-size:.78rem}.note{border-left:3px solid var(--cyan);padding:9px 11px;background:#202838;border-radius:0 8px 8px 0;color:#e1e8f3;font-size:.88rem;margin-top:12px}footer{margin-top:18px;color:var(--muted);font-size:.8rem}.status{white-space:nowrap}#recognize{border-color:var(--cyan);color:var(--cyan)}
-.menu-toggle{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#301225,#15101f);border-color:#9d3b62;color:var(--text);padding:8px 12px;border-radius:12px}
-.avatar-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#ffc46b,#ff386b);color:#190711;font-weight:900;letter-spacing:0}
-.menu-chevron{color:var(--cyan);font-size:1.1rem}
-.project-menu{margin-top:14px;padding:18px;background:linear-gradient(145deg,#101b2b,#0b111d);border-color:#425572;box-shadow:0 20px 60px #0007}
-.project-menu[hidden]{display:none}
-.menu-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #34445e;padding-bottom:12px;margin-bottom:14px}
-.menu-heading h2{margin:5px 0 0}
-.icon-button{font-size:1.3rem;padding:5px 12px;color:var(--cyan)}
-.command-box{margin-top:18px;padding-top:16px;border-top:1px solid #593047}.command-row{display:flex;gap:8px;align-items:stretch}.command-row input{min-width:0;flex:1;background:#100914;border:1px solid #7a3554;color:#fff6fb;border-radius:4px}.command-row button{white-space:nowrap;border-radius:4px}.hero-copy{margin:46px 0 22px;padding:18px 0 12px;border-left:3px solid var(--accent);padding-left:20px}.hero-copy h1{font-size:clamp(2.3rem,6vw,4.6rem);margin:8px 0;letter-spacing:.04em}.hero-copy p{font-size:1rem;color:#f0c5d5}.layout .card{transition:transform .25s ease,border-color .25s ease}.layout .card:hover{transform:translateY(-3px);border-color:#ff6688}.menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.menu-section{border:1px solid #593047;background:#100914;border-radius:10px;padding:13px}
-.menu-section h3{font-size:.9rem;letter-spacing:.05em;margin:7px 0;color:#fff0f5}
-.menu-section p{font-size:.86rem;line-height:1.6;color:#c2aab9}
-.menu-section strong{color:var(--cyan)}
-.menu-kicker{font:700 .67rem/1.3 monospace;letter-spacing:.13em;color:var(--cyan)}
-.menu-warning{border-left:2px solid #b5a0ff;padding-left:8px}
-.menu-footer{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #34445e;font:700 .68rem monospace;letter-spacing:.1em;color:#fff0f5}
-.menu-footer span{color:var(--cyan)}.menu-footer .menu-stack{margin-left:auto}
-@media(max-width:760px){.layout{grid-template-columns:1fr}main{padding:16px 10px}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:480px){.command-row{flex-direction:column}.hero-copy{margin-top:28px}.menu-grid{grid-template-columns:1fr}.menu-footer .menu-stack{margin-left:0}}
-
-/* ONE PIECE-INSPIRED CLASSIC UI: ocean navy, pirate red, treasure gold */
-:root{color-scheme:dark;--bg:#071522;--panel:#0c2132;--line:#24465b;--accent:#e94d4d;--cyan:#f0c66a;--text:#f5f0e3;--muted:#afc1cb}
-body{background:#071522;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--text)}
-body:before{background:radial-gradient(ellipse at 80% 20%,#1d547066,transparent 38%),radial-gradient(ellipse at 12% 80%,#8d303033,transparent 38%),linear-gradient(130deg,#06121e,#0b2638 50%,#071522);animation:realmDrift 22s ease-in-out infinite alternate}
-body:after{opacity:.08;background-image:linear-gradient(#f0c66a12 1px,transparent 1px),linear-gradient(90deg,#f0c66a12 1px,transparent 1px);background-size:54px 54px}
-.brand{font-size:.92rem;letter-spacing:.2em}.brand span{color:#ef5555}
-.tag{color:#f0c66a;letter-spacing:.16em}
-h1{font-weight:800;letter-spacing:.015em}h1 em{color:#f0c66a;text-shadow:0 0 26px #f0c66a2b}
-.hero-copy{border-left:3px solid #e94d4d;margin:38px 0 22px;padding:18px 0 12px 22px}
-.hero-copy p{color:#c3d4dc}
-.layout{gap:20px}
-.card{background:linear-gradient(145deg,#102b3cf2,#091925f7);border:1px solid #28516a;border-radius:13px;box-shadow:0 22px 60px #0006,inset 0 1px 0 #ffffff0b}
-.layout .card:hover{transform:translateY(-2px);border-color:#c49c50}
-.preview{border:1px solid #37647b;border-radius:12px;background:radial-gradient(ellipse at 65% 45%,#17445a,#06121e 70%);box-shadow:inset 0 0 60px #568ed51a,0 10px 35px #0005}
-.preview:before{background:linear-gradient(115deg,transparent 35%,#f0c66a0a 50%,transparent 65%);background-size:220% 100%}
-.preview:after{content:"LIVE CAMERA  /  GRAND LINE GATE";color:#f6d98e;text-shadow:0 0 8px #e94d4d55}
-button,select,input{border-radius:9px;border:1px solid #34556a;background:#102738;color:var(--text)}
-button{transition:background .2s,border-color .2s,transform .2s}
-button:hover:not(:disabled){border-color:#f0c66a;transform:translateY(-1px)}
-button.primary{background:linear-gradient(135deg,#f0c66a,#dba64b);border-color:#ffe2a0;color:#17202a;font-weight:800}
-.menu-toggle{background:#102738;border-color:#34556a;border-radius:10px}
-.avatar-mark{background:linear-gradient(135deg,#f0c66a,#e94d4d);color:#101c25;border-radius:8px}
-.menu-chevron,.icon-button{color:#f0c66a}
-.project-menu{background:linear-gradient(145deg,#102b3c,#091925);border-color:#34556a}
-.menu-heading{border-color:#29485b}
-.command-box{border-color:#29485b}
-.command-row input{background:#071925;border-color:#34556a;color:#f5f0e3;border-radius:9px}
-.command-row button{border-radius:9px}
-.metric{color:#fff0c9;letter-spacing:.03em}
-.note{background:#102a3a;border-left-color:#e94d4d;color:#e1edf0;border-radius:0 9px 9px 0}
-.menu-section{border-color:#29485b;background:#0b1e2c;border-radius:10px}
-.menu-section h3{color:#f5f0e3}
-.menu-section p{color:#afc1cb}
-.menu-section strong,.menu-kicker,.menu-footer span{color:#f0c66a}
-.menu-warning{border-left-color:#e94d4d}
-.menu-footer,.menu-heading{border-color:#29485b}
-@media(prefers-reduced-motion:no-preference){.brand span{animation:none}}
-
-/* Immersive animated anime-inspired Grand Line backdrop */
-body:before{background:radial-gradient(ellipse at 74% 22%,#2678a066,transparent 35%),radial-gradient(ellipse at 18% 75%,#a33d3d3d,transparent 34%),linear-gradient(130deg,#04111d,#0b2a3d 48%,#071522);background-size:150% 150%;animation:grandLineDrift 18s ease-in-out infinite alternate}
-body:after{opacity:.12;background-image:linear-gradient(120deg,transparent 0 46%,#f0c66a15 47% 48%,transparent 49%),radial-gradient(circle at 20% 30%,#f0c66a22 0 1px,transparent 2px),radial-gradient(circle at 70% 70%,#e94d4d22 0 1px,transparent 2px);background-size:100% 100%,72px 72px,96px 96px;animation:seaSparkle 16s linear infinite}
-@keyframes grandLineDrift{0%{background-position:0% 50%;filter:saturate(.9)}100%{background-position:100% 50%;filter:saturate(1.15)}}
-@keyframes seaSparkle{0%{background-position:0 0,0 0,20px 20px}100%{background-position:0 0,72px 144px,116px 212px}}
-/* Make the live camera workspace visually clear and hand-tracking feedback readable */
-.preview canvas{z-index:3}
-.preview video{position:relative;z-index:0}
-.preview:before{z-index:1}
-.preview:after{z-index:4}
-#gesture{color:#f0c66a}
-
-/* Pirate typography and cinematic background layer */
-
-body{font-family:'Rajdhani','Trebuchet MS',system-ui,sans-serif}
-.brand,h1,.card h2,.hero-copy .tag{font-family:'Pirata One','Rajdhani',serif;letter-spacing:.045em}
-.brand{font-size:1.45rem;letter-spacing:.09em}
-.hero-copy h1{font-family:'Pirata One',serif;font-size:clamp(2.7rem,7vw,5.4rem);font-weight:400;letter-spacing:.025em}
-.hero-copy h1 em{font-family:'Pirata One',serif}
-button,select,input,label,.small,.note,.metric,.status{font-family:'Rajdhani','Segoe UI',sans-serif}
-body:before{background:radial-gradient(ellipse at 75% 22%,#246f9366,transparent 38%),radial-gradient(ellipse at 20% 82%,#a83a3a40,transparent 36%),linear-gradient(130deg,#03101b,#0a2b40 48%,#061522);background-size:180% 180%;animation:grandLineDrift 22s ease-in-out infinite alternate}
-body:after{opacity:.15;background-image:radial-gradient(ellipse at 15% 35%,#f0c66a1c 0 1px,transparent 3px),radial-gradient(ellipse at 72% 60%,#dcefff1b 0 1px,transparent 3px),linear-gradient(180deg,transparent 70%,#04101b66);background-size:80px 100px,110px 130px,100% 100%;animation:seaSparkle 20s linear infinite}
-.hero-copy{border-left:3px solid #e94d4d}
-.preview:after{content:"GRAND LINE // LIVE CAMERA";font-family:'Rajdhani',sans-serif;letter-spacing:.18em;font-size:12px}
-
-/* Full-screen cinematic sea video behind the UI; live camera remains in its own panel. */
-#animeBackground{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none;opacity:.32;filter:saturate(1.25) contrast(1.12)}
-body{background:transparent}
-body:before{z-index:-3;background:linear-gradient(90deg,#04111df0 0%,#071a2be0 52%,#071522d9 100%),radial-gradient(ellipse at 72% 22%,#246f9355,transparent 38%);animation:grandLineDrift 22s ease-in-out infinite alternate}
-body:after{z-index:-1;opacity:.2;background:linear-gradient(180deg,#03101a44,#06152288),radial-gradient(circle at 15% 25%,#f0c66a2b 0 1px,transparent 2px),radial-gradient(circle at 78% 68%,#f0c66a22 0 1px,transparent 2px);background-size:100% 100%,70px 70px,110px 110px;animation:seaSparkle 20s linear infinite}
-main{z-index:1}
-
-/* SPACING + READABILITY FIX: consolidate the final visual rhythm after legacy theme overrides */
-main{max-width:1280px;padding:18px 20px 26px}
-.hero-copy{margin:22px 0 14px;padding:12px 0 8px 18px}
-.hero-copy h1{margin:5px 0 6px;line-height:1.02}
-.hero-copy p{margin:5px 0 0;line-height:1.35}
-.layout{gap:14px;margin-top:14px;align-items:stretch}
-.layout>.card{padding:14px}
-.preview{aspect-ratio:16/9}
-.card h2{margin:0 0 8px!important;line-height:1.2}
-label{margin:8px 0 4px;font-size:.82rem;line-height:1.25}
-select,input,button{line-height:1.25}
-select{padding:9px 11px}
-.command-box{margin-top:12px;padding-top:10px}
-.command-row{gap:6px}
-.command-row input,.command-row button{padding:9px 10px}
-.small{font-size:.9rem;line-height:1.3}
-#commandStatus{margin-top:4px}
-.metric{margin-top:10px;font-size:1.08rem;line-height:1.25}
-#detail{margin:5px 0 0;line-height:1.35}
-.row{gap:7px;margin-top:10px}
-.note{margin-top:10px;padding:8px 10px;line-height:1.35}
-.status{white-space:normal;line-height:1.25}
-.preview:after{font-size:11px}
-@media(min-width:1100px){.layout{grid-template-columns:minmax(0,1.6fr) minmax(300px,.9fr)}}
-@media(max-width:760px){main{padding:12px 10px 20px}.hero-copy{margin:18px 0 12px}.layout{gap:12px;margin-top:12px}.layout>.card{padding:12px}.preview{aspect-ratio:4/3}}
-@media(max-width:480px){.hero-copy h1{font-size:clamp(2.2rem,12vw,3.4rem)}.row button{padding:9px 10px}.status{width:100%}}
-
-
-/* FINAL GLOBAL LAYOUT + SUBDUED CINEMATIC BACKDROP */
-main{max-width:1240px;padding:14px 18px 22px}
-.top{min-height:40px;gap:10px}
-.hero-copy{margin:14px 0 12px!important;padding:8px 0 6px 16px!important}
-.hero-copy .tag{margin:0 0 4px;line-height:1.15}
-.hero-copy h1{margin:3px 0 5px!important;line-height:.98}
-.hero-copy p{margin:3px 0 0!important;line-height:1.3}
-.layout{margin-top:10px!important;gap:12px!important;align-items:start}
-.layout>.card{padding:13px!important}
-.preview{aspect-ratio:16/9}
-.layout aside h2{margin:0 0 7px!important;line-height:1.15}
-.layout aside label{margin:7px 0 4px!important;line-height:1.2;font-size:.85rem}
-.layout aside select{display:block;width:100%;min-height:40px;padding:8px 10px}
-.command-box{margin-top:10px!important;padding-top:9px!important}
-.command-row{gap:6px}
-.command-row input{min-width:0;width:100%;padding:9px 10px}
-.command-row button{padding:9px 10px;white-space:normal}
-#commandStatus{margin:5px 0 0;line-height:1.3;font-size:.9rem}
-#gesture{margin:9px 0 0;line-height:1.2;font-size:1.05rem}
-#detail{margin:4px 0 0;line-height:1.35;font-size:.94rem}
-.row{margin-top:9px;gap:7px}
-.row button{padding:9px 11px}
-.status{white-space:normal;line-height:1.25}
-.note{margin-top:9px;padding:8px 10px;line-height:1.35}
-footer{margin-top:10px}
-/* Keep the background video visible but subdued so text and controls stay readable. */
-#animeBackground{opacity:.22!important;filter:brightness(.58) saturate(.88) contrast(1.08)!important}
-body:after{background:linear-gradient(180deg,#02070bb3 0%,#06152299 55%,#02070bc2 100%),radial-gradient(circle at 15% 25%,#f0c66a18 0 1px,transparent 2px),radial-gradient(circle at 78% 68%,#f0c66a12 0 1px,transparent 2px)!important;opacity:1!important}
-@media(max-width:760px){
- main{padding:10px 10px 18px}
- .hero-copy{margin:12px 0 10px!important;padding:7px 0 5px 12px!important}
- .layout{grid-template-columns:1fr;gap:10px!important;margin-top:9px!important}
- .layout>.card{padding:11px!important}
- .preview{aspect-ratio:4/3}
-}
-@media(max-width:480px){
- .hero-copy h1{font-size:clamp(2rem,11vw,3.1rem)!important}
- .command-row{flex-direction:column}
- .command-row button{width:100%}
- .row button{padding:8px 9px}
-}
-
-
-/* RESPONSIVE CENTERED BACKGROUND VIDEO — phone, tablet and desktop */
-#animeBackground{
- position:fixed!important;left:50%!important;top:50%!important;
- right:auto!important;bottom:auto!important;
- width:100vw!important;height:100vh!important;height:100dvh!important;
- min-width:100vw;min-height:100vh;min-height:100dvh;
- max-width:none!important;max-height:none!important;
- transform:translate(-50%,-50%)!important;
- object-fit:cover!important;object-position:50% 50%!important;
- z-index:-2;pointer-events:none;display:block;
-}
-@media (max-width:760px){
- #animeBackground{width:100vw!important;height:100vh!important;height:100dvh!important;object-position:center center!important}
-}
-@media (orientation:portrait) and (max-width:760px){
- #animeBackground{object-fit:cover!important;object-position:center center!important}
-}
-@media (prefers-reduced-motion:reduce){
- #animeBackground{animation:none!important}
-}
-
-
-/* FINAL REQUESTED UI THEME: white / ice-blue / black. Background video layer is intentionally unchanged. */
-:root{--bg:#050b13;--panel:#0a1522;--line:#284a67;--accent:#6fc9ff;--cyan:#dff5ff;--text:#f5fbff;--muted:#a8c1d4}
-.brand span,.tag,.metric,#gesture{color:#8bd6ff;text-shadow:0 0 12px #58bfff28}
-h1 em{color:#a6e1ff;text-shadow:0 0 18px #62c9ff33}
-.card,.project-menu{background:linear-gradient(145deg,#0d1b2aef,#050b13f7);border-color:#284a67}
-.card:before{background:#83d5ff;box-shadow:0 0 16px #64caff88}
-button,select,input{background:#0a1927;border-color:#2c526e;color:#f5fbff}
-button.primary{background:linear-gradient(135deg,#e9f8ff,#79cfff);border-color:#c7eeff;color:#06121d;box-shadow:0 0 18px #6fc9ff22}
-button:hover:not(:disabled){border-color:#a5e4ff}
-.preview{border-color:#39739b;box-shadow:inset 0 0 48px #6fc9ff12,0 0 26px #0006}
-.preview:after{color:#c8eeff;text-shadow:0 0 8px #55bfff}
-.note{background:#0d2030;border-left-color:#77ceff;color:#e7f6ff}
-.menu-section{background:#081521;border-color:#284a67}
-.menu-section strong,.menu-kicker,.menu-footer span,.menu-chevron,.icon-button{color:#8bd6ff}
-.avatar-mark{background:linear-gradient(135deg,#e8f8ff,#68c9ff);color:#071522}
-.command-row input{background:#050e18;border-color:#315e7d}
-#animeBackground{ /* preserve original background source, opacity and placement */ }
-
-
-/* FINAL ART-DIRECTED TYPOGRAPHY + UI POLISH — preserve the existing background video and its treatment. */
-:root{
- --bg:#050a12;--panel:#0a1420;--line:#29445e;--accent:#69c8ff;--cyan:#d8f1ff;
- --text:#f5f9ff;--muted:#a9bacb;
- --ui-font:'Inter','Noto Sans JP',system-ui,sans-serif;
- --display-font:'Oxanium','Rajdhani','Noto Sans JP',sans-serif;
-}
-html{scroll-behavior:smooth}
-body{font-family:var(--ui-font);font-size:15px;line-height:1.55;letter-spacing:0}
-.brand,h1,h2,h3,.tag,.menu-kicker,.menu-footer,button,label,.metric,.chip{
- font-family:var(--display-font);font-feature-settings:'ss01' on; 
-}
-.brand{font-size:1.02rem;font-weight:800;letter-spacing:.18em;color:#f6fbff}
-.brand span{color:#83d5ff;text-shadow:0 0 18px #54bfff2b}
-.hero-copy .tag,.tag,.menu-kicker{font-size:.72rem;font-weight:700;letter-spacing:.2em;color:#9bdcff}
-.hero-copy h1{
- font-family:var(--display-font)!important;font-weight:800;letter-spacing:.015em;
- font-size:clamp(2.55rem,6.8vw,5.25rem);line-height:.99;
- text-shadow:0 2px 0 #173a55,0 10px 32px #0007;
- transform:none;font-style:normal;
-}
-.hero-copy h1 em{font-family:var(--display-font)!important;font-weight:800;color:#a7e4ff;text-shadow:0 0 28px #67caff2b}
-.hero-copy p{max-width:66ch;font-size:clamp(.92rem,1.4vw,1.04rem);line-height:1.65;color:#c5d8e8}
-.card h2{font-family:var(--display-font)!important;font-size:1.02rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#f2f8ff}
-h3{font-size:.92rem;font-weight:700;letter-spacing:.025em}
-p,.small,.note,.menu-section p{font-family:var(--ui-font);letter-spacing:0}
-p,.menu-section p{line-height:1.6}
-label{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:#b9d2e5}
-button,select,input{font-family:var(--ui-font);font-size:.9rem;font-weight:600;letter-spacing:0}
-button{min-height:40px}
-button.primary{font-family:var(--display-font);font-size:.82rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
-select,input{min-height:42px}
-.metric{font-size:1.02rem;font-weight:800;letter-spacing:.035em;color:#a8e1ff}
-#gesture{font-family:var(--display-font);font-weight:800;letter-spacing:.035em}
-#detail{font-family:var(--ui-font);font-size:.88rem;line-height:1.6;color:#b9cad9}
-.status,.note{font-family:var(--ui-font);font-size:.82rem;line-height:1.5}
-.card{border-color:#28445e;box-shadow:0 22px 60px #0005,inset 0 1px 0 #ffffff0b}
-.card:before{width:76px;height:2px;background:linear-gradient(90deg,#7bd3ff,#dff6ff);box-shadow:0 0 15px #5bbfff66}
-.layout .card:hover{border-color:#6bbce7}
-.preview{border-color:#35617f}
-.preview:after{font-family:var(--display-font);font-weight:700;letter-spacing:.16em;color:#c7edff}
-.menu-toggle{font-family:var(--display-font);font-weight:700;font-size:.78rem;letter-spacing:.04em}
-.menu-heading h2{font-family:var(--display-font)!important}
-.menu-section{transition:border-color .2s ease,background .2s ease}
-.menu-section:hover{border-color:#426c8b;background:#0c1b2a}
-.menu-section h3{font-family:var(--display-font);font-size:.78rem;letter-spacing:.04em}
-.menu-section strong{color:#a6e0ff}
-.menu-footer{font-size:.65rem;letter-spacing:.13em}
-.chip{font-size:.68rem}
-::selection{background:#7acfff55;color:#fff}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #91dcff;outline-offset:3px}
-@media(max-width:760px){
- .hero-copy h1{font-size:clamp(2.35rem,10vw,4rem)}
- .hero-copy p{font-size:.9rem}
- .brand{font-size:.94rem}
-}
-@media(prefers-reduced-motion:reduce){
- html{scroll-behavior:auto}
- .layout .card,.menu-section,button{transition:none}
-}
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{color-scheme:light;--ink:#20231f;--muted:#77796f;--gold:#bd9140;--gold2:#ead7a8;--paper:#fffdf8;--panel:#fff;--line:#e9e2d3;--green:#2e7557;--red:#b34e3e;--shadow:0 18px 55px #5b47200d}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 Inter,system-ui,sans-serif;min-height:100vh}button,input{font:inherit}button{cursor:pointer}.shell{max-width:1240px;margin:auto;padding:22px 24px 40px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:18px}.brand{display:flex;align-items:center;gap:12px;font:700 1.05rem 'Space Grotesk',sans-serif;letter-spacing:.03em}.brand-mark{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#fff,#f4e6c4);border:1px solid #e4d1a5;display:grid;place-items:center;color:#98702c;font-size:22px}.brand small{display:block;color:var(--muted);font:500 .68rem Inter,sans-serif;letter-spacing:.15em;margin-top:2px}.top-pill{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:99px;color:#6b654f;font-size:.78rem;background:#fff}.pulse{width:8px;height:8px;background:#c5a253;border-radius:50%;box-shadow:0 0 0 4px #c5a25318}.hero{padding:38px 0 24px;display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:30px}.eyebrow{font-size:.72rem;letter-spacing:.18em;font-weight:800;color:var(--gold);text-transform:uppercase}.hero h1{font:700 clamp(2.5rem,5vw,4.4rem)/1.02 'Space Grotesk',sans-serif;letter-spacing:-.055em;margin:12px 0 14px}.hero h1 span{color:var(--gold)}.hero p{color:var(--muted);max-width:620px;margin:0;font-size:1.02rem}.mind-visual{height:190px;position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid #eee4cf;border-radius:24px;background:radial-gradient(ellipse at center,#fff8e6 0, #fff 64%)}.mind-visual:before,.mind-visual:after{content:"";position:absolute;width:170px;height:170px;border:1px solid #d6b76d55;border-radius:50%;animation:orbit 16s linear infinite}.mind-visual:after{width:125px;height:125px;border-style:dashed;animation-direction:reverse;animation-duration:22s}.brain{width:88px;height:88px;z-index:1;color:#b58a36;filter:drop-shadow(0 8px 16px #c6a75c40);animation:brainPulse 3.5s ease-in-out infinite}.node{position:absolute;width:7px;height:7px;border-radius:50%;background:#c5a253;box-shadow:0 0 0 5px #c5a25318}.n1{top:25%;left:28%}.n2{top:28%;right:24%}.n3{bottom:23%;left:35%}.n4{bottom:20%;right:31%}@keyframes orbit{to{transform:rotate(360deg)}}@keyframes brainPulse{50%{transform:scale(1.06);filter:drop-shadow(0 0 18px #c6a75c80)}}.workspace{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:18px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}.panel-head{padding:17px 19px;border-bottom:1px solid #f0eadf;display:flex;align-items:center;justify-content:space-between;gap:12px}.panel-head h2{font:700 1rem 'Space Grotesk',sans-serif;margin:0}.panel-head p{margin:3px 0 0;color:var(--muted);font-size:.8rem}.camera-wrap{padding:14px}.camera-stage{position:relative;aspect-ratio:16/10;min-height:260px;border-radius:14px;overflow:hidden;background:linear-gradient(145deg,#f5f1e7,#fffdf8);border:1px solid #eee6d5;display:grid;place-items:center}.camera-stage video,.camera-stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.camera-stage canvas{pointer-events:none}.placeholder{max-width:300px;padding:24px;text-align:center;color:#777365}.camera-symbol{margin:0 auto 12px;width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:#f7edda;color:#ad8436;font-size:26px}.placeholder b{display:block;color:#36352e;margin-bottom:5px}.placeholder p{font-size:.85rem;margin:0}.camera-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 2px 0;color:var(--muted);font-size:.77rem}.status{display:inline-flex;align-items:center;gap:7px}.status-dot{width:7px;height:7px;background:#b6a36d;border-radius:50%}.status-dot.on{background:#3c946b}.actions{display:flex;gap:9px;flex-wrap:wrap;padding:0 14px 15px}.btn{border:1px solid #e4dccb;background:#fff;color:#403d33;border-radius:11px;padding:11px 15px;font-weight:700;font-size:.87rem;transition:.2s}.btn:hover{border-color:#c5a253;transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#c6a257,#aa7e2f);border-color:#b18a40;color:white;box-shadow:0 7px 18px #b18a4025}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}.btn.full{flex:1}.results{padding:18px}.results-intro{color:var(--muted);font-size:.85rem;margin:0 0 15px}.result-card{border:1px solid #eee5d3;border-radius:15px;background:linear-gradient(140deg,#fff,#fffdf8);padding:16px;margin-bottom:14px}.result-label{font-size:.69rem;font-weight:800;color:var(--gold);letter-spacing:.14em;text-transform:uppercase}.object-name{font:700 clamp(1.5rem,3vw,2rem)/1.15 'Space Grotesk',sans-serif;margin:8px 0 5px;overflow-wrap:anywhere}.object-sub{font-size:.84rem;color:var(--muted);margin:0}.confidence{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;margin-top:17px;color:#676456}.meter{height:6px;border-radius:99px;background:#f0eadc;overflow:hidden;margin-top:7px}.meter span{display:block;width:0;height:100%;background:linear-gradient(90deg,#e0c98f,#a87d2c);transition:width .25s}.result-empty{padding:25px 10px;text-align:center;color:var(--muted);font-size:.88rem}.result-empty strong{display:block;color:#444238;font-size:1rem;margin-bottom:4px}.history-title{font:700 .9rem 'Space Grotesk',sans-serif;margin:20px 0 9px}.history{display:flex;flex-wrap:wrap;gap:7px}.history-chip{font-size:.78rem;border:1px solid #e9e1d1;background:#fffaf0;border-radius:99px;padding:6px 10px;color:#685832}.hint{border-radius:12px;padding:12px 13px;background:#fbf7ec;border:1px solid #efe4c9;color:#76643e;font-size:.79rem;line-height:1.5;margin-top:16px}.bottom-note{color:var(--muted);font-size:.78rem;text-align:center;margin-top:22px}.bottom-note strong{color:#8c6c2f}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:850px){.hero{grid-template-columns:1fr;gap:20px;padding-top:28px}.mind-visual{height:130px}.mind-visual:before{width:110px;height:110px}.mind-visual:after{width:80px;height:80px}.brain{width:62px;height:62px}.workspace{grid-template-columns:1fr}}@media(max-width:520px){.shell{padding:14px 12px 28px}.topbar{align-items:flex-start}.top-pill{font-size:.68rem;padding:7px 9px}.brand{font-size:.9rem}.brand-mark{width:38px;height:38px}.hero h1{font-size:2.6rem}.camera-stage{aspect-ratio:4/3;min-height:230px}.panel-head{padding:14px}.camera-wrap{padding:10px}.actions{padding:0 10px 12px}.btn{padding:10px 12px}.results{padding:14px}}
 </style>
 </head>
-<body><video id="animeBackground" autoplay muted loop playsinline aria-hidden="true"><source src="assets/anime-background.mp4" type="video/mp4"><source src="https://videos.pexels.com/video-files/6609509/6609509-hd_1920_1080_25fps.mp4" type="video/mp4"></video><script>document.getElementById("animeBackground").querySelector("source").addEventListener("error",function(){const v=document.getElementById("animeBackground");const fallback=v.querySelectorAll("source")[1];if(fallback&&!v.dataset.fallbackTried){v.dataset.fallbackTried="1";v.src="";v.innerHTML="";v.appendChild(fallback);v.load();v.play().catch(()=>{});}});</script><main>
-<header class="top"><div class="brand">ANIME <span>REALITY</span></div><button id="menuToggle" class="menu-toggle" aria-expanded="false" aria-controls="projectMenu"><span class="avatar-mark">AR</span><span>Project menu</span><span class="menu-chevron">⌄</span></button></header>
-<section class="project-menu card" id="projectMenu" hidden aria-label="Project information menu">
-  <div class="menu-heading"><div><div class="tag">PROJECT ARCHIVE // 01</div><h2>About Anime Reality</h2></div><button id="menuClose" class="icon-button" aria-label="Close project menu">×</button></div>
-  <div class="menu-grid">
-    <article class="menu-section"><div class="menu-kicker">01 / OVERVIEW</div><h3>About this website</h3><p>ANIME REALITY is an AI-assisted gesture portal concept that combines live hand tracking with anime-inspired visual themes.</p></article>
-    <article class="menu-section"><div class="menu-kicker">02 / INTERFACE</div><h3>About this interface</h3><p>The camera workspace detects a hand, displays gesture status, and draws a freeform portal when the two-hand thumb-and-index gesture is recognized. Choose a character to change the portal palette.</p></article>
-    <article class="menu-section"><div class="menu-kicker">03 / TECHNOLOGY</div><h3>Technologies used</h3><p><strong>DIP</strong> — visual input and image handling. <strong><strong>NLP</strong> — typed anime and character name matching. <strong>ML / neural vision</strong> — MediaPipe hand-landmark detection and gesture logic. <strong>HTML, CSS and JavaScript</strong> — interface and interactions.</p></article>
-    <article class="menu-section"><div class="menu-kicker">04 / LIVE SYSTEM</div><h3>What is running</h3><p>Browser camera stream, MediaPipe HandLandmarker, two-hand thumb-and-index gesture check, character-theme selector, fullscreen preview, and typed anime and character matching.</p><p class="menu-warning">This prototype connects matching fingertips with straight lines and renders an original anime-inspired avatar in the gap. Camera resolution and frame rate depend on device/browser capability; 4K/60 FPS is not guaranteed.</p></article>
-    <article class="menu-section"><div class="menu-kicker">05 / QUICK GUIDE</div><h3>How to use</h3><p>1. Choose a character. 2. Start the camera and allow permission. 3. Show both hands and extend the thumb and index finger on each hand to open the portal. 4. Type an anime title or character name in the Recognize anime box if needed. 5. Open the preview in fullscreen when needed.</p></article>
-    <article class="menu-section"><div class="menu-kicker">06 / REQUIREMENTS</div><h3>Browser & access</h3><p>Camera access generally requires HTTPS or localhost. MediaPipe model files need an internet connection. Character recognition uses the text you type; no microphone is required.</p></article>
-  </div>
-  <div class="menu-footer">ANIME REALITY <span>· AI GESTURE PORTAL</span><span class="menu-stack">DIP / NLP / ML / NN</span></div>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="brand"><div class="brand-mark" aria-hidden="true">✳</div><div>OBJECT MIND AI<small>HANDHELD OBJECT INTELLIGENCE</small></div></div>
+  <div class="top-pill"><span class="pulse"></span><span id="systemPill">AI engine ready to initialize</span></div>
+</header>
+<section class="hero">
+  <div><div class="eyebrow">Computer vision · Real-time detection</div><h1>See it. Hold it.<br><span>Know it.</span></h1><p>An AI camera designed to identify everyday objects only when they appear to be held in a person's hand. Point the camera at a phone, bottle, pen, hat or other item to see its predicted name and confidence.</p></div>
+  <div class="mind-visual" aria-label="Animated AI mind illustration"><span class="node n1"></span><span class="node n2"></span><span class="node n3"></span><span class="node n4"></span><svg class="brain" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M48 17C40 7 24 14 25 27C12 29 10 45 20 51C12 64 22 78 34 76C39 89 51 85 50 75V23C50 20 49 18 48 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M52 17C60 7 76 14 75 27C88 29 90 45 80 51C88 64 78 78 66 76C61 89 49 85 50 75V23C50 20 51 18 52 17Z" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M26 35C37 32 42 40 39 48M21 57C31 52 40 60 37 69M72 34C62 31 57 40 61 47M79 57C68 52 60 60 64 69M50 30V68" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="38" cy="27" r="3" fill="#E2C477"/><circle cx="65" cy="26" r="3" fill="#E2C477"/></svg></div>
 </section>
-
-<section class="hero-copy"><div class="tag">REALITY SHIFT // GESTURE INTERFACE</div><h1>BREAK THE <em>REALITY</em></h1><p>Choose your anime realm. Extend thumb + index on both hands. Open the hologram.</p></section><div class="layout">
-<section class="card">
-<div class="preview" id="preview"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Camera is off<br><span class="small">Select your realm, then start the camera.</span></div></div>
-<div class="row"><button class="primary" id="start">Start camera</button><button id="stop" disabled>Stop camera</button><button id="fullscreen">Full screen</button><span class="status"><span class="dot" id="dot"></span><span id="status">Camera off</span></span></div>
-<div class="note" id="gestureNote">Show both hands with thumb + index extended on each hand to open the portal.</div>
+<section class="workspace">
+  <article class="panel">
+    <div class="panel-head"><div><h2>AI Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
+    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your camera, your object</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Detection: waiting</span></div></div>
+    <div class="actions"><button class="btn primary full" id="start" type="button">Start AI Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
+  </article>
+  <aside class="panel">
+    <div class="panel-head"><div><h2>Recognition result</h2><p>Objects associated with your hand</p></div><span class="top-pill">LIVE AI</span></div>
+    <div class="results">
+      <p class="results-intro">The label appears only when a detected object's bounding box is close to a detected hand.</p>
+      <div class="result-card" aria-live="polite"><div class="result-label">Currently holding</div><div class="object-name" id="objectName">Nothing detected</div><p class="object-sub" id="objectDescription">Hold a visible object in your hand to begin recognition.</p><div class="confidence"><span>Model confidence</span><strong id="confidence">—</strong></div><div class="meter"><span id="meter"></span></div></div>
+      <div class="result-empty" id="empty"><strong>Ready when you are</strong>Only common object classes supported by the model can be named. Unrecognized objects may not receive a label.</div>
+      <div class="history-title">Recent detections</div><div class="history" id="history"><span class="object-sub">No detections yet</span></div>
+      <div class="hint"><strong>Accuracy note:</strong> This browser demo uses an on-device pretrained object detector plus hand landmarks. It is not trained on every object in existence, and recognition is not guaranteed in 0.001 seconds. Results depend on lighting, camera quality, model speed and whether the item is in the model's label set.</div>
+    </div>
+  </aside>
 </section>
-<aside class="card">
-<h2 style="margin:0">Choose your character</h2>
-<label for="style">Character · anime</label><select id="style" style="width:100%"><option value="shadow">Sung Jin-Woo — Solo Leveling</option><option value="pirate">Monkey D. Luffy — One Piece</option><option value="soul">Ichigo Kurosaki — Bleach</option><option value="ninja">Naruto Uzumaki — Naruto</option><option value="slayer">Tanjiro Kamado — Demon Slayer</option><option value="goku">Son Goku — Dragon Ball</option><option value="gojo">Satoru Gojo — Jujutsu Kaisen</option><option value="eren">Eren Yeager — Attack on Titan</option><option value="deku">Izuku Midoriya — My Hero Academia</option><option value="killua">Killua Zoldyck — Hunter x Hunter</option><option value="zoro">Roronoa Zoro — One Piece</option><option value="rukia">Rukia Kuchiki — Bleach</option></select>
-<div class="command-box"><label for="characterCommand">RECOGNIZE ANIME · TYPE A NAME</label><div class="command-row"><input id="characterCommand" type="text" placeholder="e.g. Gojo, Naruto, Luffy…" autocomplete="off"><button class="primary" id="applyCommand" type="button">Recognize anime</button></div><div class="small" id="commandStatus" aria-live="polite">Type a character or anime, then press Recognize anime.</div></div>
-<div class="metric" id="gesture">Waiting for camera</div><p id="detail">Thumb + index on both hands opens the hologram.</p>
-</aside></div>
-
-</main>
+<div class="bottom-note">Designed in <strong>ivory white + champagne gold</strong> · No background video · Camera processing stays in this browser.</div>
+</div>
 <script>
-// Keep all UI controls active even if the optional MediaPipe CDN module fails to load.
-let HandLandmarker, FilesetResolver;
-const video=document.querySelector('#video'),canvas=document.querySelector('#overlay'),ctx=canvas.getContext('2d');
-const start=document.querySelector('#start'),stop=document.querySelector('#stop'),fullscreen=document.querySelector('#fullscreen'),preview=document.querySelector('#preview'),status=document.querySelector('#status'),dot=document.querySelector('#dot'),placeholder=document.querySelector('#placeholder'),gesture=document.querySelector('#gesture'),detail=document.querySelector('#detail'),styleSelect=document.querySelector('#style');
-const menuToggle=document.querySelector('#menuToggle'),projectMenu=document.querySelector('#projectMenu'),menuClose=document.querySelector('#menuClose'),characterCommand=document.querySelector('#characterCommand'),applyCommand=document.querySelector('#applyCommand'),commandStatus=document.querySelector('#commandStatus');
-function setMenu(open){projectMenu.hidden=!open;menuToggle.setAttribute('aria-expanded',String(open));menuToggle.querySelector('.menu-chevron').textContent=open?'⌃':'⌄'}
-menuToggle.addEventListener('click',()=>setMenu(projectMenu.hidden));menuClose.addEventListener('click',()=>{setMenu(false);menuToggle.focus()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!projectMenu.hidden)setMenu(false)});
-let stream=null,landmarker=null,running=false,lastVideoTime=-1,active=false,gestureHistory=[],lastDetectAt=0;
-// Keep the preview at the camera's native quality; run vision on a small analysis frame for speed.
-const analysisCanvas=document.createElement('canvas');analysisCanvas.width=640;analysisCanvas.height=360;
-const analysisCtx=analysisCanvas.getContext('2d',{alpha:false,desynchronized:true});
-function setStatus(s,on=false){status.textContent=s;dot.classList.toggle('on',on)}
-async function setupModel(){if(landmarker)return landmarker;if(!HandLandmarker||!FilesetResolver){setStatus("Loading hand-tracking engine…");const visionModule=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm");HandLandmarker=visionModule.HandLandmarker;FilesetResolver=visionModule.FilesetResolver;}const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");const modelAssetPath="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";try{landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"GPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.25,minHandPresenceConfidence:.25,minTrackingConfidence:.25})}catch(gpuError){console.warn("GPU hand tracking unavailable; retrying on CPU",gpuError);landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath,delegate:"CPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.40,minHandPresenceConfidence:.40,minTrackingConfidence:.40})}return landmarker}
-function distance3(a,b){const dx=a.x-b.x,dy=a.y-b.y,dz=(a.z||0)-(b.z||0);return Math.hypot(dx,dy,dz)}
-function jointAngle(a,b,c){
- const ba=[a.x-b.x,a.y-b.y,(a.z||0)-(b.z||0)],bc=[c.x-b.x,c.y-b.y,(c.z||0)-(b.z||0)];
- const dot=ba[0]*bc[0]+ba[1]*bc[1]+ba[2]*bc[2],la=Math.hypot(...ba),lc=Math.hypot(...bc);
- if(!la||!lc)return 0;
- return Math.acos(Math.max(-1,Math.min(1,dot/(la*lc))))*180/Math.PI;
-}
-function hasThumbAndIndexExtended(lm){
- /* Robust scale-relative thumb + index check; other three fingers are deliberately ignored. */
- const wrist=lm[0];
- const palm=Math.max(distance3(lm[0],lm[9]),0.001);
- const indexAngle=jointAngle(lm[5],lm[6],lm[7]);
- const indexReach=distance3(lm[8],lm[5]);
- const indexExtended=indexAngle>125&&indexReach>palm*0.85;
- const thumbAngle=jointAngle(lm[2],lm[3],lm[4]);
- const thumbSpread=distance3(lm[4],lm[5]);
- const thumbExtended=thumbAngle>115&&thumbSpread>palm*0.45&&distance3(lm[4],wrist)>distance3(lm[2],wrist)*1.02;
- return thumbExtended&&indexExtended;
-}
-function resize(){const r=preview.getBoundingClientRect();const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,2));const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}ctx.setTransform(w,0,0,h,0,0)}
-let portalSmooth={x:.5,y:.5,size:.22,lost:true},tipSmooth={};
-function smoothTip(key,p){
- const previous=tipSmooth[key];
- const alpha=previous?.92:1;
- const next=previous?{x:previous.x+(p.x-previous.x)*alpha,y:previous.y+(p.y-previous.y)*alpha}:{x:p.x,y:p.y};
- tipSmooth[key]=next;return next;
-}
-function draw(results){
-  ctx.clearRect(0,0,1,1);
-  active=false;
-  const hands=(results.landmarks||[]).slice(0,2).map((lm,index)=>({lm,cx:lm.reduce((sum,p)=>sum+p.x,0)/lm.length,index})).sort((a,b)=>a.cx-b.cx);
-  const themeMap={
-    shadow:{color:'#75cfff',name:'SHADOW REALM',symbol:'✦'},
-    pirate:{color:'#8bdcff',name:'GRAND LINE',symbol:'☠'},
-    soul:{color:'#e2f6ff',name:'SOUL SOCIETY',symbol:'✧'},
-    ninja:{color:'#79baff',name:'SHINOBI WORLD',symbol:'火'},
-    slayer:{color:'#91eaff',name:'BREATHING STYLE',symbol:'滅'},
-    goku:{color:'#83caff',name:'POWER LEVEL',symbol:'界'},
-    gojo:{color:'#b6e9ff',name:'INFINITE VOID',symbol:'六'},
-    eren:{color:'#b2d8ed',name:'WALL TITAN',symbol:'進'},
-    deku:{color:'#90e2d0',name:'HERO ACADEMIA',symbol:'PLUS ULTRA'},
-    killua:{color:'#a7f0ff',name:'GOD SPEED',symbol:'⚡'},
-    zoro:{color:'#a6dcce',name:'THREE SWORD STYLE',symbol:'三'},
-    rukia:{color:'#e0f5ff',name:'SODE NO SHIRAYUKI',symbol:'❄'}
-  };
-  const theme=themeMap[styleSelect.value]||themeMap.shadow;
-  const bones=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-  // Draw all 21 landmarks and all five fingers on each detected hand.
-  for(const hand of hands){
-    const lm=hand.lm;
-    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=theme.color;ctx.globalAlpha=.92;ctx.lineWidth=.0018;
-    for(const [a,b] of bones){ctx.beginPath();ctx.moveTo(lm[a].x,lm[a].y);ctx.lineTo(lm[b].x,lm[b].y);ctx.stroke()}
-    for(const i of [4,8,12,16,20]){
-      ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.004,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.shadowColor=theme.color;ctx.shadowBlur=.006;ctx.fill();
-      ctx.beginPath();ctx.arc(lm[i].x,lm[i].y,.007,0,Math.PI*2);ctx.strokeStyle=theme.color;ctx.globalAlpha=.55;ctx.lineWidth=.001;ctx.stroke();ctx.globalAlpha=.92;
-    }
-    ctx.restore();
-  }
-  if(hands.length>=2){
-    const left=hands[0].lm,right=hands[1].lm;
-    const leftReady=hasThumbAndIndexExtended(left),rightReady=hasThumbAndIndexExtended(right);
-    gestureHistory.push(leftReady&&rightReady);if(gestureHistory.length>2)gestureHistory.shift();
-    active=gestureHistory.length===2&&gestureHistory.every(Boolean);
-    // Build the glass hologram from the actual thumb/index anchors. Its four edges
-    // follow the hands exactly; no independent/free-floating line or curved segments.
-    const corners=[
-      smoothTip('frame-L-index',{x:left[8].x,y:left[8].y}),
-      smoothTip('frame-R-thumb',{x:right[4].x,y:right[4].y}),
-      smoothTip('frame-R-index',{x:right[8].x,y:right[8].y}),
-      smoothTip('frame-L-thumb',{x:left[4].x,y:left[4].y})
-    ];
-    const center={x:corners.reduce((s,p)=>s+p.x,0)/4,y:corners.reduce((s,p)=>s+p.y,0)/4};
-    const t=performance.now();
-    ctx.save();ctx.beginPath();ctx.moveTo(corners[0].x,corners[0].y);for(let i=1;i<4;i++)ctx.lineTo(corners[i].x,corners[i].y);ctx.closePath();
-    const glass=ctx.createLinearGradient(corners[0].x,corners[0].y,corners[2].x,corners[2].y);
-    glass.addColorStop(0,'rgba(223,246,255,.15)');glass.addColorStop(.45,'rgba(94,183,229,.10)');glass.addColorStop(1,'rgba(3,14,27,.22)');
-    ctx.fillStyle=glass;ctx.fill();
-    ctx.save();ctx.clip();
-    const radius=Math.max(.05,Math.min(.4,Math.hypot(corners[2].x-corners[0].x,corners[2].y-corners[0].y)*.55));
-    const aura=ctx.createRadialGradient(center.x,center.y,.002,center.x,center.y,radius);
-    aura.addColorStop(0,'rgba(160,226,255,.17)');aura.addColorStop(.6,'rgba(100,197,255,.055)');aura.addColorStop(1,'rgba(100,197,255,0)');
-    ctx.fillStyle=aura;ctx.fillRect(0,0,1,1);
-    // Fine HUD grid clipped inside the moving glass panel.
-    ctx.strokeStyle='rgba(198,237,255,.13)';ctx.lineWidth=.00055;
-    for(let i=1;i<8;i++){const f=i/8;ctx.beginPath();ctx.moveTo(corners[0].x+(corners[3].x-corners[0].x)*f,corners[0].y+(corners[3].y-corners[0].y)*f);ctx.lineTo(corners[1].x+(corners[2].x-corners[1].x)*f,corners[1].y+(corners[2].y-corners[1].y)*f);ctx.stroke();}
-    for(let i=1;i<5;i++){const f=i/5;ctx.beginPath();ctx.moveTo(corners[0].x+(corners[1].x-corners[0].x)*f,corners[0].y+(corners[1].y-corners[0].y)*f);ctx.lineTo(corners[3].x+(corners[2].x-corners[3].x)*f,corners[3].y+(corners[2].y-corners[3].y)*f);ctx.stroke();}
-    ctx.restore();
-    // Reference-style white core with a soft ice-blue outer bloom.
-    ctx.beginPath();ctx.moveTo(corners[0].x,corners[0].y);for(let i=1;i<4;i++)ctx.lineTo(corners[i].x,corners[i].y);ctx.closePath();
-    ctx.lineJoin='round';ctx.strokeStyle='#83d8ff';ctx.globalAlpha=.45;ctx.lineWidth=.008;ctx.shadowColor='#a9e7ff';ctx.shadowBlur=.018;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(corners[0].x,corners[0].y);for(let i=1;i<4;i++)ctx.lineTo(corners[i].x,corners[i].y);ctx.closePath();
-    ctx.globalAlpha=1;ctx.strokeStyle='#ffffff';ctx.lineWidth=.0024;ctx.shadowColor='#ffffff';ctx.shadowBlur=.008;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(corners[0].x,corners[0].y);for(let i=1;i<4;i++)ctx.lineTo(corners[i].x,corners[i].y);ctx.closePath();
-    ctx.strokeStyle='#d9f4ff';ctx.lineWidth=.00075;ctx.shadowBlur=0;ctx.stroke();ctx.restore();
-    // Connect corresponding fingertips with five STRAIGHT lines. These remain visible
-    // as the hands move; no curved rope and no forced rectangle.
-    const fingerPairs=[[4,4],[8,8],[12,12],[16,16],[20,20]];
-    const pairs=fingerPairs.map(([li,ri])=>({
-      a:smoothTip('straight-L-'+li,{x:left[li].x,y:left[li].y}),
-      b:smoothTip('straight-R-'+ri,{x:right[ri].x,y:right[ri].y}),
-      li,ri
-    }));
-    ctx.save();ctx.lineCap='round';
-    for(let i=0;i<pairs.length;i++){
-      const p=pairs[i];
-      ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
-      ctx.strokeStyle='#77ceff';ctx.globalAlpha=.28;ctx.lineWidth=.006;ctx.shadowColor='#8ad8ff';ctx.shadowBlur=.012;ctx.stroke();
-      ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
-      ctx.globalAlpha=.98;ctx.lineWidth=.00165;ctx.shadowBlur=.004;ctx.strokeStyle='#ffffff';ctx.stroke();
-      ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
-      ctx.globalAlpha=.95;ctx.lineWidth=.00065;ctx.strokeStyle='#9cddff';ctx.stroke();
-    }
-    ctx.restore();
-    // Put the anime figure in the open gap between hands, not over the finger links.
-    const leftEdge=left[9],rightEdge=right[9];
-    const avatarCenter={x:(leftEdge.x+rightEdge.x)/2,y:(leftEdge.y+rightEdge.y)/2};
-    const gap=Math.hypot(rightEdge.x-leftEdge.x,rightEdge.y-leftEdge.y);
-    if(gap>.12){
-      const size=Math.max(.035,Math.min(.105,gap*.20));
-      const bob=Math.sin(performance.now()*.0018)*.004;
-      ctx.save();ctx.translate(avatarCenter.x,avatarCenter.y+bob);
-      // Original stylized anime avatar: glowing hair silhouette, face, eyes and collar.
-      ctx.globalAlpha=.22;ctx.fillStyle=theme.color;ctx.shadowColor=theme.color;ctx.shadowBlur=.025;
-      ctx.beginPath();ctx.ellipse(0,0,size*.78,size*1.35,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;ctx.shadowBlur=.01;ctx.fillStyle='#071522';
-      ctx.beginPath();ctx.moveTo(-size*.48,-size*.12);ctx.lineTo(-size*.44,-size*.72);ctx.lineTo(-size*.1,-size*.95);ctx.lineTo(size*.2,-size*.83);ctx.lineTo(size*.48,-size*.45);ctx.lineTo(size*.37,-size*.08);ctx.lineTo(size*.27,size*.2);ctx.lineTo(size*.35,size*.62);ctx.lineTo(-size*.34,size*.62);ctx.lineTo(-size*.25,size*.2);ctx.closePath();ctx.fill();
-      ctx.strokeStyle=theme.color;ctx.lineWidth=.0013;ctx.stroke();
-      ctx.fillStyle='#dff7ff';ctx.beginPath();ctx.ellipse(0,-size*.32,size*.27,size*.32,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#071522';ctx.beginPath();ctx.moveTo(-size*.29,-size*.43);ctx.lineTo(-size*.35,-size*.85);ctx.lineTo(-size*.06,-size*.66);ctx.lineTo(size*.18,-size*.9);ctx.lineTo(size*.35,-size*.45);ctx.lineTo(size*.18,-size*.5);ctx.lineTo(0,-size*.43);ctx.lineTo(-size*.16,-size*.49);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#071522';ctx.beginPath();ctx.ellipse(-size*.105,-size*.3,size*.045,size*.065,0,0,Math.PI*2);ctx.ellipse(size*.105,-size*.3,size*.045,size*.065,0,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle=theme.color;ctx.lineWidth=.0012;ctx.beginPath();ctx.moveTo(-size*.28,size*.16);ctx.lineTo(0,size*.04);ctx.lineTo(size*.28,size*.16);ctx.lineTo(size*.36,size*.62);ctx.lineTo(-size*.36,size*.62);ctx.closePath();ctx.stroke();
-      ctx.globalAlpha=.85;ctx.fillStyle='#ffffff';ctx.font='700 .012px monospace';ctx.textAlign='center';ctx.fillText(theme.name,0,size*.83);
-      ctx.restore();
-    }
-    gesture.textContent=active?'FIVE-LINK HOLOGRAM ACTIVE':(leftReady||rightReady?'Hands tracked — align both gestures':'Both hands detected — all five links connected');
-    detail.textContent='Five straight fingertip links connect thumb-to-thumb, index-to-index, middle-to-middle, ring-to-ring and little-finger-to-little-finger inside a rigid white-blue hologram frame.';
-  }else if(hands.length===1){
-    gestureHistory=[];gesture.textContent='ONE HAND LOCKED — SEARCHING SECOND HAND';
-    detail.textContent='All five fingers and the hand skeleton are visible. Bring the second hand into frame to connect matching fingertips.';
-  }else{
-    gestureHistory=[];detail.textContent='Move both hands into view. Good lighting and visible fingertips improve tracking.';
-    gesture.textContent='SCANNING FOR HANDS';
-  }
-  document.querySelector('#gestureNote').textContent=hands.length>=2?'HOLOGRAM FRAME LOCKED // FIVE STRAIGHT FINGER LINKS':hands.length===1?'ONE HAND TRACKED // SHOW YOUR SECOND HAND':'Full hand skeleton tracking is active. Show both hands to connect all five corresponding fingertips.';
-}
-async function loop(){
- if(!running)return;
- const now=performance.now();
- // Detect on a 640x360 copy to keep 1080p/4K preview sharp without feeding 4K frames to ML.
- if(video.readyState>=2&&video.videoWidth>0&&video.currentTime!==lastVideoTime&&landmarker&&now-lastDetectAt>=30){
-   lastVideoTime=video.currentTime;lastDetectAt=now;
-   try{analysisCtx.drawImage(video,0,0,analysisCanvas.width,analysisCanvas.height);draw(landmarker.detectForVideo(analysisCanvas,now))}
-   catch(e){console.error('Hand detection failed:',e);setStatus('Hand tracking error')}
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d');
+const start=$('start'),stop=$('stop'),full=$('fullscreen');
+let stream=null,handModel=null,objectModel=null,visionModule=null,running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false;
+const history=[];
+function status(text,on=false){$('cameraStatus').textContent=text;$('cameraDot').classList.toggle('on',on);$('systemPill').textContent=on?'Camera connected':text}
+function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
+function clearResult(message){$('objectName').textContent='Nothing detected';$('objectDescription').textContent=message||'Hold a visible object in your hand to begin recognition.';$('confidence').textContent='—';$('meter').style.width='0%';$('empty').style.display='block'}
+function labelResult(name,score){$('objectName').textContent=name;$('objectDescription').textContent='Object detected near a visible hand.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
+async function loadModels(){
+ if(handModel&&objectModel)return;
+ status('Loading AI models…',true);
+ if(!visionModule)visionModule=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
+ const resolver=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+ const jobs=await Promise.allSettled([
+  visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.35,minHandPresenceConfidence:.35,minTrackingConfidence:.35}),
+  visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},runningMode:'VIDEO',scoreThreshold:.35,maxResults:8})
+ ]);
+ if(jobs[0].status==='fulfilled')handModel=jobs[0].value;
+ if(jobs[1].status==='fulfilled')objectModel=jobs[1].value;
+ if(!handModel||!objectModel){
+   const cpuJobs=await Promise.allSettled([
+    !handModel?visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'CPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.35,minHandPresenceConfidence:.35,minTrackingConfidence:.35}):Promise.resolve(handModel),
+    !objectModel?visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'CPU'},runningMode:'VIDEO',scoreThreshold:.35,maxResults:8}):Promise.resolve(objectModel)
+   ]);
+   if(cpuJobs[0].status==='fulfilled')handModel=cpuJobs[0].value;
+   if(cpuJobs[1].status==='fulfilled')objectModel=cpuJobs[1].value;
  }
- requestAnimationFrame(loop)
+ if(!handModel||!objectModel)throw new Error('The AI models could not load. Check your internet connection or browser support.');
 }
-start.addEventListener('click',async()=>{start.disabled=true;setStatus('Requesting camera…');try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('CAMERA_API_UNAVAILABLE');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:60}},audio:false});video.srcObject=stream;await video.play();placeholder.style.display='none';stop.disabled=false;running=true;setStatus('Camera on — loading hand tracking…',true);gesture.textContent='Camera connected';detail.textContent='Camera is live. Loading the hand-tracking engine…';resize();loop();try{await setupModel();if(!running)return;setStatus('Hand tracking active — show both hands',true);gesture.textContent='Show both hands to the camera';detail.textContent='Camera is live. Hold both hands in view; the preview uses your camera resolution and hand detection runs on a smaller frame for speed.';loop()}catch(modelError){console.error('Hand-tracking engine failed:',modelError);setStatus('Camera on — tracking engine failed',true);gesture.textContent='Camera is working';detail.textContent='The camera is live, but the hand-tracking engine could not load. Check internet access or CDN restrictions, then reload.';}}catch(e){console.error(e);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;running=false;setStatus('Camera could not start');gesture.textContent='Camera unavailable';detail.textContent=e.name==='NotAllowedError'?'Allow camera permission in your browser settings, then retry.':e.name==='NotFoundError'?'No camera was found. Connect or enable a camera, then retry.':e.message==='CAMERA_API_UNAVAILABLE'?'This browser does not expose camera access. Open the HTTPS website in a modern browser.':'Check camera permission, close other apps using the camera, and retry.';start.disabled=false}});
-stop.addEventListener('click',()=>{running=false;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);placeholder.style.display='block';start.disabled=false;stop.disabled=true;setStatus('Camera off');gesture.textContent='Waiting for camera';detail.textContent='Start the camera to detect hand gestures.'});
-fullscreen.addEventListener('click',async()=>{try{if(!document.fullscreenElement){if(preview.requestFullscreen)await preview.requestFullscreen();else if(preview.webkitRequestFullscreen)preview.webkitRequestFullscreen();else throw new Error('Fullscreen is not supported by this browser')}else if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){detail.textContent='Full screen could not start. Use the browser full-screen shortcut, then try again.';console.error('Fullscreen error:',e)}});
-document.addEventListener('fullscreenchange',()=>{fullscreen.textContent=document.fullscreenElement?'Exit full screen':'Full screen';requestAnimationFrame(()=>{resize();if(running&&landmarker&&video.readyState>=2){try{draw(landmarker.detectForVideo(video,performance.now()))}catch(e){console.warn('Tracking will resume on the next frame',e)}}})});
-document.addEventListener('webkitfullscreenchange',()=>{fullscreen.textContent=(document.fullscreenElement||document.webkitFullscreenElement)?'Exit full screen':'Full screen';requestAnimationFrame(resize)});
-window.addEventListener('resize',resize);
-if('ResizeObserver' in window)new ResizeObserver(()=>requestAnimationFrame(resize)).observe(preview);
-function selectFromText(q){
- q=q.trim().toLowerCase();
- if(!q){commandStatus.textContent='Type a character or anime name first.';characterCommand.focus();return}
- const choices=[
- {v:'shadow',keys:['sung jin woo','jinwoo','jin-woo','solo leveling','shadow']},{v:'pirate',keys:['luffy','one piece','monkey d luffy']},{v:'soul',keys:['ichigo','bleach']},{v:'ninja',keys:['naruto','shinobi']},{v:'slayer',keys:['tanjiro','demon slayer']},{v:'goku',keys:['goku','dragon ball','dragonball']},{v:'gojo',keys:['gojo','jujutsu kaisen','jjk','satoru']},{v:'eren',keys:['eren','attack on titan','aot']},{v:'deku',keys:['deku','izuku','my hero academia','mha']},{v:'killua',keys:['killua','hunter x hunter','hxh']},{v:'zoro',keys:['zoro','roronoa']},{v:'rukia',keys:['rukia','kuchiki']}
- ];
- const found=choices.find(c=>c.keys.some(k=>q.includes(k)));
- if(found){styleSelect.value=found.v;commandStatus.textContent='REALM SELECTED // '+styleSelect.options[styleSelect.selectedIndex].text.toUpperCase();gesture.textContent='Realm selected';detail.textContent='Show both hands with thumb + index extended on each hand to activate the portal for this character.';return}
- commandStatus.textContent='No match found. Try Gojo, Goku, Naruto, Luffy, Ichigo, Tanjiro, Eren, Deku, Killua, Zoro, or Rukia.';
+function boxOfLandmarks(lm){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y);return{x:Math.max(0,Math.min(...xs)-.06),y:Math.max(0,Math.min(...ys)-.06),w:Math.min(1,Math.max(...xs)-Math.min(...xs)+.12),h:Math.min(1,Math.max(...ys)-Math.min(...ys)+.12)}}
+function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2<=x1||y2<=y1)return 0;const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}
+function detect(){
+ if(!running||video.readyState<2){raf=requestAnimationFrame(detect);return}
+ raf=requestAnimationFrame(detect);
+ const now=performance.now();if(modelBusy||now-lastInference<140||video.currentTime===lastInferenceVideo)return;
+ lastInference=now;lastInferenceVideo=video.currentTime;modelBusy=true;
+ try{
+  const hands=handModel.detectForVideo(video,now).landmarks||[];
+  const detections=objectModel.detectForVideo(video,now).detections||[];
+  const handBoxes=hands.map(boxOfLandmarks);
+  let best=null;
+  for(const d of detections){
+   const bb=d.boundingBox,cat=d.categories&&d.categories[0];if(!bb||!cat)continue;
+   const overlap=handBoxes.reduce((m,h)=>Math.max(m,overlaps(bb,h)),0);
+   if(overlap<.025)continue;
+   const score=cat.score||0;if(score<.35)continue;
+   if(!best||score>best.score)best={name:cat.categoryName||'Unknown object',score,box:bb};
+  }
+  drawOverlay(hands,best);
+  if(best)labelResult(best.name,best.score);else clearResult(hands.length?'Hand detected — bring the object closer to your fingers.':'Show a hand holding an object inside the camera view.');
+  frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='AI scan: '+currentFps+' FPS (approx.)'}
+ }catch(e){console.error('Inference error:',e);status('AI detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
+ finally{modelBusy=false}
 }
-applyCommand.addEventListener('click',()=>selectFromText(characterCommand.value));
-characterCommand.addEventListener('keydown',e=>{if(e.key==='Enter')selectFromText(characterCommand.value)});
-styleSelect.addEventListener('change',()=>{commandStatus.textContent='REALM SELECTED // '+styleSelect.options[styleSelect.selectedIndex].text.toUpperCase()});
-</script></body></html>
+let lastInferenceVideo=-1;
+function drawOverlay(hands,best){
+ const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,1,1);ctx.save();ctx.scale(-1,1);ctx.translate(-1,0);
+ for(const lm of hands){const b=boxOfLandmarks(lm);ctx.strokeStyle='#bd9140';ctx.lineWidth=.0025;ctx.strokeRect(b.x,b.y,b.w,b.h);for(const p of lm){ctx.beginPath();ctx.arc(p.x,p.y,.003,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#bd9140';ctx.lineWidth=.001;ctx.stroke()}}
+ if(best){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.004;ctx.strokeRect(x,y,bw,bh);ctx.fillStyle='#bd9140';ctx.fillRect(x,y,Math.min(bw,.55),.035);ctx.fillStyle='#fff';ctx.font='bold .018px Inter';ctx.fillText(best.name,x+.008,y+.024)}
+ ctx.restore()
+}
+start.addEventListener('click',async()=>{
+ start.disabled=true;status('Requesting camera…');
+ try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access requires HTTPS and a modern browser.');
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false});
+  video.srcObject=stream;await video.play();$('placeholder').style.display='none';stop.disabled=false;running=true;resize();$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;status('Camera live · loading AI…',true);clearResult('Camera is on. Loading object and hand recognition models…');raf=requestAnimationFrame(detect);
+  try{await loadModels();if(!running)return;status('AI ready · hold an object',true);$('systemPill').textContent='AI models loaded';lastFpsTime=performance.now();}catch(modelErr){console.error(modelErr);status('Camera live · AI failed to load',true);$('objectDescription').textContent='Camera works, but the AI models did not load. Check internet access, then stop and restart.';start.disabled=false}
+ }catch(e){console.error(e);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;running=false;status('Camera unavailable');$('objectDescription').textContent=e.name==='NotAllowedError'?'Camera permission was denied. Allow camera access in browser settings and retry.':e.name==='NotFoundError'?'No camera was found on this device.':e.message||'Check camera permission and try again.';start.disabled=false}
+});
+stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
+full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
+window.addEventListener('resize',resize);if('ResizeObserver'in window)new ResizeObserver(resize).observe($('cameraStage'));resize();
+})();
+</script>
+</body>
+</html>
