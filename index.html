@@ -70,7 +70,7 @@ async function loadModels(){
  if(!visionModule)visionModule=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
  const resolver=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
  const jobs=await Promise.allSettled([
-  visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.25,minHandPresenceConfidence:.25,minTrackingConfidence:.25}),
+  visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.20,minHandPresenceConfidence:.20,minTrackingConfidence:.20}),
   visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},runningMode:'VIDEO',scoreThreshold:.18,maxResults:15})
  ]);
  if(jobs[0].status==='fulfilled')handModel=jobs[0].value;
@@ -134,13 +134,13 @@ document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=
 function detect(){
  if(!running||video.readyState<2||!handModel||(mode==='objects'&&!objectModel)){raf=requestAnimationFrame(detect);return}
  raf=requestAnimationFrame(detect);
- const now=performance.now();if(modelBusy||now-lastInference<45||video.currentTime===lastInferenceVideo)return;
+ const now=performance.now();if(modelBusy||now-lastInference<(mode==='anime'?24:45)||video.currentTime===lastInferenceVideo)return;
  lastInference=now;lastInferenceVideo=video.currentTime;modelBusy=true;
  try{
   let rawHands=(handModel.detectForVideo(video,now).landmarks||[]).slice(0,2);
   // Stable left-to-right ordering on the mirrored preview prevents crossed or swapped links.
   rawHands.sort((a,b)=>b[0].x-a[0].x);
-  const smoothFactor=.42;
+  const smoothFactor=mode==='anime'?.78:.42;
   const hands=rawHands.map((lm,h)=>lm.map((p,i)=>{const prev=smoothedHands[h]&&smoothedHands[h][i];return prev?{x:prev.x+(p.x-prev.x)*smoothFactor,y:prev.y+(p.y-prev.y)*smoothFactor,z:(prev.z||0)+((p.z||0)-(prev.z||0))*smoothFactor}:{x:p.x,y:p.y,z:p.z||0}}));
   smoothedHands=hands.map(lm=>lm.map(p=>({x:p.x,y:p.y,z:p.z||0})));
   const detections=mode==='objects'&&objectModel?(objectModel.detectForVideo(video,now).detections||[]):[];
@@ -179,14 +179,14 @@ function drawOverlay(hands,best,faces=[]){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   // Cyan-blue hand skeleton, with no tracking rectangles.
   for(const lm of hands){
-   for(const chain of chains){ctx.beginPath();chain.forEach((idx,j)=>{const p=lm[idx];if(!p)return;if(j===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});ctx.strokeStyle='rgba(56,174,255,.92)';ctx.lineWidth=.0027;ctx.shadowColor='#28aaff';ctx.shadowBlur=5;ctx.stroke();}
+   for(const chain of chains){ctx.beginPath();chain.forEach((idx,j)=>{const p=lm[idx];if(!p)return;if(j===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});ctx.strokeStyle='rgba(56,174,255,.92)';ctx.lineWidth=.0027;ctx.shadowColor='#28aaff';ctx.shadowBlur=mode==='anime'?2:5;ctx.stroke();}
   }
   if(hands.length>=2){
    const left=hands[0],right=hands[1];
    // Five crisp, straight white links between matching fingertips, left to right.
    for(let i=0;i<tips.length;i++){
     const p=left[tips[i]],q=right[tips[i]];if(!p||!q)continue;
-    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=.012;ctx.shadowColor='#fff';ctx.shadowBlur=13;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=.009;ctx.shadowColor='#fff';ctx.shadowBlur=mode==='anime'?7:13;ctx.stroke();
     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='#ffffff';ctx.lineWidth=.0032;ctx.shadowBlur=6;ctx.stroke();
    }
    // White glowing quadrilateral between thumb/index pairs, matching the reference frame.
