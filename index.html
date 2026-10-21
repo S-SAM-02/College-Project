@@ -75,9 +75,8 @@ async function loadModels(){
    if(cpuJobs[0].status==='fulfilled')handModel=cpuJobs[0].value;
    if(cpuJobs[1].status==='fulfilled')objectModel=cpuJobs[1].value;
  }
- if(!handModel||!objectModel)throw new Error('The recognition models could not load. Check your internet connection or browser support.');
- try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}
- catch(faceError){faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}
+ if(!handModel||!objectModel)throw new Error('Hand/object models could not load. Check internet access and reload.');
+ try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceError){console.warn('Face detector unavailable; object and hand modes remain available.',faceError);faceModel=null;}
  }finally{modelsLoading=false}
 }
 function boxOfLandmarks(lm){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=.18,padY=.18;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
@@ -131,7 +130,7 @@ start.addEventListener('click',async()=>{
 });
 stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
 full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
-$('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});window.addEventListener('resize',resize);if('ResizeObserver'in window)new ResizeObserver(resize).observe($('cameraStage'));resize();
+$('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});window.addEventListener('resize',resize);if('ResizeObserver'in window)new ResizeObserver(resize).observe($('cameraStage'));setMode('objects');resize();
 })();
 </script>
 </body>
