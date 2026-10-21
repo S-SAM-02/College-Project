@@ -28,7 +28,7 @@
 <section class="workspace">
   <article class="panel">
     <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
-    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><button class="btn camera-flip" id="flipCamera" type="button" title="Switch front/rear camera" aria-label="Switch front/rear camera">↻ Flip camera</button><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your camera, your object</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: labels appear directly over the detected item in the camera view.</div></div>
+    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><button class="btn camera-flip" id="flipCamera" type="button" title="Switch front/rear camera" aria-label="Switch front/rear camera">↻ Flip camera</button><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your camera, your object</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand and labels the best match. Tiny items such as safety pins, loose wires, and some lamps may not be supported by the built-in model.</div></div>
     <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
   </article>
   <aside class="panel">
@@ -71,14 +71,14 @@ async function loadModels(){
  const resolver=await visionModule.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
  const jobs=await Promise.allSettled([
   visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.20,minHandPresenceConfidence:.20,minTrackingConfidence:.20}),
-  visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},runningMode:'VIDEO',scoreThreshold:.18,maxResults:15})
+  visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},runningMode:'VIDEO',scoreThreshold:.12,maxResults:30})
  ]);
  if(jobs[0].status==='fulfilled')handModel=jobs[0].value;
  if(jobs[1].status==='fulfilled')objectModel=jobs[1].value;
  if(!handModel||!objectModel){
    const cpuJobs=await Promise.allSettled([
     !handModel?visionModule.HandLandmarker.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'CPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.35,minHandPresenceConfidence:.35,minTrackingConfidence:.35}):Promise.resolve(handModel),
-    !objectModel?visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'CPU'},runningMode:'VIDEO',scoreThreshold:.22,maxResults:12}):Promise.resolve(objectModel)
+    !objectModel?visionModule.ObjectDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'CPU'},runningMode:'VIDEO',scoreThreshold:.14,maxResults:25}):Promise.resolve(objectModel)
    ]);
    if(cpuJobs[0].status==='fulfilled')handModel=cpuJobs[0].value;
    if(cpuJobs[1].status==='fulfilled')objectModel=cpuJobs[1].value;
@@ -86,6 +86,32 @@ async function loadModels(){
  if(!handModel||!objectModel)throw new Error('Hand/object models could not load. Check internet access and reload.');
  try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceGpuError){console.warn('GPU face detector unavailable; retrying on CPU.',faceGpuError);try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceCpuError){console.warn('Face detector unavailable; object and hand modes remain available.',faceCpuError);faceModel=null;}}
  }finally{modelsLoading=false}
+}
+// Normalize labels emitted by the built-in COCO object model. This improves naming only; it does not invent detections for unsupported classes.
+function friendlyObjectName(raw){
+ const key=String(raw||'').toLowerCase().trim();
+ const aliases={
+  'cell phone':'mobile phone','tv':'television','remote':'remote control','couch':'sofa',
+  'potted plant':'plant','dining table':'table','sports ball':'ball','hair drier':'hair dryer',
+  'keyboard':'computer keyboard','mouse':'computer mouse','laptop':'laptop computer',
+  'book':'book/notebook','bottle':'bottle','cup':'cup/mug','scissors':'scissors',
+  'clock':'clock','vase':'vase','toothbrush':'toothbrush','backpack':'bag/backpack',
+  'handbag':'handbag/purse','suitcase':'suitcase','umbrella':'umbrella','chair':'chair',
+  'bed':'bed','refrigerator':'refrigerator','microwave':'microwave oven','oven':'oven',
+  'toaster':'toaster','sink':'sink','bowl':'bowl','fork':'fork','knife':'knife','spoon':'spoon',
+  'banana':'banana','apple':'apple','orange':'orange','broccoli':'broccoli','carrot':'carrot',
+  'sandwich':'sandwich','pizza':'pizza','donut':'donut','cake':'cake','tie':'tie',
+  'suitcase':'suitcase','traffic light':'traffic light','fire hydrant':'fire hydrant',
+  'stop sign':'stop sign','parking meter':'parking meter','bench':'bench','bird':'bird',
+  'cat':'cat','dog':'dog','horse':'horse','sheep':'sheep','cow':'cow','elephant':'elephant',
+  'bear':'bear','zebra':'zebra','giraffe':'giraffe','bicycle':'bicycle','car':'car',
+  'motorcycle':'motorcycle','airplane':'airplane','bus':'bus','train':'train','truck':'truck',
+  'boat':'boat','frisbee':'frisbee','skateboard':'skateboard','tennis racket':'tennis racket',
+  'baseball bat':'baseball bat','baseball glove':'baseball glove','surfboard':'surfboard',
+  'kite':'kite','snowboard':'snowboard','skis':'skis','sports ball':'sports ball',
+  'person':'person'
+ };
+ return aliases[key]||raw||'Unrecognized object';
 }
 function boxOfLandmarks(lm,padding=.055){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=padding,padY=padding;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
 function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2>x1&&y2>y1){const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}const cx=ax+aw/2,cy=ay+ah/2,dx=Math.max(b.x-cx,0,cx-(b.x+b.w)),dy=Math.max(b.y-cy,0,cy-(b.y+b.h));return 0}
@@ -150,10 +176,12 @@ function detect(){
   for(const d of detections){
    const bb=d.boundingBox,cat=d.categories&&d.categories[0];if(!bb||!cat)continue;
    const overlap=handBoxes.reduce((m,h)=>Math.max(m,overlaps(bb,h)),0);
-   if(overlap<.025)continue;
-   const score=cat.score||0;if(score<.40)continue;
-   const name=cat.categoryName||'Unknown object';if(name.toLowerCase()==='person')continue;
-   const rank=score*(1+Math.min(overlap,.5)*1.8);
+   // Small or partially occluded items often have low box overlap; keep a low but nonzero association threshold.
+   if(overlap<.004)continue;
+   const score=cat.score||0;if(score<.16)continue;
+   const rawName=cat.categoryName||'Unknown object';if(rawName.toLowerCase()==='person')continue;
+   const name=friendlyObjectName(rawName);
+   const rank=score*(1+Math.min(overlap,.6)*2.2);
    if(!best||rank>best.rank)best={name,score,rank,box:bb};
   }
   drawOverlay(hands,best,faces);
