@@ -88,7 +88,44 @@ async function loadModels(){
 }
 function boxOfLandmarks(lm,padding=.055){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=padding,padY=padding;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
 function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2>x1&&y2>y1){const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}const cx=ax+aw/2,cy=ay+ah/2,dx=Math.max(b.x-cx,0,cx-(b.x+b.w)),dy=Math.max(b.y-cy,0,cy-(b.y+b.h));return 0}
-async function loadFaceApi(){if(faceApiReady)return true;if(faceApiLoading)return false;faceApiLoading=true;faceApiError='';faceAnalysisStatus='Loading age/appearance model…';try{if(!window.faceapi){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/build/face-api.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Face library unavailable'));document.head.appendChild(s)});}faceApi=window.faceapi;if(!faceApi)throw new Error('Face library unavailable');const modelBases=['https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights','https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights','https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights','https://justadudewhohacks.github.io/face-api.js/models'];let loaded=false;let lastError=null;for(const base of modelBases){try{await Promise.all([faceApi.nets.tinyFaceDetector.loadFromUri(base),faceApi.nets.ageGenderNet.loadFromUri(base)]);loaded=true;break}catch(err){lastError=err;console.warn('Could not load face models from',base,err)}}if(!loaded)throw(lastError||new Error('Face model weights unavailable'));faceApiReady=true;faceAnalysisStatus='Model ready — analyzing face…';return true}catch(e){console.warn('Age/gender estimation model unavailable',e);faceApiError='Age/appearance model could not load. Verify network access or try another model host; age and gender remain unavailable until weights load.';faceAnalysisStatus=faceApiError;return false}finally{faceApiLoading=false}}
+async function loadFaceApi(){
+ if(faceApiReady)return true;
+ if(faceApiLoading)return false;
+ faceApiLoading=true;faceApiError='';faceAnalysisStatus='Loading age/appearance model…';
+ try{
+  if(!window.faceapi){
+   await new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/build/face-api.min.js';
+    s.crossOrigin='anonymous';s.onload=resolve;s.onerror=()=>reject(new Error('Face analysis library download failed'));
+    document.head.appendChild(s);
+   });
+  }
+  faceApi=window.faceapi;
+  if(!faceApi)throw new Error('Face analysis library unavailable');
+  const bases=[
+   'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights',
+   'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights',
+   'https://justadudewhohacks.github.io/face-api.js/models'
+  ];
+  let loaded=false,lastError=null;
+  for(const base of bases){
+   try{
+    await faceApi.nets.tinyFaceDetector.loadFromUri(base);
+    await faceApi.nets.ageGenderNet.loadFromUri(base);
+    loaded=true;break;
+   }catch(err){lastError=err;console.warn('Face analysis model host failed:',base,err);}
+  }
+  if(!loaded)throw(lastError||new Error('Age and appearance weights could not be downloaded'));
+  faceApiReady=true;faceApiError='';faceAnalysisStatus='Model ready — estimating age range and gender presentation (approximate).';
+  return true;
+ }catch(e){
+  console.warn('Age/appearance model unavailable:',e);
+  faceApiError='Age/appearance model could not download. Face boxes still work; estimates need model files and internet access.';
+  faceAnalysisStatus=faceApiError;
+  return false;
+ }finally{faceApiLoading=false;}
+}
 function setMode(next){mode=next;lastFaceDetails='';faceAnalysisStatus=faceApiReady?'Model ready — analyzing face…':(faceApiError||'Loading age/appearance model…');if(mode==='people'&&!faceApiReady&&!faceApiLoading){lastFaceScan=0;loadFaceApi();}document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});const stage=$('cameraStage');stage.classList.toggle('people-mode',mode==='people');stage.classList.toggle('anime-mode',mode==='anime');$('portalAura').classList.remove('active');$('resultsPanel').style.display=mode==='objects'?'block':'none';$('resultHeading').textContent=mode==='objects'?'Recognition result':mode==='people'?'People detected':'Anime portal status';$('resultSubheading').textContent=mode==='objects'?'Objects associated with your hand':mode==='people'?'Face boxes and visible-person count':'Join both hands to open the portal';$('modeNote').textContent=mode==='objects'?'Object Finder: labels appear directly over the detected item in the camera view.':mode==='people'?'People View: counts visible faces and attempts age-range and appearance estimates using a separate pretrained model.':'Anime Portal: bring both hands into view and move them together to connect the gold energy line.';liveLabel.hidden=true;clearResult(mode==='objects'?'Show an item clearly in your hand.':mode==='people'?'Start the camera to detect visible faces.':'Show both hands to create the portal.');}
 document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
 function detect(){
@@ -116,7 +153,7 @@ function detect(){
    if(!faceApiReady&&!faceApiLoading&&!faceApiError&&now-lastFaceScan>2500){lastFaceScan=now;loadFaceApi().then(ok=>{if(!ok&&mode==='people'){const label=liveLabel.querySelector('small');if(label)label.textContent=faceAnalysisStatus;}});}
    if(faceApiReady&&!faceAnalysisBusy&&now-lastFaceAnalysisAt>1800){lastFaceAnalysisAt=now;lastFaceScan=now;faceAnalysisBusy=true;faceApi.detectAllFaces(video,new faceApi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.30})).withAgeAndGender().then(results=>{if(!running||mode!=='people')return;faceResultCache=results.map((r,i)=>{const low=Math.max(0,Math.floor(r.age/5)*5),high=low+5;const gender=r.gender==='male'?'male-presenting':r.gender==='female'?'female-presenting':'uncertain';return 'Person '+(i+1)+': approx. '+low+'–'+high+' years · '+gender+' (estimate)'});lastFaceDetails=faceResultCache.join(' | ');faceAnalysisStatus=lastFaceDetails||'Face detected; age/gender estimate unavailable for this frame.';const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus;}).catch(e=>{console.warn('Face analysis failed',e);faceAnalysisStatus='Age/gender model failed. Check model downloads in the browser console.';const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus}).finally(()=>{faceAnalysisBusy=false});}
   }
-  else if(mode==='anime'){const aura=$('portalAura');aura.classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=2?'ENERGY LINK ACTIVE':'SHOW BOTH HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'FREE-FORM GOLD ENERGY':'TWO HANDS REQUIRED';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Hand link connected':'Waiting for both hands';}
+  else if(mode==='anime'){const aura=$('portalAura');aura.classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=1?'HAND TRACKING ACTIVE':'SHOW YOUR HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'BOTH HANDS LINKED · FREE-FORM ENERGY':hands.length===1?'MOVE YOUR HAND TO TRACK':'HAND TRACKING';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Two hands tracked':hands.length===1?'One hand tracked':'Waiting for hands';}
   else if(best){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score)}else if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible.':'Show an item in your hand. Try a phone, bottle, cup, book or keyboard.');}
   frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='Scan: '+currentFps+' FPS (approx.)'}
  }catch(e){console.error('Inference error:',e);status('Detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
@@ -126,7 +163,7 @@ function drawOverlay(hands,best,faces=[]){
  ctx.clearRect(0,0,1,1);ctx.save();
  for(const lm of hands){const b=boxOfLandmarks(lm,mode==='anime'?.025:.055);ctx.strokeStyle=mode==='anime'?'#f2c94c':'#bd9140';ctx.lineWidth=.0025;ctx.strokeRect(b.x,b.y,b.w,b.h);for(const p of lm){ctx.beginPath();ctx.arc(p.x,p.y,.003,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#bd9140';ctx.lineWidth=.001;ctx.stroke()}}
  if(mode==='people'){for(const f of faces){const b=f.boundingBox;if(b){ctx.strokeStyle='#bd9140';ctx.lineWidth=.003;ctx.strokeRect(b.originX/video.videoWidth,b.originY/video.videoHeight,b.width/video.videoWidth,b.height/video.videoHeight)}}}
- if(mode==='anime'&&hands.length>=2){const a=hands[0][8],b=hands[1][8],midX=(a.x+b.x)/2,midY=(a.y+b.y)/2;const time=performance.now()/360;ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowColor='#f2c94c';ctx.shadowBlur=18;ctx.strokeStyle='rgba(255,210,76,.38)';ctx.lineWidth=.018;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(midX+Math.sin(time)*.09,midY+Math.cos(time*.8)*.07,midX-Math.sin(time*.7)*.08,midY+Math.cos(time)*.08,b.x,b.y);ctx.stroke();ctx.shadowBlur=8;ctx.strokeStyle='#ffe79a';ctx.lineWidth=.006;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(midX+Math.sin(time)*.09,midY+Math.cos(time*.8)*.07,midX-Math.sin(time*.7)*.08,midY+Math.cos(time)*.08,b.x,b.y);ctx.stroke();ctx.shadowBlur=0;for(let k=0;k<7;k++){const t=((time*.22+k/7)%1),u=1-t,x=u*u*u*a.x+3*u*u*t*(midX+Math.sin(time)*.09)+3*u*t*t*(midX-Math.sin(time*.7)*.08)+t*t*t*b.x,y=u*u*u*a.y+3*u*u*t*(midY+Math.cos(time*.8)*.07)+3*u*t*t*(midY+Math.cos(time)*.08)+t*t*t*b.y;ctx.beginPath();ctx.arc(x,y,.004,0,Math.PI*2);ctx.fillStyle='#fff7cf';ctx.fill()}ctx.restore()}
+ if(mode==='anime'&&hands.length>=2){const a=hands[0][8],b=hands[1][8],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,time=performance.now()/330,c1x=mx+Math.sin(time)*.075,c1y=my+Math.cos(time*.7)*.09,c2x=mx-Math.sin(time*.8)*.09,c2y=my+Math.cos(time)*.065;ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowColor='#ffd85c';ctx.shadowBlur=20;ctx.strokeStyle='rgba(255,203,64,.4)';ctx.lineWidth=.018;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,b.x,b.y);ctx.stroke();ctx.shadowBlur=9;ctx.strokeStyle='#ffe9a3';ctx.lineWidth=.005;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.bezierCurveTo(c1x,c1y,c2x,c2y,b.x,b.y);ctx.stroke();ctx.shadowBlur=0;for(let k=0;k<9;k++){const t=((time*.18+k/9)%1),u=1-t,x=u*u*u*a.x+3*u*u*t*c1x+3*u*t*t*c2x+t*t*t*b.x,y=u*u*u*a.y+3*u*u*t*c1y+3*u*t*t*c2y+t*t*t*b.y;ctx.beginPath();ctx.arc(x,y,.0035,0,Math.PI*2);ctx.fillStyle='#fff7cf';ctx.fill()}ctx.restore()}
  if(best&&mode==='objects'){const b=best.box,x=b.originX/video.videoWidth,y=b.originY/video.videoHeight,bw=b.width/video.videoWidth,bh=b.height/video.videoHeight;ctx.strokeStyle='#c49a49';ctx.lineWidth=.003;ctx.strokeRect(x,y,bw,bh)}
  ctx.restore()
 }
