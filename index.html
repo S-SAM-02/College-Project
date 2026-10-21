@@ -50,7 +50,7 @@
 const $=id=>document.getElementById(id);
 const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
-let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0;
+let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[];
 const history=[];
 function status(text,on=false){const s=$('cameraStatus'),d=$('cameraDot'),p=$('systemPill');if(s)s.textContent=text;if(d)d.classList.toggle('on',on);if(p)p.textContent=on?'Camera connected':text}
 function showFatalError(message){
@@ -128,7 +128,7 @@ async function loadFaceApi(){
   return false;
  }finally{faceApiLoading=false;}
 }
-function setMode(next){mode=next;lastFaceDetails='';faceAnalysisStatus=faceApiReady?'Model ready — analyzing face…':(faceApiError||'Loading age/appearance model…');if(mode==='people'&&!faceApiReady&&!faceApiLoading){lastFaceScan=0;faceApiError='';loadFaceApi();}document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});const stage=$('cameraStage');stage.classList.toggle('people-mode',mode==='people');stage.classList.toggle('anime-mode',mode==='anime');$('portalAura').classList.remove('active');$('resultsPanel').style.display=mode==='objects'?'block':'none';$('resultHeading').textContent=mode==='objects'?'Recognition result':mode==='people'?'People detected':'Anime portal status';$('resultSubheading').textContent=mode==='objects'?'Objects associated with your hand':mode==='people'?'Face boxes and visible-person count':'Join both hands to open the portal';$('modeNote').textContent=mode==='objects'?'Object Finder: labels appear directly over the detected item in the camera view.':mode==='people'?'People View: draws face boxes and counts visible faces. Optional age-range and gender-presentation estimates are approximate and depend on successful model downloads.':'Anime Portal: bring both hands into view and move them together to connect the gold energy line.';liveLabel.hidden=true;clearResult(mode==='objects'?'Show an item clearly in your hand.':mode==='people'?'Start the camera to detect visible faces.':'Show both hands to create the portal.');}
+function setMode(next){mode=next;smoothedHands=[];lastFaceDetails='';faceAnalysisStatus=faceApiReady?'Model ready — analyzing face…':(faceApiError||'Loading age/appearance model…');if(mode==='people'&&!faceApiReady&&!faceApiLoading){lastFaceScan=0;faceApiError='';loadFaceApi();}document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});const stage=$('cameraStage');stage.classList.toggle('people-mode',mode==='people');stage.classList.toggle('anime-mode',mode==='anime');$('portalAura').classList.remove('active');$('resultsPanel').style.display=mode==='objects'?'block':'none';$('resultHeading').textContent=mode==='objects'?'Recognition result':mode==='people'?'People detected':'Anime portal status';$('resultSubheading').textContent=mode==='objects'?'Objects associated with your hand':mode==='people'?'Face boxes and visible-person count':'Join both hands to open the portal';$('modeNote').textContent=mode==='objects'?'Object Finder: labels appear directly over the detected item in the camera view.':mode==='people'?'People View: draws face boxes and counts visible faces. Optional age-range and gender-presentation estimates are approximate and depend on successful model downloads.':'Anime Portal: bring both hands into view and move them together to connect the gold energy line.';liveLabel.hidden=true;clearResult(mode==='objects'?'Show an item clearly in your hand.':mode==='people'?'Start the camera to detect visible faces.':'Show both hands to create the portal.');}
 document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
 // Clearly synthetic fallback profiles for prototype demonstrations only; never identify a real person.
 const demoPeople=Array.from({length:100},(_,i)=>({id:'DEMO-'+String(i+1).padStart(3,'0'),ageLow:18+(i%9)*5,ageHigh:22+(i%9)*5,gender:['female-presenting (sample)','male-presenting (sample)','not specified (sample)'][i%3]}));
@@ -139,10 +139,15 @@ function demoPeopleSummary(faceCount){
 function detect(){
  if(!running||video.readyState<2||!handModel||(mode==='objects'&&!objectModel)){raf=requestAnimationFrame(detect);return}
  raf=requestAnimationFrame(detect);
- const now=performance.now();if(modelBusy||now-lastInference<55||video.currentTime===lastInferenceVideo)return;
+ const now=performance.now();if(modelBusy||now-lastInference<45||video.currentTime===lastInferenceVideo)return;
  lastInference=now;lastInferenceVideo=video.currentTime;modelBusy=true;
  try{
-  const hands=(handModel.detectForVideo(video,now).landmarks||[]).slice(0,2);
+  let rawHands=(handModel.detectForVideo(video,now).landmarks||[]).slice(0,2);
+  // Stable left-to-right ordering on the mirrored preview prevents crossed or swapped links.
+  rawHands.sort((a,b)=>b[0].x-a[0].x);
+  const smoothFactor=.42;
+  const hands=rawHands.map((lm,h)=>lm.map((p,i)=>{const prev=smoothedHands[h]&&smoothedHands[h][i];return prev?{x:prev.x+(p.x-prev.x)*smoothFactor,y:prev.y+(p.y-prev.y)*smoothFactor,z:(prev.z||0)+((p.z||0)-(prev.z||0))*smoothFactor}:{x:p.x,y:p.y,z:p.z||0}}));
+  smoothedHands=hands.map(lm=>lm.map(p=>({x:p.x,y:p.y,z:p.z||0})));
   const detections=mode==='objects'&&objectModel?(objectModel.detectForVideo(video,now).detections||[]):[];
   const faces=mode==='people'&&faceModel?(faceModel.detectForVideo(video,now).detections||[]):[];
   const handBoxes=hands.map(lm=>boxOfLandmarks(lm,.12));
@@ -157,8 +162,8 @@ function detect(){
    if(!best||rank>best.rank)best={name,score,rank,box:bb};
   }
   drawOverlay(hands,best,faces);
-  if(mode==='people'){const count=faces.length;liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=count+' '+(count===1?'face':'faces')+' detected';const s=document.createElement('small');s.textContent=lastFaceDetails||(faceApiReady?faceAnalysisStatus:faceApiLoading?'LOADING AGE / APPEARANCE MODEL…':demoPeopleSummary(count));liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent='Faces detected: '+count+' · live';
-   if(!faceApiReady&&!faceApiLoading&&now-lastFaceScan>12000){lastFaceScan=now;loadFaceApi().then(ok=>{if(!ok&&mode==='people'){const label=liveLabel.querySelector('small');if(label)label.textContent=demoPeopleSummary(faces.length);}});}
+  if(mode==='people'){const count=faces.length;liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=count+' '+(count===1?'face':'faces')+' detected';const s=document.createElement('small');s.textContent=lastFaceDetails||(faceApiReady?faceAnalysisStatus:faceApiLoading?'Loading age and appearance estimator…':'Age and appearance estimates unavailable. Model files could not load.');liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent='Faces detected: '+count+' · live';
+   if(!faceApiReady&&!faceApiLoading&&now-lastFaceScan>12000){lastFaceScan=now;loadFaceApi().then(ok=>{if(!ok&&mode==='people'){const label=liveLabel.querySelector('small');if(label)label.textContent='Age and appearance estimates unavailable. Model files could not load.';}});}
    if(faceApiReady&&!faceAnalysisBusy&&now-lastFaceAnalysisAt>1800){lastFaceAnalysisAt=now;lastFaceScan=now;faceAnalysisBusy=true;faceApi.detectAllFaces(video,new faceApi.TinyFaceDetectorOptions({inputSize:512,scoreThreshold:.25})).withAgeAndGender().then(results=>{if(!running||mode!=='people')return;faceResultCache=results.map((r,i)=>{const low=Math.max(0,Math.floor(r.age/5)*5),high=low+5;const gender=r.gender==='male'?'male-presenting':r.gender==='female'?'female-presenting':'uncertain';return 'Person '+(i+1)+': approx. '+low+'–'+high+' years · '+gender+' (estimate)'});lastFaceDetails=faceResultCache.join(' | ');faceAnalysisStatus=lastFaceDetails||'Face detected; age/gender estimate unavailable for this frame.';const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus;}).catch(e=>{console.warn('Face analysis failed',e);faceAnalysisStatus='Age/appearance estimate unavailable. Face detection is still active; retrying model download.';faceApiReady=false;faceApiError='';lastFaceScan=performance.now();const label=liveLabel.querySelector('small');if(label&&mode==='people')label.textContent=faceAnalysisStatus}).finally(()=>{faceAnalysisBusy=false});}
   }
   else if(mode==='anime'){const aura=$('portalAura');aura.classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=1?'HAND TRACKING ACTIVE':'SHOW YOUR HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'FIVE FINGER LINKS ACTIVE':hands.length===1?'SECOND HAND NEEDED':'SHOW BOTH HANDS CLEARLY';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Two hands · five links':hands.length===1?'One hand tracked':'Waiting for hands';}
@@ -174,26 +179,26 @@ function drawOverlay(hands,best,faces=[]){
   for(const f of faces){const b=f.boundingBox;if(b&&video.videoWidth&&video.videoHeight){ctx.strokeStyle='#bd9140';ctx.lineWidth=.0025;ctx.strokeRect(b.originX/video.videoWidth,b.originY/video.videoHeight,b.width/video.videoWidth,b.height/video.videoHeight)}}
   ctx.restore();
  }
- if(mode==='anime'){
+ if(mode==='anime'&&hands.length){
+  const tips=[4,8,12,16,20];
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-  const tipIds=[4,8,12,16,20],palmId=0;
-  for(let h=0;h<hands.length;h++){
-   const lm=hands[h],palm=lm[palmId];if(!palm)continue;
-   for(let i=0;i<tipIds.length;i++){
-    const tip=lm[tipIds[i]];if(!tip)continue;
-    ctx.beginPath();ctx.moveTo(palm.x,palm.y);ctx.lineTo(tip.x,tip.y);
-    ctx.strokeStyle='rgba(255,211,102,.5)';ctx.lineWidth=.003;ctx.shadowColor='#f2c94c';ctx.shadowBlur=5;ctx.stroke();
-   }
+  // Subtle hand skeleton guides only: no rectangular boxes or landmark-dot clutter.
+  for(const lm of hands){
+   const chains=[[0,1,2,3,4],[0,5,6,7,8],[0,9,10,11,12],[0,13,14,15,16],[0,17,18,19,20]];
+   for(const chain of chains){ctx.beginPath();chain.forEach((idx,j)=>{const p=lm[idx];if(!p)return;if(j===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});ctx.strokeStyle='rgba(255,218,125,.48)';ctx.lineWidth=.0025;ctx.shadowColor='#f2c94c';ctx.shadowBlur=3;ctx.stroke();}
   }
   if(hands.length>=2){
-   const left=hands[0],right=hands[1];
-   for(let i=0;i<tipIds.length;i++){
-    const p=left[tipIds[i]],q=right[tipIds[i]];if(!p||!q)continue;
-    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
-    ctx.strokeStyle='rgba(255,194,45,.30)';ctx.lineWidth=.018;ctx.shadowColor='#ffca45';ctx.shadowBlur=18;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
-    ctx.strokeStyle=i===1?'#fff5bd':'#ffd86b';ctx.lineWidth=.0045;ctx.shadowBlur=8;ctx.stroke();
-    for(const pt of [p,q]){ctx.beginPath();ctx.arc(pt.x,pt.y,.0045,0,Math.PI*2);ctx.fillStyle='#fff9de';ctx.shadowBlur=7;ctx.fill();}
+   const left=hands[0],right=hands[1],time=performance.now()/420;
+   for(let i=0;i<tips.length;i++){
+    const p=left[tips[i]],q=right[tips[i]];if(!p||!q)continue;
+    const dx=q.x-p.x,dy=q.y-p.y;
+    const bend=Math.min(.07,Math.hypot(dx,dy)*.10)*(i%2===0?1:-1);
+    const cx=(p.x+q.x)/2-dy*bend+Math.sin(time+i*.7)*.008;
+    const cy=(p.y+q.y)/2+dx*bend+Math.cos(time+i*.6)*.008;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.quadraticCurveTo(cx,cy,q.x,q.y);
+    ctx.strokeStyle='rgba(255,194,45,.28)';ctx.lineWidth=.013;ctx.shadowColor='#ffca45';ctx.shadowBlur=13;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.quadraticCurveTo(cx,cy,q.x,q.y);
+    ctx.strokeStyle=i===1?'#fff5bd':'#ffd86b';ctx.lineWidth=.0035;ctx.shadowBlur=5;ctx.stroke();
    }
   }
   ctx.restore();
