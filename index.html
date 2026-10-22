@@ -169,7 +169,7 @@ async function loadModels(){
 // Expanded A–Z labels and common-name aliases for the built-in object detector.
 // Names are normalized only after the model detects a trained class; unsupported classes are not fabricated.
 function friendlyObjectName(raw){
- const key=String(raw||'').toLowerCase().trim().replace(/[_-]+/g,' ').replace(/\\s+/g,' ');
+ const key=String(raw||'').toLowerCase().trim().replace(/[_-]+/g,' ').replace(/\s+/g,' ');
  const aliases={
   'airplane':'airplane / aircraft','aeroplane':'airplane / aircraft','aircraft':'airplane / aircraft',
   'apple':'apple','backpack':'backpack / school bag','school bag':'backpack / school bag','bag':'backpack / school bag',
@@ -195,7 +195,7 @@ function friendlyObjectName(raw){
   'umbrella':'umbrella','scissors':'scissors','sandwich':'sandwich','apple fruit':'apple',
   't shirt':'clothing (not a supported model class)','tshirt':'clothing (not a supported model class)'
  };
- return aliases[key]||String(raw||'Unknown object').replace(/\\b\\w/g,c=>c.toUpperCase());
+ return aliases[key]||String(raw||'Unknown object').replace(/\b\w/g,c=>c.toUpperCase());
 }
 function boxOfLandmarks(lm,padding=.055){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=padding,padY=padding;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
 function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2>x1&&y2>y1){const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}const cx=ax+aw/2,cy=ay+ah/2,dx=Math.max(b.x-cx,0,cx-(b.x+b.w)),dy=Math.max(b.y-cy,0,cy-(b.y+b.h));return 0}
