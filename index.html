@@ -107,7 +107,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 <section class="workspace">
   <article class="panel">
     <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
-    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand and labels the best match. Tiny items such as safety pins, loose wires, and some lamps may not be supported by the built-in model.</div></div>
+    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand, with expanded A–Z labels and common-name aliases. The built-in model has a fixed vocabulary, so specialized items may not be recognized.</div></div>
     <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
   </article>
   <aside class="panel">
@@ -115,7 +115,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
     <div class="results" id="resultsPanel">
       <p class="results-intro">A label appears when an object is detected near your hand. Keep the object fully visible.</p>
       <div class="result-card" aria-live="polite"><div class="result-label" id="resultLabel">Currently holding</div><div class="object-name" id="objectName">Nothing detected</div><p class="object-sub" id="objectDescription">Hold a visible object in your hand to begin recognition.</p><div class="confidence"><span>Model confidence</span><strong id="confidence">—</strong></div><div class="meter"><span id="meter"></span></div></div>
-      <div class="result-empty" id="empty"><strong>Ready when you are</strong>Only common object classes supported by the model can be named. Unrecognized objects may not receive a label.</div>
+      <div class="result-empty" id="empty"><strong>Ready when you are</strong>Expanded A–Z aliases help name supported detections. The vision model still recognizes only its trained classes; unsupported objects may need a broader model.</div>
       <div class="history-title">Recent detections</div><div class="history" id="history"><span class="object-sub">No detections yet</span></div>
       <div class="hint"><strong>Accuracy note:</strong> This browser demo uses a pretrained object detector plus hand landmarks. It is not trained on every object in existence, and recognition is not guaranteed in 0.001 seconds. Results depend on lighting, camera quality, model speed and whether the item is in the model's label set.</div>
     </div>
@@ -166,31 +166,36 @@ async function loadModels(){
  try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceGpuError){console.warn('GPU face detector unavailable; retrying on CPU.',faceGpuError);try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceCpuError){console.warn('Face detector unavailable; object and hand modes remain available.',faceCpuError);faceModel=null;}}
  }finally{modelsLoading=false}
 }
-// Normalize labels emitted by the built-in COCO object model. This improves naming only; it does not invent detections for unsupported classes.
+// Expanded A–Z labels and common-name aliases for the built-in object detector.
+// Names are normalized only after the model detects a trained class; unsupported classes are not fabricated.
 function friendlyObjectName(raw){
- const key=String(raw||'').toLowerCase().trim();
+ const key=String(raw||'').toLowerCase().trim().replace(/[_-]+/g,' ').replace(/\\s+/g,' ');
  const aliases={
-  'cell phone':'mobile phone','tv':'television','remote':'remote control','couch':'sofa',
-  'potted plant':'plant','dining table':'table','sports ball':'ball','hair drier':'hair dryer',
-  'keyboard':'computer keyboard','mouse':'computer mouse','laptop':'laptop computer',
-  'book':'book/notebook','bottle':'bottle','cup':'cup/mug','scissors':'scissors',
-  'clock':'clock','vase':'vase','toothbrush':'toothbrush','backpack':'bag/backpack',
-  'handbag':'handbag/purse','suitcase':'suitcase','umbrella':'umbrella','chair':'chair',
-  'bed':'bed','refrigerator':'refrigerator','microwave':'microwave oven','oven':'oven',
-  'toaster':'toaster','sink':'sink','bowl':'bowl','fork':'fork','knife':'knife','spoon':'spoon',
-  'banana':'banana','apple':'apple','orange':'orange','broccoli':'broccoli','carrot':'carrot',
-  'sandwich':'sandwich','pizza':'pizza','donut':'donut','cake':'cake','tie':'tie',
-  'suitcase':'suitcase','traffic light':'traffic light','fire hydrant':'fire hydrant',
-  'stop sign':'stop sign','parking meter':'parking meter','bench':'bench','bird':'bird',
-  'cat':'cat','dog':'dog','horse':'horse','sheep':'sheep','cow':'cow','elephant':'elephant',
-  'bear':'bear','zebra':'zebra','giraffe':'giraffe','bicycle':'bicycle','car':'car',
-  'motorcycle':'motorcycle','airplane':'airplane','bus':'bus','train':'train','truck':'truck',
-  'boat':'boat','frisbee':'frisbee','skateboard':'skateboard','tennis racket':'tennis racket',
-  'baseball bat':'baseball bat','baseball glove':'baseball glove','surfboard':'surfboard',
-  'kite':'kite','snowboard':'snowboard','skis':'skis','sports ball':'sports ball',
-  'person':'person'
+  'airplane':'airplane / aircraft','aeroplane':'airplane / aircraft','aircraft':'airplane / aircraft',
+  'apple':'apple','backpack':'backpack / school bag','school bag':'backpack / school bag','bag':'backpack / school bag',
+  'banana':'banana','baseball bat':'baseball bat','baseball glove':'baseball glove','bear':'bear','bed':'bed',
+  'bench':'bench','bicycle':'bicycle / bike','bike':'bicycle / bike','bird':'bird','boat':'boat','book':'book / notebook',
+  'bottle':'bottle / water bottle','water bottle':'bottle / water bottle','bowl':'bowl','broccoli':'broccoli','bus':'bus',
+  'cake':'cake','car':'car / automobile','auto':'car / automobile','automobile':'car / automobile','carrot':'carrot',
+  'cat':'cat','cell phone':'mobile phone / smartphone','cellphone':'mobile phone / smartphone','mobile':'mobile phone / smartphone','phone':'mobile phone / smartphone','smartphone':'mobile phone / smartphone',
+  'chair':'chair','clock':'clock / timepiece','couch':'sofa / couch','sofa':'sofa / couch','cow':'cow',
+  'cup':'cup / mug','mug':'cup / mug','dining table':'dining table / table','dog':'dog','donut':'donut','doughnut':'donut',
+  'elephant':'elephant','fire hydrant':'fire hydrant','fork':'fork','frisbee':'frisbee','giraffe':'giraffe',
+  'hair drier':'hair dryer','hair dryer':'hair dryer','handbag':'handbag / purse','purse':'handbag / purse','horse':'horse',
+  'keyboard':'computer keyboard','computer keyboard':'computer keyboard','kite':'kite','knife':'knife',
+  'laptop':'laptop computer','notebook computer':'laptop computer','microwave':'microwave oven',
+  'motorcycle':'motorcycle / motorbike','motorbike':'motorcycle / motorbike','mouse':'computer mouse','pc mouse':'computer mouse','wireless mouse':'computer mouse',
+  'orange':'orange','oven':'oven','parking meter':'parking meter','person':'person','pizza':'pizza','potted plant':'potted plant / houseplant','houseplant':'potted plant / houseplant',
+  'refrigerator':'refrigerator / fridge','fridge':'refrigerator / fridge','remote':'remote control','remote control':'remote control',
+  'sheep':'sheep','sink':'sink','skateboard':'skateboard','skis':'skis','snowboard':'snowboard','spoon':'spoon',
+  'sports ball':'sports ball','stop sign':'stop sign','suitcase':'suitcase / travel luggage','surfboard':'surfboard',
+  'teddy bear':'teddy bear','tennis racket':'tennis racket','tie':'tie','toaster':'toaster','toothbrush':'toothbrush',
+  'traffic light':'traffic light','train':'train','truck':'truck','lorry':'truck','tv':'television / TV','television':'television / TV',
+  'vase':'vase','wine glass':'wine glass',
+  'umbrella':'umbrella','scissors':'scissors','sandwich':'sandwich','apple fruit':'apple',
+  't shirt':'clothing (not a supported model class)','tshirt':'clothing (not a supported model class)'
  };
- return aliases[key]||raw||'Unrecognized object';
+ return aliases[key]||String(raw||'Unknown object').replace(/\\b\\w/g,c=>c.toUpperCase());
 }
 function boxOfLandmarks(lm,padding=.055){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=padding,padY=padding;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
 function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2>x1&&y2>y1){const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}const cx=ax+aw/2,cy=ay+ah/2,dx=Math.max(b.x-cx,0,cx-(b.x+b.w)),dy=Math.max(b.y-cy,0,cy-(b.y+b.h));return 0}
