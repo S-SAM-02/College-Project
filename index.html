@@ -90,6 +90,8 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 .menu-row{width:100%;justify-content:flex-end}
 .menu-panel{right:0!important;left:auto!important}
 .hero h1{max-width:100%;letter-spacing:-.045em}
+
+.camera-choice{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #b8e8ff;border-radius:12px;background:linear-gradient(145deg,#fff,#dcf6ff);color:#07548a;font-size:13px;font-weight:700;white-space:nowrap}.camera-choice select{max-width:150px;border:0;outline:0;background:transparent;color:#07548a;font:inherit;cursor:pointer;min-height:30px}.camera-choice:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:600px){.camera-choice{width:100%;justify-content:space-between}.camera-choice select{max-width:none;flex:1}}
 </style>
 </head>
 <body>
@@ -105,8 +107,8 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 <section class="workspace">
   <article class="panel">
     <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
-    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><button class="btn camera-flip" id="flipCamera" type="button" title="Switch front/rear camera" aria-label="Switch front/rear camera">↻ Flip camera</button><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand and labels the best match. Tiny items such as safety pins, loose wires, and some lamps may not be supported by the built-in model.</div></div>
-    <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
+    <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand and labels the best match. Tiny items such as safety pins, loose wires, and some lamps may not be supported by the built-in model.</div></div>
+    <div class="actions"><label class="camera-choice" for="cameraFacing">Camera <select id="cameraFacing" aria-label="Choose front or rear camera"><option value="environment">Back camera</option><option value="user">Front camera</option></select></label><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
   </article>
   <aside class="panel">
     <div class="panel-head"><div><h2 id="resultHeading">Recognition result</h2><p id="resultSubheading">Objects associated with your hand</p></div><span class="top-pill">LIVE</span></div>
@@ -316,6 +318,7 @@ start.addEventListener('click',async()=>{
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera access requires HTTPS. Open this site on GitHub Pages in an updated browser.');
   // Try preferred camera first, then retry with basic constraints for devices that reject facingMode/resolution.
   try{
+   facingMode=$('cameraFacing').value||'environment';
    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:480},height:{ideal:360},frameRate:{ideal:30}},audio:false});
   }catch(firstCameraError){
    console.warn('Preferred camera constraints failed; retrying with default camera.',firstCameraError);
@@ -332,7 +335,7 @@ start.addEventListener('click',async()=>{
    video.addEventListener('loadedmetadata',onReady,{once:true});video.addEventListener('canplay',onReady,{once:true});video.addEventListener('error',onError,{once:true});
   });
   await video.play();
-  $('flipCamera').classList.add('visible');$('placeholder').style.display='none';stop.disabled=false;running=true;resize();
+  $('placeholder').style.display='none';stop.disabled=false;running=true;resize();
   $('resolution').textContent='Resolution: '+(video.videoWidth||'unknown')+' × '+(video.videoHeight||'unknown');
   status('Camera live · loading models…',true);clearResult('Camera is on. Loading recognition models…');raf=requestAnimationFrame(detect);
   try{
@@ -354,8 +357,8 @@ start.addEventListener('click',async()=>{
   $('objectDescription').textContent=message;$('placeholder').style.display='block';
  }
 });
-$('flipCamera').addEventListener('click',async()=>{if(!running)return;const oldStream=stream;facingMode=facingMode==='environment'?'user':'environment';try{const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:640},height:{ideal:480}},audio:false});stream=next;video.srcObject=next;await video.play();oldStream?.getTracks().forEach(t=>t.stop());$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;lastInferenceVideo=-1;}catch(e){facingMode=facingMode==='environment'?'user':'environment';status('Could not switch camera',true);console.error(e)}});
-stop.addEventListener('click',()=>{$('flipCamera').classList.remove('visible');running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
+$('cameraFacing').addEventListener('change',async()=>{facingMode=$('cameraFacing').value;if(!running)return;const oldStream=stream;try{const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:480},height:{ideal:360},frameRate:{ideal:30}},audio:false});stream=next;video.srcObject=next;await video.play();oldStream?.getTracks().forEach(t=>t.stop());$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;lastInferenceVideo=-1;status(facingMode==='user'?'Front camera active':'Back camera active',true);}catch(e){facingMode=oldStream?.getVideoTracks?.()[0]?.getSettings?.().facingMode||'environment';$('cameraFacing').value=facingMode;status('Could not open selected camera. Check camera permissions.',true);console.error(e)}});
+stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
 full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
 // Bind controls defensively so one optional feature cannot disable the whole interface.
 $('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});
