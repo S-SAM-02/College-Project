@@ -181,7 +181,9 @@ async function loadModels(){
    if(cpuJobs[0].status==='fulfilled')handModel=cpuJobs[0].value;
    if(cpuJobs[1].status==='fulfilled')objectModel=cpuJobs[1].value;
  }
- if(!handModel||!objectModel)throw new Error('Hand/object models could not load. Check internet access and reload.');
+ if(!handModel)throw new Error('Hand tracking model could not load. Check internet access and reload.');
+ // Object detection is optional for People Counter; face detection must still initialize if the object model fails.
+ if(!objectModel)console.warn('Object detector unavailable; People Counter can still run.');
  try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.28});}catch(faceGpuError){console.warn('GPU face detector unavailable; retrying on CPU.',faceGpuError);try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.28});}catch(faceCpuError){console.warn('Face detector unavailable; object and hand modes remain available.',faceCpuError);faceModel=null;}}
  try{faceFullModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/1/blaze_face_full_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.25});}catch(fullGpuError){console.warn('Full-range face detector GPU unavailable; retrying on CPU.',fullGpuError);try{faceFullModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/1/blaze_face_full_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.25});}catch(fullCpuError){console.warn('Full-range face detector unavailable; short-range model remains available.',fullCpuError);faceFullModel=null;}}
 
@@ -425,7 +427,7 @@ function mergeFaceDetections(primary=[],fullRange=[]){
  return combined;
 }
 function detect(){
- if(!running||video.readyState<2||!handModel||(mode==='objects'&&!objectModel)){raf=requestAnimationFrame(detect);return}
+ if(!running||video.readyState<2||((mode==='objects'||mode==='portal')&&!handModel)||(mode==='objects'&&!objectModel)||(mode==='people'&&!faceModel&&!faceFullModel)){raf=requestAnimationFrame(detect);return}
  raf=requestAnimationFrame(detect);
  const now=performance.now();if(modelBusy||now-lastInference<(mode==='portal'?16:55)||video.currentTime===lastInferenceVideo)return;
  lastInference=now;lastInferenceVideo=video.currentTime;modelBusy=true;
