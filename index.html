@@ -95,7 +95,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 .camera-choice-top{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:0 0 14px;padding:12px 15px;border:1px solid #9bdfff;border-radius:15px;background:linear-gradient(110deg,#ffffffef,#d8f4ffef);color:#07548a;font-weight:800;box-shadow:0 8px 22px #168bd81a}.camera-choice-top select{flex:1;max-width:230px;min-height:40px;padding:7px 12px;border:1px solid #9bdfff;border-radius:10px;background:#fff;color:#07548a;font:700 14px Inter,system-ui,sans-serif}.camera-choice-top:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:520px){.camera-choice-top{font-size:14px}.camera-choice-top select{max-width:65%;min-height:42px}}/* Camera preview should show the real, unmirrored camera orientation. Camera choice lives in Project Menu. */
 /* Final camera UX correction: never mirror preview; selector exists only in the project menu. */
 .camera-stage video{transform:none!important;object-position:center center}
-.camera-stage.front-camera-correction video,.camera-stage.front-camera-correction canvas{transform:scaleX(-1)!important}
+
 .camera-stage canvas{transform:none!important}
 .camera-choice-top{display:none!important}
 .camera-stage video::-webkit-media-controls{display:none!important}
@@ -104,7 +104,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
  .camera-choice-menu{display:flex!important}
  .camera-choice-top{display:none!important}
 }
-.camera-stage video,.camera-stage canvas{transform:none!important}.camera-choice-top{display:none!important}.camera-choice-menu{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:12px 14px;border:1px solid #9bdfff;border-radius:14px;background:linear-gradient(110deg,#ffffffef,#d8f4ffef);color:#07548a;font-weight:800}.camera-choice-menu label{display:block}.camera-choice-menu select{flex:1;max-width:230px;min-height:40px;padding:7px 12px;border:1px solid #9bdfff;border-radius:10px;background:#fff;color:#07548a;font:700 14px Inter,system-ui,sans-serif}.camera-choice-menu:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:520px){.camera-choice-menu{font-size:14px;align-items:stretch;flex-direction:column}.camera-choice-menu select{max-width:none;width:100%;min-height:42px}}.voice-toggle{display:inline-flex;align-items:center;gap:8px;align-self:center;padding:9px 12px;border:1px solid #9bdfff;border-radius:13px;background:#ffffffd9;color:#07548a;font-weight:800;font-size:13px;cursor:pointer}.voice-toggle input{width:18px;height:18px;accent-color:#0b91d0}@media(max-width:520px){.voice-toggle{width:100%;justify-content:center}}</style>
+.camera-stage video,.camera-stage canvas{transform:none!important}.camera-choice-top{display:none!important}.camera-choice-menu{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:12px 14px;border:1px solid #9bdfff;border-radius:14px;background:linear-gradient(110deg,#ffffffef,#d8f4ffef);color:#07548a;font-weight:800}.camera-choice-menu label{display:block}.camera-choice-menu select{flex:1;max-width:230px;min-height:40px;padding:7px 12px;border:1px solid #9bdfff;border-radius:10px;background:#fff;color:#07548a;font:700 14px Inter,system-ui,sans-serif}.camera-choice-menu:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:520px){.camera-choice-menu{font-size:14px;align-items:stretch;flex-direction:column}.camera-choice-menu select{max-width:none;width:100%;min-height:42px}}.voice-toggle{display:inline-flex;align-items:center;gap:8px;align-self:center;padding:9px 12px;border:1px solid #9bdfff;border-radius:13px;background:#ffffffd9;color:#07548a;font-weight:800;font-size:13px;cursor:pointer}.voice-toggle input{width:18px;height:18px;accent-color:#0b91d0}@media(max-width:520px){.voice-toggle{width:100%;justify-content:center}}.voice-toggle,.wide-toggle{display:inline-flex;align-items:center;gap:9px;align-self:center;padding:9px 12px;border:1px solid #9bdfff;border-radius:13px;background:#ffffffd9;color:#07548a;font-weight:800;font-size:13px;cursor:pointer}.voice-toggle input,.wide-toggle input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 38px;width:38px;height:22px;margin:0;border-radius:99px;background:#a8bed0;transition:background .18s ease}.voice-toggle input:before,.wide-toggle input:before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .18s ease}.voice-toggle input:checked,.wide-toggle input:checked{background:#087fc7}.voice-toggle input:checked:before,.wide-toggle input:checked:before{transform:translateX(16px)}.wide-toggle{max-width:100%}.wide-toggle span small{display:block;margin-top:2px;font-size:10px;font-weight:600;color:#52748f}@media(max-width:520px){.voice-toggle,.wide-toggle{width:100%;justify-content:flex-start}.wide-toggle span:last-child{flex:1}}</style>
 </head>
 <body>
 <div class="shell">
@@ -120,7 +120,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
   <article class="panel">
     <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
     <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand, with expanded A–Z labels and common-name aliases. The built-in model has a fixed vocabulary, so specialized items may not be recognized.</div></div>
-    <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button><label class="voice-toggle" for="voiceEnabled"><input id="voiceEnabled" type="checkbox" checked><span>🔊 Voice announcements</span></label></div>
+    <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button><label class="voice-toggle" for="voiceEnabled"><input id="voiceEnabled" type="checkbox" checked><span>🔊 Voice announcements</span></label><label class="wide-toggle" for="wideDetectionEnabled"><input id="wideDetectionEnabled" type="checkbox"><span class="toggle-knob" aria-hidden="true"></span><span>Wide-vocabulary item scan <small>large first download</small></span></label></div>
   </article>
   <aside class="panel">
     <div class="panel-head"><div><h2 id="resultHeading">Recognition result</h2><p id="resultSubheading">Objects associated with your hand</p></div><span class="top-pill">LIVE</span></div>
@@ -141,7 +141,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 const $=id=>document.getElementById(id);
 const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
-let stream=null,handModel=null,objectModel=null,faceModel=null,faceFullModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[],expandedClassifier=null,expandedClassifierLoading=false,expandedClassifierBusy=false,lastExpandedClassifyAt=0,lastExpandedPrediction='',expandedPredictionStreak=0,expandedCropCanvas=null,expandedCropContext=null;
+let stream=null,handModel=null,objectModel=null,faceModel=null,faceFullModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[],expandedClassifier=null,expandedClassifierLoading=false,expandedClassifierBusy=false,lastExpandedClassifyAt=0,lastExpandedPrediction='',expandedPredictionStreak=0,expandedCropCanvas=null,expandedCropContext=null,wideDetector=null,wideDetectorLoading=false,wideDetectorBusy=false,wideEnabled=false,wideLastRun=0,widePredictionLabel='',widePredictionStreak=0,wideMisses=0,wideBest=null,wideCropCanvas=null,wideCropContext=null,wideCropMeta=null;
 const history=[];
 let lastSpokenKey='',lastSpokenAt=0,lastFaceCountSpoken=-1,lastFaceCountAt=0;
 function voiceEnabled(){const e=$('voiceEnabled');return !!(e&&e.checked&&'speechSynthesis'in window&&'SpeechSynthesisUtterance'in window);}
@@ -258,21 +258,21 @@ async function loadExpandedClassifier(){
 function normalizeExpandedLabel(raw){
  const label=String(raw||'').toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
  const rules=[
-  [/\bsafety pin\b/,'Safety pin'],[/\b(power cord|charging cable|usb cable|cable|wire|extension cord)\b/,'Wire / charging cable'],
-  [/\bbelt\b/,'Belt'],[/\b(pencil case|pencil box|pen case)\b/,'Pen / pencil case'],
-  [/\b(cellular telephone|mobile phone|smartphone|cell phone|iphone)\b/,'Mobile phone'],[/\b(tablet computer|tablet|ipad)\b/,'Tablet'],
-  [/\b(computer keyboard|keyboard)\b/,'Keyboard'],[/\b(computer mouse|mouse)\b/,'Computer mouse'],
-  [/\b(electric switch|switchboard|switch box|wall socket|electrical outlet)\b/,'Electrical switch / outlet'],
-  [/\bbanana\b/,'Banana'],[/\bstrawberry\b/,'Strawberry'],[/\borange\b/,'Orange'],[/\blemon\b/,'Lemon'],[/\bfig\b/,'Fig'],[/\bpineapple\b/,'Pineapple'],
-  [/\bpomegranate\b/,'Pomegranate'],[/\b(granny smith|apple)\b/,'Apple'],[/\bcucumber\b/,'Cucumber'],[/\bbell pepper\b/,'Bell pepper'],[/\bbroccoli\b/,'Broccoli'],
-  [/\bcarrot\b/,'Carrot'],[/\bmushroom\b/,'Mushroom'],[/\bpotato\b/,'Potato'],[/\bcorn\b/,'Corn'],[/\bzucchini\b/,'Zucchini'],
-  [/\bspatula\b/,'Spatula'],[/\bladle\b/,'Ladle'],[/\bwhisk\b/,'Whisk'],[/\b(frying pan|wok|saucepan)\b/,'Cooking pan'],[/\b(stockpot|cooking pot)\b/,'Cooking pot'],
-  [/\bkettle\b/,'Kettle'],[/\b(coffeemaker|coffee pot)\b/,'Coffee maker'],[/\bteapot\b/,'Teapot'],[/\bplate\b/,'Plate'],[/\bbowl\b/,'Bowl'],
-  [/\bfork\b/,'Fork'],[/\bspoon\b/,'Spoon'],[/\bknife\b/,'Knife'],[/\bcan opener\b/,'Can opener'],[/\bcheese grater\b/,'Grater'],
-  [/\bpencil sharpener\b/,'Pencil sharpener'],[/\b(ballpoint|fountain pen|ballpoint pen)\b/,'Pen'],[/\bpencil\b/,'Pencil'],[/\bruler\b/,'Ruler'],
-  [/\b(book jacket|binder)\b/,'Folder / binder'],[/\bremote control\b/,'Remote control'],[/\b(power adapter|battery charger)\b/,'Charger / power adapter']
+  [/^safety pin$/,'Safety pin'],[/^(power cord|charging cable|usb cable|cable|wire|extension cord)$/,'Charging cable / wire'],
+  [/^belt$/,'Belt'],[/^(pencil case|pencil box|pen case)$/,'Pen box / pencil case'],
+  [/^(cellular telephone|mobile phone|smartphone|cell phone|iphone)$/,'Mobile phone'],[/^(tablet computer|tablet|ipad)$/,'Tablet'],
+  [/^(computer keyboard|keyboard)$/,'Keyboard'],[/^(computer mouse|mouse)$/,'Computer mouse'],
+  [/^(electric switch|switchboard|switch box|wall socket|electrical outlet)$/,'Electrical switch / outlet'],
+  [/^(banana|strawberry|orange|lemon|fig|pineapple|pomegranate|granny smith|apple|cucumber|bell pepper|broccoli|carrot|mushroom|potato|corn|zucchini)$/,'$1'],
+  [/^spatula$/,'Spatula'],[/^ladle$/,'Ladle'],[/^whisk$/,'Whisk'],[/^(frying pan|wok|saucepan)$/,'Cooking pan'],[/^(stockpot|cooking pot)$/,'Cooking pot'],
+  [/^kettle$/,'Kettle'],[/^(coffeemaker|coffee pot)$/,'Coffee maker'],[/^teapot$/,'Teapot'],[/^plate$/,'Plate'],[/^bowl$/,'Bowl'],
+  [/^fork$/,'Fork'],[/^spoon$/,'Spoon'],[/^knife$/,'Knife'],[/^can opener$/,'Can opener'],[/^cheese grater$/,'Grater'],
+  [/^pencil sharpener$/,'Pencil sharpener'],[/^(ballpoint|fountain pen|ballpoint pen|pen)$/,'Pen'],[/^pencil$/,'Pencil'],[/^ruler$/,'Ruler'],
+  [/^(book jacket|binder)$/,'Folder / binder'],[/^remote control$/,'Remote control'],[/^(power adapter|battery charger)$/,'Charger / power adapter'],
+  [/^flower ?pot$/,'Flower pot'],[/^banknote$/,'Money note'],[/^(currency note|paper money|cash|dollar bill)$/,'Money note'],
+  [/^(id card|identity card|identification card)$/,'ID card'],[/^keychain$/,'Keychain'],[/^power bank$/,'Power bank'],[/^flower$/,'Flower']
  ];
- for(const [pattern,name] of rules)if(pattern.test(label))return name;
+ for(const [pattern,name] of rules){if(pattern.test(label))return name==='$1'?label.charAt(0).toUpperCase()+label.slice(1):name;}
  return String(raw||'Unknown object').replace(/\b\w/g,c=>c.toUpperCase());
 }
 function requestExpandedClassification(hands,now){
@@ -300,6 +300,80 @@ function requestExpandedClassification(hands,now){
    labelResult(displayName,prediction.probability,'Expanded image classifier');
   }).catch(error=>console.warn('Expanded image classification skipped:',error)).finally(()=>{expandedClassifierBusy=false;});
  }catch(error){expandedClassifierBusy=false;console.warn('Could not prepare hand-region image for classification:',error);}
+}
+
+
+const WIDE_ITEM_LABELS=[
+ 'a pen.','a ballpoint pen.','a pencil.','a mobile phone.','a smartphone.','a tablet.','a flower pot.','a flowerpot.',
+ 'a safety pin.','a charging cable.','a USB cable.','a wire.','a rupee note.','a paper banknote.','a currency note.',
+ 'an identity card.','an ID card.','a keychain.','a power bank.','a belt.','a pen box.','a pencil case.',
+ 'an electrical switch box.','a light switch.','an electrical outlet.','a keyboard.','a computer mouse.','a fruit.',
+ 'an apple.','a banana.','an orange.','a mango.','a tomato.','an onion.','a carrot.','a cucumber.',
+ 'a cooking pot.','a flower pot.','a frying pan.','a spatula.','a ladle.','a kettle.','a knife.','a spoon.','a fork.',
+ 'a water bottle.','a cup.','a mug.','a plate.','a bowl.','a charger.','a power adapter.','a remote control.',
+ 'a pair of scissors.','a book.','a notebook.','a wallet.','a key.','a watch.','a pair of glasses.','a calculator.',
+ 'a camera.','a laptop.','a bag.','a paper clip.','a stapler.','a screw.','a nail.','a battery.','a light bulb.',
+ 'a switch.','a socket.','a box.','a flower.','a plant.','a teddy bear.','a television.','a game controller.',
+ 'a screwdriver.','a computer monitor.','a hair dryer.','a cooking utensil.','a measuring cup.','a rice cooker.'
+];
+function normalizeWideLabel(raw){
+ const label=String(raw||'').toLowerCase().replace(/[.]/g,'').replace(/^(a|an|the)\s+/,'').trim();
+ return normalizeExpandedLabel(label);
+}
+async function loadWideDetector(){
+ if(wideDetector)return wideDetector;
+ if(wideDetectorLoading)return null;
+ wideDetectorLoading=true;
+ status('Loading wide-vocabulary AI model…',true);
+ $('fps').textContent='First-time download is large (about 150–200 MB); keep this page open.';
+ try{
+  const transformers=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0');
+  const model='onnx-community/grounding-dino-tiny-ONNX';
+  if(navigator.gpu){
+   try{wideDetector=await transformers.pipeline('zero-shot-object-detection',model,{device:'webgpu',dtype:'q4f16'});}
+   catch(gpuError){console.warn('Wide detector WebGPU startup failed; trying WASM.',gpuError);wideDetector=await transformers.pipeline('zero-shot-object-detection',model,{device:'wasm',dtype:'uint8'});}
+  }else{
+   wideDetector=await transformers.pipeline('zero-shot-object-detection',model,{device:'wasm',dtype:'uint8'});
+  }
+  $('fps').textContent='Wide-vocabulary item model ready';
+  status('Wide-vocabulary AI ready',true);
+  return wideDetector;
+ }catch(error){
+  console.error('Wide-vocabulary model could not load:',error);
+  $('fps').textContent='Wide model unavailable; standard detector remains active';
+  status('Wide-vocabulary download failed',true);
+  return null;
+ }finally{wideDetectorLoading=false;}
+}
+function requestWideDetection(hands,now){
+ if(!wideEnabled||!wideDetector||wideDetectorBusy||!hands||!hands.length||!video.videoWidth||!video.videoHeight||now-wideLastRun<1300)return;
+ wideDetectorBusy=true;wideLastRun=now;
+ try{
+  const hand=boxOfLandmarks(hands[0],.23),vw=video.videoWidth,vh=video.videoHeight;
+  const cx=(hand.x+hand.w/2)*vw,cy=(hand.y+hand.h/2)*vh;
+  const size=Math.max(1,Math.min(Math.min(vw,vh),Math.max(190,Math.max(hand.w*vw,hand.h*vh)*2.5)));
+  const x=Math.max(0,Math.min(vw-size,cx-size/2)),y=Math.max(0,Math.min(vh-size,cy-size/2));
+  const w=Math.max(1,Math.min(size,vw-x)),h=Math.max(1,Math.min(size,vh-y));
+  if(!wideCropCanvas){wideCropCanvas=document.createElement('canvas');wideCropCanvas.width=448;wideCropCanvas.height=448;wideCropContext=wideCropCanvas.getContext('2d');}
+  wideCropContext.drawImage(video,x,y,w,h,0,0,448,448);
+  wideCropMeta={x,y,w,h,width:448,height:448};
+  const imageData=wideCropCanvas.toDataURL('image/jpeg',.88);
+  wideDetector(imageData,WIDE_ITEM_LABELS,{threshold:.26}).then(results=>{
+   if(!running||!wideEnabled||mode!=='objects')return;
+   const hits=(results||[]).filter(item=>item&&item.label&&item.box&&item.score>=.29).sort((a,b)=>b.score-a.score);
+   if(!hits.length){wideMisses++;widePredictionLabel='';widePredictionStreak=0;if(wideMisses>=2)wideBest=null;return;}
+   const hit=hits[0],raw=String(hit.label).replace(/[.]/g,'').trim(),name=normalizeWideLabel(raw);
+   if(widePredictionLabel===name)widePredictionStreak++;else{widePredictionLabel=name;widePredictionStreak=1;}
+   if(widePredictionStreak<2&&hit.score<.48)return;
+   if(wideCropMeta){
+    const b=hit.box,c=wideCropMeta;
+    wideBest={name,score:hit.score,rank:hit.score,box:{originX:c.x+(b.xmin/c.width)*c.w,originY:c.y+(b.ymin/c.height)*c.h,width:((b.xmax-b.xmin)/c.width)*c.w,height:((b.ymax-b.ymin)/c.height)*c.h}};
+   }
+   wideMisses=0;lastLabelKey=name;stableCount=2;lastObjectSeen=performance.now();lastSeenAt=performance.now();
+   labelResult(name,hit.score,'Wide-vocabulary detector');
+   $('fps').textContent='Wide scan: '+Math.round(hit.score*100)+'% model score';
+  }).catch(error=>console.warn('Wide object scan skipped:',error)).finally(()=>{wideDetectorBusy=false;});
+ }catch(error){wideDetectorBusy=false;console.warn('Unable to prepare wide scan:',error);}
 }
 
 function boxOfLandmarks(lm,padding=.055){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=padding,padY=padding;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
