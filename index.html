@@ -104,7 +104,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
  .camera-choice-menu{display:flex!important}
  .camera-choice-top{display:none!important}
 }
-.camera-stage video,.camera-stage canvas{transform:none!important}.camera-choice-top{display:none!important}.camera-choice-menu{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:12px 14px;border:1px solid #9bdfff;border-radius:14px;background:linear-gradient(110deg,#ffffffef,#d8f4ffef);color:#07548a;font-weight:800}.camera-choice-menu label{display:block}.camera-choice-menu select{flex:1;max-width:230px;min-height:40px;padding:7px 12px;border:1px solid #9bdfff;border-radius:10px;background:#fff;color:#07548a;font:700 14px Inter,system-ui,sans-serif}.camera-choice-menu:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:520px){.camera-choice-menu{font-size:14px;align-items:stretch;flex-direction:column}.camera-choice-menu select{max-width:none;width:100%;min-height:42px}}</style>
+.camera-stage video,.camera-stage canvas{transform:none!important}.camera-choice-top{display:none!important}.camera-choice-menu{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:12px 14px;border:1px solid #9bdfff;border-radius:14px;background:linear-gradient(110deg,#ffffffef,#d8f4ffef);color:#07548a;font-weight:800}.camera-choice-menu label{display:block}.camera-choice-menu select{flex:1;max-width:230px;min-height:40px;padding:7px 12px;border:1px solid #9bdfff;border-radius:10px;background:#fff;color:#07548a;font:700 14px Inter,system-ui,sans-serif}.camera-choice-menu:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:520px){.camera-choice-menu{font-size:14px;align-items:stretch;flex-direction:column}.camera-choice-menu select{max-width:none;width:100%;min-height:42px}}.voice-toggle{display:inline-flex;align-items:center;gap:8px;align-self:center;padding:9px 12px;border:1px solid #9bdfff;border-radius:13px;background:#ffffffd9;color:#07548a;font-weight:800;font-size:13px;cursor:pointer}.voice-toggle input{width:18px;height:18px;accent-color:#0b91d0}@media(max-width:520px){.voice-toggle{width:100%;justify-content:center}}</style>
 </head>
 <body>
 <div class="shell">
@@ -120,7 +120,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
   <article class="panel">
     <div class="panel-head"><div><h2>Live Camera</h2><p>Live view · hand + object detection</p></div><div class="status"><span class="status-dot" id="cameraDot"></span><span id="cameraStatus">Camera off</span></div></div>
     <div class="camera-wrap"><div class="camera-stage" id="cameraStage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="portal-aura" id="portalAura"></div><div class="live-label" id="liveLabel" hidden></div><div class="placeholder" id="placeholder"><div class="camera-symbol">⌁</div><b>Your portal awaits</b><p>Start the camera, hold an object clearly in one hand, and keep it in view.</p></div></div><div class="camera-meta"><span id="resolution">Resolution: not connected</span><span id="fps">Recognition: waiting for camera</span></div><div class="mode-note" id="modeNote">Object Finder: detects supported everyday objects near your hand, with expanded A–Z labels and common-name aliases. The built-in model has a fixed vocabulary, so specialized items may not be recognized.</div></div>
-    <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button></div>
+    <div class="actions"><button class="btn primary full" id="start" type="button">Start Live Camera</button><button class="btn" id="stop" type="button" disabled>Stop</button><button class="btn" id="fullscreen" type="button">Full screen</button><label class="voice-toggle" for="voiceEnabled"><input id="voiceEnabled" type="checkbox" checked><span>🔊 Voice announcements</span></label></div>
   </article>
   <aside class="panel">
     <div class="panel-head"><div><h2 id="resultHeading">Recognition result</h2><p id="resultSubheading">Objects associated with your hand</p></div><span class="top-pill">LIVE</span></div>
@@ -143,6 +143,16 @@ const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:tru
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
 let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[],expandedClassifier=null,expandedClassifierLoading=false,expandedClassifierBusy=false,lastExpandedClassifyAt=0,expandedCropCanvas=null,expandedCropContext=null;
 const history=[];
+let lastSpokenKey='',lastSpokenAt=0,lastFaceCountSpoken=-1,lastFaceCountAt=0;
+function voiceEnabled(){const e=$('voiceEnabled');return !!(e&&e.checked&&'speechSynthesis'in window&&'SpeechSynthesisUtterance'in window);}
+function announce(text,key='',force=false){
+ if(!voiceEnabled())return;
+ const now=performance.now();
+ if(!force&&key===lastSpokenKey&&now-lastSpokenAt<4500)return;
+ try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(text));u.lang='en-IN';u.rate=1.03;u.pitch=1;window.speechSynthesis.speak(u);lastSpokenKey=key||String(text);lastSpokenAt=now;}catch(err){console.warn('Speech unavailable:',err);}
+}
+function greetVoice(){announce('Voice announcements are enabled. I will announce stable recognition results.','voice-on',true);}
+
 function status(text,on=false){const s=$('cameraStatus'),d=$('cameraDot'),p=$('systemPill');if(s)s.textContent=text;if(d)d.classList.toggle('on',on);if(p)p.textContent=on?'Camera connected':text}
 function showFatalError(message){
  let panel=$('runtimeError');
@@ -153,7 +163,7 @@ window.addEventListener('error',event=>{console.error('Project runtime error:',e
 window.addEventListener('unhandledrejection',event=>{console.error('Project async error:',event.reason);const message=event.reason&&event.reason.message?event.reason.message:String(event.reason||'Unknown asynchronous error');showFatalError(message)});
 function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function clearResult(message){$('objectName').textContent='Nothing detected';$('objectDescription').textContent=message||'Hold a visible object in your hand to begin recognition.';$('confidence').textContent='—';$('meter').style.width='0%';$('empty').style.display='block';liveLabel.hidden=true}
-function labelResult(name,score,source='Object detector'){if(mode!=='objects')return;lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected near your hand · '+source+'. Confirm visually if the item is small or partly hidden.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent=source.toUpperCase()+' · '+Math.round(score*100)+'%';liveLabel.append(title,sub);liveLabel.hidden=false;if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
+function labelResult(name,score,source='Object detector'){if(mode!=='objects')return;lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected near your hand · '+source+'. Verify visually when the item is small or partly hidden.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent=source.toUpperCase()+' · '+Math.round(score*100)+'%';liveLabel.append(title,sub);liveLabel.hidden=false;announce('Detected '+name,'item:'+name);if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
 async function loadModels(){
  if(handModel&&objectModel)return;if(modelsLoading)return;modelsLoading=true;
  try{
@@ -175,7 +185,7 @@ async function loadModels(){
    if(cpuJobs[1].status==='fulfilled')objectModel=cpuJobs[1].value;
  }
  if(!handModel||!objectModel)throw new Error('Hand/object models could not load. Check internet access and reload.');
- try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceGpuError){console.warn('GPU face detector unavailable; retrying on CPU.',faceGpuError);try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.45});}catch(faceCpuError){console.warn('Face detector unavailable; object and hand modes remain available.',faceCpuError);faceModel=null;}}
+ try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.28});}catch(faceGpuError){console.warn('GPU face detector unavailable; retrying on CPU.',faceGpuError);try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.28});}catch(faceCpuError){console.warn('Face detector unavailable; object and hand modes remain available.',faceCpuError);faceModel=null;}}
  }finally{modelsLoading=false}
 }
 // Expanded A–Z labels and common-name aliases for the built-in object detector.
@@ -345,18 +355,18 @@ function detect(){
   const hands=rawHands.map((lm,h)=>lm.map((p,i)=>{const prev=smoothedHands[h]&&smoothedHands[h][i];return prev?{x:prev.x+(p.x-prev.x)*smoothFactor,y:prev.y+(p.y-prev.y)*smoothFactor,z:(prev.z||0)+((p.z||0)-(prev.z||0))*smoothFactor}:{x:p.x,y:p.y,z:p.z||0}}));
   smoothedHands=hands.map(lm=>lm.map(p=>({x:p.x,y:p.y,z:p.z||0})));
   const detections=mode==='objects'&&objectModel?(objectModel.detectForVideo(video,now).detections||[]):[];
-  const faces=mode==='people'&&faceModel?(faceModel.detectForVideo(video,now).detections||[]):[];
+  const faces=(mode==='people'||mode==='objects')&&faceModel?(faceModel.detectForVideo(video,now).detections||[]):[];
   const handBoxes=hands.map(lm=>boxOfLandmarks(lm,.12));
   let best=null;
   for(const d of detections){
    const bb=d.boundingBox,cat=d.categories&&d.categories[0];if(!bb||!cat)continue;
    const overlap=handBoxes.reduce((m,h)=>Math.max(m,overlaps(bb,h)),0);
-   // Small or partially occluded items often have low box overlap; keep a low but nonzero association threshold.
-   if(overlap<.004)continue;
-   const score=cat.score||0;if(score<.16)continue;
+   const score=cat.score||0;
+   // Only accept a detector category when its box is credible and close to the tracked hand.
+   if(overlap<.012||score<.38)continue;
    const rawName=cat.categoryName||'Unknown object';if(rawName.toLowerCase()==='person')continue;
    const name=friendlyObjectName(rawName);
-   const rank=score*(1+Math.min(overlap,.6)*2.2);
+   const rank=score*(1+Math.min(overlap,.6)*1.25);
    if(!best||rank>best.rank)best={name,score,rank,box:bb};
   }
   drawOverlay(hands,best,faces);
@@ -365,13 +375,14 @@ function detect(){
    liveLabel.replaceChildren();
    const t=document.createElement('span');
    t.textContent=count+' '+(count===1?'person':'people')+' detected';
-   const s=document.createElement('small');
-   s.textContent=count===0?'No people currently visible in the camera frame.':'Visible-person count based on detected faces.';
-   liveLabel.append(t,s);liveLabel.hidden=false;
-   $('fps').textContent='People in frame: '+count+' · live';
+   const sub=document.createElement('small');
+   sub.textContent=count===0?'No faces currently visible in the camera frame.':'Visible-person count based on face detections.';
+   liveLabel.append(t,sub);liveLabel.hidden=false;
+   $('fps').textContent='Faces detected: '+count+' · live';
+   if(count!==lastFaceCountSpoken&&now-lastFaceCountAt>2500){lastFaceCountSpoken=count;lastFaceCountAt=now;announce(count+' '+(count===1?'person':'people')+' detected','faces:'+count);}
   }
   else if(mode==='portal'){const aura=$('portalAura');aura.classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=1?'HAND TRACKING ACTIVE':'SHOW YOUR HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'FIVE FINGER LINKS ACTIVE':hands.length===1?'SECOND HAND NEEDED':'SHOW BOTH HANDS CLEARLY';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Two hands · five links':hands.length===1?'One hand tracked':'Waiting for hands';}
-  else if(best&&best.score>=.32){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score,'Object detector')}else{if(hands.length)requestExpandedClassification(hands,now);if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible. Expanded recognition is loading or checking the item.':'Show an item in your hand. Try holding the object close to your hand and in good light.')}}
+  else if(best&&best.score>=.38){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score,'Object detector')}else{if(hands.length)requestExpandedClassification(hands,now);if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible. Expanded recognition is loading or checking the item.':'Show an item in your hand. Try holding the object close to your hand and in good light.')}}
   frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='Scan: '+currentFps+' FPS (approx.)'}
  }catch(e){console.error('Inference error:',e);status('Detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
  finally{modelBusy=false}
@@ -459,6 +470,7 @@ $('cameraFacing').addEventListener('change',async()=>{const requested=$('cameraF
 stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
 full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
 // Bind controls defensively so one optional feature cannot disable the whole interface.
+$('voiceEnabled').addEventListener('change',()=>{if($('voiceEnabled').checked)greetVoice();else if('speechSynthesis'in window)window.speechSynthesis.cancel();});
 $('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});
 window.addEventListener('resize',resize);
 if('ResizeObserver'in window){try{new ResizeObserver(resize).observe($('cameraStage'));}catch(observerError){console.warn('Resize observer unavailable',observerError);}}
