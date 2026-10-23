@@ -467,7 +467,7 @@ function detect(){
    if(count!==lastFaceCountSpoken&&now-lastFaceCountAt>2500){lastFaceCountSpoken=count;lastFaceCountAt=now;announce(count+' '+(count===1?'person':'people')+' detected','faces:'+count);}
   }
   else if(mode==='portal'){const aura=$('portalAura');aura.classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=1?'HAND TRACKING ACTIVE':'SHOW YOUR HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'FIVE FINGER LINKS ACTIVE':hands.length===1?'SECOND HAND NEEDED':'SHOW BOTH HANDS CLEARLY';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Two hands · five links':hands.length===1?'One hand tracked':'Waiting for hands';}
-  else if(best&&best.score>=.38){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score,'Object detector')}else{if(hands.length)requestExpandedClassification(hands,now);if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible. Expanded recognition is loading or checking the item.':'Show an item in your hand. Try holding the object close to your hand and in good light.')}}
+  else if(best&&best.score>=.38){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2){wideBest=null;labelResult(best.name,best.score,'Object detector')}}else if(wideEnabled&&wideBest){lastObjectSeen=now;$('fps').textContent='Wide scan matched '+wideBest.name+' · '+Math.round(wideBest.score*100)+'% model score'}else{if(hands.length){if(wideEnabled)requestWideDetection(hands,now);else requestExpandedClassification(hands,now)}if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900&&!wideBest)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible. Wide scan is loading or checking the item.':'Show an item in your hand and keep it clearly visible.')}}
   frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='Scan: '+currentFps+' FPS (approx.)'}
  }catch(e){console.error('Inference error:',e);status('Detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
  finally{modelBusy=false}
@@ -556,6 +556,16 @@ stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(st
 full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
 // Bind controls defensively so one optional feature cannot disable the whole interface.
 $('voiceEnabled').addEventListener('change',()=>{if($('voiceEnabled').checked)greetVoice();else if('speechSynthesis'in window)window.speechSynthesis.cancel();});
+$('wideDetectionEnabled').addEventListener('change',async()=>{
+ wideEnabled=$('wideDetectionEnabled').checked;
+ wideBest=null;wideMisses=0;widePredictionLabel='';widePredictionStreak=0;
+ if(!wideEnabled){status('Wide-vocabulary scan off',running);$('fps').textContent='Standard object detector active';return;}
+ $('fps').textContent='Loading open-vocabulary model…';
+ const detector=await loadWideDetector();
+ if(!detector){wideEnabled=false;$('wideDetectionEnabled').checked=false;return;}
+ status('Wide-vocabulary scan active',running);
+ $('fps').textContent='Wide-vocabulary model ready · hold an item near your hand';
+});
 $('menuToggle').addEventListener('click',()=>{const panel=$('menuPanel');const open=panel.hidden;panel.hidden=!open;$('menuToggle').setAttribute('aria-expanded',String(open));});
 window.addEventListener('resize',resize);
 if('ResizeObserver'in window){try{new ResizeObserver(resize).observe($('cameraStage'));}catch(observerError){console.warn('Resize observer unavailable',observerError);}}
