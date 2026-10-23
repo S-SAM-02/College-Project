@@ -141,7 +141,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 const $=id=>document.getElementById(id);
 const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
-let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[],expandedClassifier=null,expandedClassifierLoading=false,expandedClassifierBusy=false,lastExpandedClassifyAt=0,expandedCropCanvas=null,expandedCropContext=null;
+let stream=null,handModel=null,objectModel=null,faceModel=null,faceFullModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[],expandedClassifier=null,expandedClassifierLoading=false,expandedClassifierBusy=false,lastExpandedClassifyAt=0,lastExpandedPrediction='',expandedPredictionStreak=0,expandedCropCanvas=null,expandedCropContext=null;
 const history=[];
 let lastSpokenKey='',lastSpokenAt=0,lastFaceCountSpoken=-1,lastFaceCountAt=0;
 function voiceEnabled(){const e=$('voiceEnabled');return !!(e&&e.checked&&'speechSynthesis'in window&&'SpeechSynthesisUtterance'in window);}
@@ -186,6 +186,8 @@ async function loadModels(){
  }
  if(!handModel||!objectModel)throw new Error('Hand/object models could not load. Check internet access and reload.');
  try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.28});}catch(faceGpuError){console.warn('GPU face detector unavailable; retrying on CPU.',faceGpuError);try{faceModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.28});}catch(faceCpuError){console.warn('Face detector unavailable; object and hand modes remain available.',faceCpuError);faceModel=null;}}
+ try{faceFullModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/1/blaze_face_full_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.25});}catch(fullGpuError){console.warn('Full-range face detector GPU unavailable; retrying on CPU.',fullGpuError);try{faceFullModel=await visionModule.FaceDetector.createFromOptions(resolver,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/1/blaze_face_full_range.tflite',delegate:'CPU'},runningMode:'VIDEO',minDetectionConfidence:.25});}catch(fullCpuError){console.warn('Full-range face detector unavailable; short-range model remains available.',fullCpuError);faceFullModel=null;}}
+
  }finally{modelsLoading=false}
 }
 // Expanded A–Z labels and common-name aliases for the built-in object detector.
@@ -254,22 +256,21 @@ async function loadExpandedClassifier(){
  }finally{expandedClassifierLoading=false;}
 }
 function normalizeExpandedLabel(raw){
- const label=String(raw||'').toLowerCase().replace(/[_-]+/g,' ').trim();
+ const label=String(raw||'').toLowerCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
  const rules=[
-  [/safety pin/,'Safety pin'],
-  [/power cord|charging cable|usb cable|cable|wire|extension cord/,'Wire / charging cable (possible match)'],
-  [/belt/,'Belt'],[/pencil case|pencil box|pen case/,'Pen / pencil case (possible match)'],
-  [/cellular telephone|mobile phone|smartphone|cell phone|iphone/,'Mobile phone'],[/tablet computer|tablet|ipad/,'Tablet'],
-  [/computer keyboard|keyboard/,'Keyboard'],[/computer mouse|mouse/,'Computer mouse'],
-  [/electric switch|switchboard|switch box|wall socket|electrical outlet/,'Electrical switch / outlet (possible match)'],
-  [/banana/,'Banana'],[/strawberry/,'Strawberry'],[/orange/,'Orange'],[/lemon/,'Lemon'],[/fig/,'Fig'],[/pineapple/,'Pineapple'],
-  [/pomegranate/,'Pomegranate'],[/granny smith|apple/,'Apple'],[/cucumber/,'Cucumber'],[/bell pepper/,'Bell pepper'],[/broccoli/,'Broccoli'],
-  [/carrot/,'Carrot'],[/mushroom/,'Mushroom'],[/potato/,'Potato'],[/corn/,'Corn'],[/zucchini/,'Zucchini'],
-  [/spatula/,'Spatula'],[/ladle/,'Ladle'],[/whisk/,'Whisk'],[/frying pan|wok|pan/,'Cooking pan'],[/stockpot|pot/,'Cooking pot'],
-  [/kettle/,'Kettle'],[/coffeemaker|coffee pot/,'Coffee maker'],[/teapot/,'Teapot'],[/plate/,'Plate'],[/bowl/,'Bowl'],
-  [/fork/,'Fork'],[/spoon/,'Spoon'],[/knife/,'Knife'],[/can opener/,'Can opener'],[/cheese grater/,'Grater'],
-  [/pencil sharpener/,'Pencil sharpener'],[/ballpoint|fountain pen|pen/,'Pen'],[/pencil/,'Pencil'],[/ruler/,'Ruler'],
-  [/book jacket|binder/,'Folder / binder'],[/remote control/,'Remote control'],[/power adapter|battery charger/,'Charger / power adapter']
+  [/\bsafety pin\b/,'Safety pin'],[/\b(power cord|charging cable|usb cable|cable|wire|extension cord)\b/,'Wire / charging cable'],
+  [/\bbelt\b/,'Belt'],[/\b(pencil case|pencil box|pen case)\b/,'Pen / pencil case'],
+  [/\b(cellular telephone|mobile phone|smartphone|cell phone|iphone)\b/,'Mobile phone'],[/\b(tablet computer|tablet|ipad)\b/,'Tablet'],
+  [/\b(computer keyboard|keyboard)\b/,'Keyboard'],[/\b(computer mouse|mouse)\b/,'Computer mouse'],
+  [/\b(electric switch|switchboard|switch box|wall socket|electrical outlet)\b/,'Electrical switch / outlet'],
+  [/\bbanana\b/,'Banana'],[/\bstrawberry\b/,'Strawberry'],[/\borange\b/,'Orange'],[/\blemon\b/,'Lemon'],[/\bfig\b/,'Fig'],[/\bpineapple\b/,'Pineapple'],
+  [/\bpomegranate\b/,'Pomegranate'],[/\b(granny smith|apple)\b/,'Apple'],[/\bcucumber\b/,'Cucumber'],[/\bbell pepper\b/,'Bell pepper'],[/\bbroccoli\b/,'Broccoli'],
+  [/\bcarrot\b/,'Carrot'],[/\bmushroom\b/,'Mushroom'],[/\bpotato\b/,'Potato'],[/\bcorn\b/,'Corn'],[/\bzucchini\b/,'Zucchini'],
+  [/\bspatula\b/,'Spatula'],[/\bladle\b/,'Ladle'],[/\bwhisk\b/,'Whisk'],[/\b(frying pan|wok|saucepan)\b/,'Cooking pan'],[/\b(stockpot|cooking pot)\b/,'Cooking pot'],
+  [/\bkettle\b/,'Kettle'],[/\b(coffeemaker|coffee pot)\b/,'Coffee maker'],[/\bteapot\b/,'Teapot'],[/\bplate\b/,'Plate'],[/\bbowl\b/,'Bowl'],
+  [/\bfork\b/,'Fork'],[/\bspoon\b/,'Spoon'],[/\bknife\b/,'Knife'],[/\bcan opener\b/,'Can opener'],[/\bcheese grater\b/,'Grater'],
+  [/\bpencil sharpener\b/,'Pencil sharpener'],[/\b(ballpoint|fountain pen|ballpoint pen)\b/,'Pen'],[/\bpencil\b/,'Pencil'],[/\bruler\b/,'Ruler'],
+  [/\b(book jacket|binder)\b/,'Folder / binder'],[/\bremote control\b/,'Remote control'],[/\b(power adapter|battery charger)\b/,'Charger / power adapter']
  ];
  for(const [pattern,name] of rules)if(pattern.test(label))return name;
  return String(raw||'Unknown object').replace(/\b\w/g,c=>c.toUpperCase());
@@ -287,12 +288,15 @@ function requestExpandedClassification(hands,now){
   expandedCropContext.drawImage(video,sx,sy,sw,sh,0,0,224,224);
   const requestLabel=lastLabelKey;
   expandedClassifier.classify(expandedCropCanvas,5).then(predictions=>{
-   if(!running||mode!=='objects'||performance.now()-lastObjectSeen<700)return;
-   const prediction=(predictions||[]).find(p=>p&&p.className&&p.probability>=.22);
+   if(!running||mode!=='objects'||performance.now()-lastObjectSeen<900)return;
+   const prediction=(predictions||[]).filter(p=>p&&p.className&&p.probability>=.50).sort((a,b)=>b.probability-a.probability)[0];
    if(!prediction)return;
    const displayName=normalizeExpandedLabel(prediction.className);
    if(!displayName||displayName==='Unknown object')return;
-   if(lastLabelKey!==requestLabel&&performance.now()-lastObjectSeen<900)return;
+   // Require repeated high-confidence classifier output so transient wrong guesses do not become labels.
+   if(lastExpandedPrediction===prediction.className)expandedPredictionStreak++;else{lastExpandedPrediction=prediction.className;expandedPredictionStreak=1;}
+   if(expandedPredictionStreak<2)return;
+   if(lastLabelKey!==requestLabel&&performance.now()-lastObjectSeen<1200)return;
    labelResult(displayName,prediction.probability,'Expanded image classifier');
   }).catch(error=>console.warn('Expanded image classification skipped:',error)).finally(()=>{expandedClassifierBusy=false;});
  }catch(error){expandedClassifierBusy=false;console.warn('Could not prepare hand-region image for classification:',error);}
@@ -342,6 +346,13 @@ async function loadFaceApi(){
 }
 function setMode(next){mode=next;smoothedHands=[];lastFaceDetails='';faceAnalysisStatus=faceApiReady?'Model ready — analyzing face…':(faceApiError||'Loading age/appearance model…');document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});const stage=$('cameraStage');stage.classList.toggle('people-mode',mode==='people');stage.classList.toggle('portal-mode',mode==='portal');$('portalAura').classList.remove('active');$('resultsPanel').style.display=mode==='objects'?'block':'none';$('resultHeading').textContent=mode==='objects'?'Recognition result':mode==='people'?'People detected':'Magic portal status';$('resultSubheading').textContent=mode==='objects'?'Objects associated with your hand':mode==='people'?'Live visible-person count':'Join both hands to open the portal';$('modeNote').textContent=mode==='objects'?'Object Finder: labels appear directly over the detected item in the camera view.':mode==='people'?'People Counter: counts visible people using face detection. The count may miss partially hidden faces or people turned away.':'Gesture Portal: bring both hands into view and move them together to connect the gold energy line.';liveLabel.hidden=true;clearResult(mode==='objects'?'Show an item clearly in your hand.':mode==='people'?'Start the camera to detect visible faces.':'Show both hands to create the portal.');}
 document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+function mergeFaceDetections(primary=[],fullRange=[]){
+ const combined=[...(primary||[])];
+ const bounds=d=>d&&d.boundingBox?{x:d.boundingBox.originX,y:d.boundingBox.originY,w:d.boundingBox.width,h:d.boundingBox.height}:null;
+ const iou=(a,b)=>{const x1=Math.max(a.x,b.x),y1=Math.max(a.y,b.y),x2=Math.min(a.x+a.w,b.x+b.w),y2=Math.min(a.y+a.h,b.y+b.h);if(x2<=x1||y2<=y1)return 0;const inter=(x2-x1)*(y2-y1),union=a.w*a.h+b.w*b.h-inter;return union>0?inter/union:0};
+ for(const face of (fullRange||[])){const b=bounds(face);if(!b)continue;const duplicate=combined.some(existing=>{const e=bounds(existing);return e&&iou(b,e)>.35});if(!duplicate)combined.push(face);}
+ return combined;
+}
 function detect(){
  if(!running||video.readyState<2||!handModel||(mode==='objects'&&!objectModel)){raf=requestAnimationFrame(detect);return}
  raf=requestAnimationFrame(detect);
@@ -355,7 +366,7 @@ function detect(){
   const hands=rawHands.map((lm,h)=>lm.map((p,i)=>{const prev=smoothedHands[h]&&smoothedHands[h][i];return prev?{x:prev.x+(p.x-prev.x)*smoothFactor,y:prev.y+(p.y-prev.y)*smoothFactor,z:(prev.z||0)+((p.z||0)-(prev.z||0))*smoothFactor}:{x:p.x,y:p.y,z:p.z||0}}));
   smoothedHands=hands.map(lm=>lm.map(p=>({x:p.x,y:p.y,z:p.z||0})));
   const detections=mode==='objects'&&objectModel?(objectModel.detectForVideo(video,now).detections||[]):[];
-  const faces=(mode==='people'||mode==='objects')&&faceModel?(faceModel.detectForVideo(video,now).detections||[]):[];
+  let faces=[];if(mode==='people'){const closeFaces=faceModel?(faceModel.detectForVideo(video,now).detections||[]):[];const farFaces=faceFullModel?(faceFullModel.detectForVideo(video,now).detections||[]):[];faces=mergeFaceDetections(closeFaces,farFaces);}
   const handBoxes=hands.map(lm=>boxOfLandmarks(lm,.12));
   let best=null;
   for(const d of detections){
