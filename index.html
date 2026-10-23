@@ -95,6 +95,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 .camera-choice-top{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:0 0 14px;padding:12px 15px;border:1px solid #9bdfff;border-radius:15px;background:linear-gradient(110deg,#ffffffef,#d8f4ffef);color:#07548a;font-weight:800;box-shadow:0 8px 22px #168bd81a}.camera-choice-top select{flex:1;max-width:230px;min-height:40px;padding:7px 12px;border:1px solid #9bdfff;border-radius:10px;background:#fff;color:#07548a;font:700 14px Inter,system-ui,sans-serif}.camera-choice-top:focus-within{outline:2px solid #50c1ff;outline-offset:2px}@media(max-width:520px){.camera-choice-top{font-size:14px}.camera-choice-top select{max-width:65%;min-height:42px}}/* Camera preview should show the real, unmirrored camera orientation. Camera choice lives in Project Menu. */
 /* Final camera UX correction: never mirror preview; selector exists only in the project menu. */
 .camera-stage video{transform:none!important;object-position:center center}
+.camera-stage.front-camera-correction video,.camera-stage.front-camera-correction canvas{transform:scaleX(-1)!important}
 .camera-stage canvas{transform:none!important}
 .camera-choice-top{display:none!important}
 .camera-stage video::-webkit-media-controls{display:none!important}
@@ -140,7 +141,7 @@ body:before{z-index:0;opacity:.82;background:radial-gradient(ellipse 19% 7% at 1
 const $=id=>document.getElementById(id);
 const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 const start=$('start'),stop=$('stop'),full=$('fullscreen'),liveLabel=$('liveLabel');
-let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[];
+let stream=null,handModel=null,objectModel=null,faceModel=null,visionModule=null,facingMode="environment",running=false,raf=0,lastInference=0,frames=0,lastFpsTime=0,currentFps=0,modelBusy=false,modelsLoading=false,lastSeenAt=0,lastInferenceVideo=-1,lastLabelKey='',stableCount=0,lastObjectSeen=0,mode='objects',faceApiReady=false,faceApiLoading=false,faceApi=null,lastFaceScan=0,faceAnalysisBusy=false,lastFaceDetails='',faceApiError='',faceAnalysisStatus='Loading age/appearance model…',faceResultCache=[],lastFaceAnalysisAt=0,smoothedHands=[],expandedClassifier=null,expandedClassifierLoading=false,expandedClassifierBusy=false,lastExpandedClassifyAt=0,expandedCropCanvas=null,expandedCropContext=null;
 const history=[];
 function status(text,on=false){const s=$('cameraStatus'),d=$('cameraDot'),p=$('systemPill');if(s)s.textContent=text;if(d)d.classList.toggle('on',on);if(p)p.textContent=on?'Camera connected':text}
 function showFatalError(message){
@@ -152,7 +153,7 @@ window.addEventListener('error',event=>{console.error('Project runtime error:',e
 window.addEventListener('unhandledrejection',event=>{console.error('Project async error:',event.reason);const message=event.reason&&event.reason.message?event.reason.message:String(event.reason||'Unknown asynchronous error');showFatalError(message)});
 function resize(){const r=$('cameraStage').getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(canvas.width,0,0,canvas.height,0,0)}
 function clearResult(message){$('objectName').textContent='Nothing detected';$('objectDescription').textContent=message||'Hold a visible object in your hand to begin recognition.';$('confidence').textContent='—';$('meter').style.width='0%';$('empty').style.display='block';liveLabel.hidden=true}
-function labelResult(name,score){if(mode!=='objects')return;lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected in the hand area.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent='OBJECT · '+Math.round(score*100)+'% CONFIDENCE';liveLabel.append(title,sub);liveLabel.hidden=false;if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
+function labelResult(name,score,source='Object detector'){if(mode!=='objects')return;lastSeenAt=performance.now();$('objectName').textContent=name;$('objectDescription').textContent='Detected near your hand · '+source+'. Confirm visually if the item is small or partly hidden.';$('confidence').textContent=Math.round(score*100)+'%';$('meter').style.width=Math.round(score*100)+'%';$('empty').style.display='none';liveLabel.replaceChildren();const title=document.createElement('span');title.textContent=name;const sub=document.createElement('small');sub.textContent=source.toUpperCase()+' · '+Math.round(score*100)+'%';liveLabel.append(title,sub);liveLabel.hidden=false;if(!history.includes(name)){history.unshift(name);if(history.length>8)history.pop();$('history').innerHTML=history.map(n=>'<span class="history-chip"></span>').join('');Array.from($('history').children).forEach((el,i)=>el.textContent=history[i])}}
 async function loadModels(){
  if(handModel&&objectModel)return;if(modelsLoading)return;modelsLoading=true;
  try{
@@ -208,6 +209,85 @@ function friendlyObjectName(raw){
  };
  return aliases[key]||String(raw||'Unknown object').replace(/\b\w/g,c=>c.toUpperCase());
 }
+
+function syncCameraPreviewOrientation(requested){
+ const front=String(requested||'').toLowerCase()==='user';
+ const stage=$('cameraStage');
+ stage.classList.toggle('front-camera-correction',front);
+ stage.dataset.cameraFacing=front?'front':'back';
+}
+function loadExternalScript(src,globalName){
+ if(window[globalName])return Promise.resolve(window[globalName]);
+ return new Promise((resolve,reject)=>{
+  let script=Array.from(document.scripts).find(x=>x.src===src),settled=false;
+  const timer=setTimeout(()=>{if(settled)return;settled=true;reject(new Error(globalName+' download timed out'));},25000);
+  const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);window[globalName]?resolve(window[globalName]):reject(new Error(globalName+' did not initialize'));};
+  if(!script){script=document.createElement('script');script.src=src;script.async=true;script.crossOrigin='anonymous';document.head.appendChild(script);}
+  script.addEventListener('load',finish,{once:true});
+  script.addEventListener('error',()=>{if(settled)return;settled=true;clearTimeout(timer);reject(new Error(globalName+' could not download'));},{once:true});
+  if(window[globalName])finish();
+ });
+}
+async function loadExpandedClassifier(){
+ if(expandedClassifier||expandedClassifierLoading)return expandedClassifier;
+ expandedClassifierLoading=true;
+ try{
+  await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js','tf');
+  await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js','mobilenet');
+  expandedClassifier=await window.mobilenet.load({version:2,alpha:1.0});
+  if($('fps'))$('fps').textContent='Expanded item model ready';
+  return expandedClassifier;
+ }catch(error){
+  console.warn('Expanded item classifier unavailable; standard detector remains active.',error);
+  if($('fps'))$('fps').textContent='Standard object detector ready';
+  return null;
+ }finally{expandedClassifierLoading=false;}
+}
+function normalizeExpandedLabel(raw){
+ const label=String(raw||'').toLowerCase().replace(/[_-]+/g,' ').trim();
+ const rules=[
+  [/safety pin/,'Safety pin'],
+  [/power cord|charging cable|usb cable|cable|wire|extension cord/,'Wire / charging cable (possible match)'],
+  [/belt/,'Belt'],[/pencil case|pencil box|pen case/,'Pen / pencil case (possible match)'],
+  [/cellular telephone|mobile phone|smartphone|cell phone|iphone/,'Mobile phone'],[/tablet computer|tablet|ipad/,'Tablet'],
+  [/computer keyboard|keyboard/,'Keyboard'],[/computer mouse|mouse/,'Computer mouse'],
+  [/electric switch|switchboard|switch box|wall socket|electrical outlet/,'Electrical switch / outlet (possible match)'],
+  [/banana/,'Banana'],[/strawberry/,'Strawberry'],[/orange/,'Orange'],[/lemon/,'Lemon'],[/fig/,'Fig'],[/pineapple/,'Pineapple'],
+  [/pomegranate/,'Pomegranate'],[/granny smith|apple/,'Apple'],[/cucumber/,'Cucumber'],[/bell pepper/,'Bell pepper'],[/broccoli/,'Broccoli'],
+  [/carrot/,'Carrot'],[/mushroom/,'Mushroom'],[/potato/,'Potato'],[/corn/,'Corn'],[/zucchini/,'Zucchini'],
+  [/spatula/,'Spatula'],[/ladle/,'Ladle'],[/whisk/,'Whisk'],[/frying pan|wok|pan/,'Cooking pan'],[/stockpot|pot/,'Cooking pot'],
+  [/kettle/,'Kettle'],[/coffeemaker|coffee pot/,'Coffee maker'],[/teapot/,'Teapot'],[/plate/,'Plate'],[/bowl/,'Bowl'],
+  [/fork/,'Fork'],[/spoon/,'Spoon'],[/knife/,'Knife'],[/can opener/,'Can opener'],[/cheese grater/,'Grater'],
+  [/pencil sharpener/,'Pencil sharpener'],[/ballpoint|fountain pen|pen/,'Pen'],[/pencil/,'Pencil'],[/ruler/,'Ruler'],
+  [/book jacket|binder/,'Folder / binder'],[/remote control/,'Remote control'],[/power adapter|battery charger/,'Charger / power adapter']
+ ];
+ for(const [pattern,name] of rules)if(pattern.test(label))return name;
+ return String(raw||'Unknown object').replace(/\b\w/g,c=>c.toUpperCase());
+}
+function requestExpandedClassification(hands,now){
+ if(!expandedClassifier||expandedClassifierBusy||!hands||!hands.length||!video.videoWidth||!video.videoHeight||now-lastExpandedClassifyAt<1000)return;
+ expandedClassifierBusy=true;lastExpandedClassifyAt=now;
+ try{
+  const box=boxOfLandmarks(hands[0],.18),vw=video.videoWidth,vh=video.videoHeight;
+  const cx=(box.x+box.w/2)*vw,cy=(box.y+box.h/2)*vh;
+  const size=Math.min(Math.max(Math.max(box.w*vw,box.h*vh)*2.0,150),Math.max(150,Math.min(vw,vh)));
+  const sx=Math.max(0,Math.min(vw-size,cx-size/2)),sy=Math.max(0,Math.min(vh-size,cy-size/2));
+  const sw=Math.min(size,vw-sx),sh=Math.min(size,vh-sy);
+  if(!expandedCropCanvas){expandedCropCanvas=document.createElement('canvas');expandedCropCanvas.width=224;expandedCropCanvas.height=224;expandedCropContext=expandedCropCanvas.getContext('2d',{willReadFrequently:true});}
+  expandedCropContext.drawImage(video,sx,sy,sw,sh,0,0,224,224);
+  const requestLabel=lastLabelKey;
+  expandedClassifier.classify(expandedCropCanvas,5).then(predictions=>{
+   if(!running||mode!=='objects'||performance.now()-lastObjectSeen<700)return;
+   const prediction=(predictions||[]).find(p=>p&&p.className&&p.probability>=.22);
+   if(!prediction)return;
+   const displayName=normalizeExpandedLabel(prediction.className);
+   if(!displayName||displayName==='Unknown object')return;
+   if(lastLabelKey!==requestLabel&&performance.now()-lastObjectSeen<900)return;
+   labelResult(displayName,prediction.probability,'Expanded image classifier');
+  }).catch(error=>console.warn('Expanded image classification skipped:',error)).finally(()=>{expandedClassifierBusy=false;});
+ }catch(error){expandedClassifierBusy=false;console.warn('Could not prepare hand-region image for classification:',error);}
+}
+
 function boxOfLandmarks(lm,padding=.055){const xs=lm.map(p=>p.x),ys=lm.map(p=>p.y),padX=padding,padY=padding;const x=Math.min(...xs),y=Math.min(...ys),right=Math.max(...xs),bottom=Math.max(...ys);return{x:Math.max(0,x-padX),y:Math.max(0,y-padY),w:Math.min(1,Math.min(1,right+padX)-Math.max(0,x-padX)),h:Math.min(1,Math.min(1,bottom+padY)-Math.max(0,y-padY))}}
 function overlaps(a,b){const ax=a.originX/video.videoWidth,ay=a.originY/video.videoHeight,aw=a.width/video.videoWidth,ah=a.height/video.videoHeight;const x1=Math.max(ax,b.x),y1=Math.max(ay,b.y),x2=Math.min(ax+aw,b.x+b.w),y2=Math.min(ay+ah,b.y+b.h);if(x2>x1&&y2>y1){const inter=(x2-x1)*(y2-y1);return inter/Math.max(.0001,Math.min(aw*ah,b.w*b.h))}const cx=ax+aw/2,cy=ay+ah/2,dx=Math.max(b.x-cx,0,cx-(b.x+b.w)),dy=Math.max(b.y-cy,0,cy-(b.y+b.h));return 0}
 async function loadFaceApi(){
@@ -291,7 +371,7 @@ function detect(){
    $('fps').textContent='People in frame: '+count+' · live';
   }
   else if(mode==='portal'){const aura=$('portalAura');aura.classList.toggle('active',hands.length>=2);liveLabel.replaceChildren();const t=document.createElement('span');t.textContent=hands.length>=1?'HAND TRACKING ACTIVE':'SHOW YOUR HANDS';const s=document.createElement('small');s.textContent=hands.length>=2?'FIVE FINGER LINKS ACTIVE':hands.length===1?'SECOND HAND NEEDED':'SHOW BOTH HANDS CLEARLY';liveLabel.append(t,s);liveLabel.hidden=false;$('fps').textContent=hands.length>=2?'Two hands · five links':hands.length===1?'One hand tracked':'Waiting for hands';}
-  else if(best){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score)}else if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible.':'Show an item in your hand. Try a phone, bottle, cup, book or keyboard.');}
+  else if(best&&best.score>=.32){const key=best.name;if(key===lastLabelKey)stableCount++;else{lastLabelKey=key;stableCount=1}lastObjectSeen=now;if(stableCount>=2)labelResult(best.name,best.score,'Object detector')}else{if(hands.length)requestExpandedClassification(hands,now);if(now-lastObjectSeen>220){stableCount=0;lastLabelKey='';if(now-lastSeenAt>900)clearResult(hands.length?'Hand found — hold the item closer to your palm and keep it fully visible. Expanded recognition is loading or checking the item.':'Show an item in your hand. Try holding the object close to your hand and in good light.')}}
   frames++;if(now-lastFpsTime>1000){currentFps=Math.round(frames*1000/(now-lastFpsTime));frames=0;lastFpsTime=now;$('fps').textContent='Scan: '+currentFps+' FPS (approx.)'}
  }catch(e){console.error('Inference error:',e);status('Detection error');$('objectDescription').textContent='Detection encountered an error. Try restarting the camera.'}
  finally{modelBusy=false}
@@ -341,6 +421,7 @@ start.addEventListener('click',async()=>{
    stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
   }
   video.srcObject=stream;
+  syncCameraPreviewOrientation(facingMode);
   video.muted=true;video.setAttribute('playsinline','');
   await new Promise((resolve,reject)=>{
    if(video.readyState>=2&&video.videoWidth){resolve();return;}
@@ -357,6 +438,7 @@ start.addEventListener('click',async()=>{
   try{
    await loadModels();
    if(!running)return;
+   void loadExpandedClassifier();
    status('Ready · camera models loaded',true);$('systemPill').textContent='recognition models loaded';lastFpsTime=performance.now();start.disabled=true;
   }catch(modelErr){
    console.error('Recognition model load failed:',modelErr);
@@ -373,7 +455,7 @@ start.addEventListener('click',async()=>{
   $('objectDescription').textContent=message;$('placeholder').style.display='block';
  }
 });
-$('cameraFacing').addEventListener('change',async()=>{const requested=$('cameraFacing').value||'environment';facingMode=requested;if(!running){status(requested==='user'?'Front camera selected':'Back camera selected');return;}const oldStream=stream;const oldTrack=oldStream?.getVideoTracks?.()[0];try{status('Switching camera…');const oldSettings=oldTrack?.getSettings?.()||{};oldTrack?.stop();let next;try{next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:requested},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false});}catch(exactError){next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:requested},width:{ideal:640},height:{ideal:480}},audio:false});}stream=next;video.srcObject=next;video.muted=true;video.setAttribute('playsinline','');await video.play();const actual=next.getVideoTracks()[0]?.getSettings?.()||{};const actualFacing=actual.facingMode||requested;facingMode=actualFacing;$('cameraFacing').value=requested;oldStream?.getTracks().forEach(t=>{if(t!==oldTrack)t.stop()});$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;lastInferenceVideo=-1;lastInference=0;resize();status(requested==='user'?'Front camera active':'Back camera active',true);$('fps').textContent='Camera switched · ready';}catch(e){oldStream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;running=false;stop.disabled=true;start.disabled=false;$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Camera: switch failed';status('Selected camera could not start. Press Start Live Camera to retry.');console.error('Camera switch failed:',e);}});
+$('cameraFacing').addEventListener('change',async()=>{const requested=$('cameraFacing').value||'environment';facingMode=requested;if(!running){status(requested==='user'?'Front camera selected':'Back camera selected');return;}const oldStream=stream;const oldTrack=oldStream?.getVideoTracks?.()[0];try{status('Switching camera…');const oldSettings=oldTrack?.getSettings?.()||{};oldTrack?.stop();let next;try{next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:requested},width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false});}catch(exactError){next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:requested},width:{ideal:640},height:{ideal:480}},audio:false});}stream=next;video.srcObject=next;syncCameraPreviewOrientation(requested);video.muted=true;video.setAttribute('playsinline','');await video.play();const actual=next.getVideoTracks()[0]?.getSettings?.()||{};const actualFacing=actual.facingMode||requested;facingMode=actualFacing;$('cameraFacing').value=requested;oldStream?.getTracks().forEach(t=>{if(t!==oldTrack)t.stop()});$('resolution').textContent='Resolution: '+video.videoWidth+' × '+video.videoHeight;lastInferenceVideo=-1;lastInference=0;resize();status(requested==='user'?'Front camera active':'Back camera active',true);$('fps').textContent='Camera switched · ready';}catch(e){oldStream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;running=false;stop.disabled=true;start.disabled=false;$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Camera: switch failed';status('Selected camera could not start. Press Start Live Camera to retry.');console.error('Camera switch failed:',e);}});
 stop.addEventListener('click',()=>{running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ctx.clearRect(0,0,1,1);$('placeholder').style.display='block';$('resolution').textContent='Resolution: not connected';$('fps').textContent='Detection: stopped';stop.disabled=true;start.disabled=false;status('Camera off');clearResult();});
 full.addEventListener('click',async()=>{try{const el=$('cameraStage');if(!document.fullscreenElement)await el.requestFullscreen();else await document.exitFullscreen()}catch(e){$('objectDescription').textContent='Fullscreen is not available in this browser.'}});
 // Bind controls defensively so one optional feature cannot disable the whole interface.
