@@ -159,8 +159,9 @@ function renderOverlay(now){
    const text=b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%";
    labels.push({x,y,text,w:ctx.measureText(text).width+14,h:24,boxWidth:w});
   }
- } else if(mode==="drawing"&&latestHands.length){
-  drawHandSkeleton(ctx,latestHands);
+ } else if(mode==="drawing"){
+  if(latestHands.length)drawHandSkeleton(ctx,latestHands);
+}
  } else if(mode==="portal"){
   const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height,now);
   $("resultMain").textContent=portalResult.active?"Portal connected":portalResult.hands+" / 2 hands detected";
