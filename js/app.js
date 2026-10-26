@@ -20,7 +20,49 @@ function updateObjectResult(pred){const cs=pred.filter(p=>p.score>=.2&&p.class!=
 function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No clear faces detected in this frame. Improve lighting and keep faces unobstructed.":"Visible face detections. Very small, turned-away or occluded faces may be missed; photos and posters can sometimes be detected as faces.";$("metricValue").textContent=n;$("confidenceValue").textContent="Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
 function updateDrawingResult(fist){const r=drawing.process(latestHands,fist);$("resultMain").textContent=r.drawing?"Drawing in air":latestHands.length?"Hand detected":"Show one hand";$("resultDescription").textContent=r.drawing?"Pinch held: ink follows the index fingertip. Release to pause.":"Pinch thumb and index together to draw. A confirmed fist clears the canvas.";$("metricValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s");$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
 function updatePortalResult(now){const r=portal.render(ctx,latestHands,overlay.width,overlay.height,now);$("resultMain").textContent=r.active?"Portal connected":"Show both hands";$("resultDescription").textContent=r.active?"Thumb, index, middle, ring and pinky tips are linked across both hands.":"Keep both hands fully visible to build the portal frame.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
-function renderOverlay(now){if(!overlay.width||!overlay.height)return;ctx.clearRect(0,0,overlay.width,overlay.height);if(mode==="objects"){const boxes=latestObjects.filter(p=>p.class!=="person"&&p.score>=.2);for(const b of boxes){const[x,y,w,h]=b.bbox;ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.shadowColor="#c6a15b40";ctx.shadowBlur=7;ctx.strokeRect(x,y,w,h);ctx.shadowBlur=0;ctx.font="600 13px DM Sans, sans-serif";const label=b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%",lw=ctx.measureText(label).width+14;ctx.fillStyle="#ffffffef";ctx.fillRect(x,Math.max(0,y-27),Math.min(lw,overlay.width-x),24);ctx.fillStyle="#725321";ctx.fillText(label,x+7,Math.max(16,y-11));ctx.restore()}}else if(mode==="drawing"&&latestHands.length)drawHandSkeleton(ctx,latestHands);else if(mode==="people"){for(const face of latestObjects){if(face.class!=="face")continue;const[x,y,w,h]=face.bbox;ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.strokeRect(x,y,w,h);ctx.fillStyle="#ffffffeb";ctx.font="600 13px DM Sans, sans-serif";const label="Face · "+Math.round(face.score*100)+"%";const lw=ctx.measureText(label).width+14;ctx.fillRect(x,Math.max(0,y-25),lw,22);ctx.fillStyle="#725321";ctx.fillText(label,x+7,Math.max(15,y-10));ctx.restore()}}}
+function renderOverlay(now){
+ if(!overlay.width||!overlay.height)return;
+ ctx.clearRect(0,0,overlay.width,overlay.height);
+ const mirrored=preferredFacing==="user";
+ const labels=[];
+ if(mode==="objects"){
+  const boxes=latestObjects.filter(p=>p.class!=="person"&&p.class!=="face"&&p.score>=.035);
+  for(const b of boxes){
+   const[x,y,w,h]=b.bbox;
+   ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.shadowColor="#c6a15b40";ctx.shadowBlur=7;ctx.strokeRect(x,y,w,h);ctx.restore();
+   labels.push({x,y,text:b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%",w:ctx.measureText(b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%").width+14,h:24});
+  }
+ } else if(mode==="drawing"&&latestHands.length) {
+  drawHandSkeleton(ctx,latestHands);
+ } else if(mode==="portal") {
+  const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height,now);
+  $("resultMain").textContent=portalResult.active?"Portal connected":"Show both hands";
+  $("resultDescription").textContent=portalResult.active?"Blue landmarks and five fingertip links are updating from both hands.":"Keep both hands open and fully inside the frame.";
+  $("metricValue").textContent=latestHands.length+" / 2 hands";
+  $("confidenceValue").textContent="Local landmarks";
+  $("gestureValue").textContent=portalResult.gesture;
+ } else if(mode==="people") {
+  for(const face of latestObjects){
+   if(face.class!=="face")continue;
+   const[x,y,w,h]=face.bbox;
+   ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.strokeRect(x,y,w,h);ctx.restore();
+   labels.push({x,y,text:"Face · "+Math.round(face.score*100)+"%",w:ctx.measureText("Face · "+Math.round(face.score*100)+"%").width+14,h:22});
+  }
+ }
+ // Geometry is mirrored through the CSS preview; labels are drawn after that pass
+ // in a separate, unmirrored coordinate pass so text always reads left-to-right.
+ if(labels.length){
+  if(mirrored){
+   ctx.save();ctx.translate(overlay.width,0);ctx.scale(-1,1);
+  }
+  for(const item of labels){
+   const lx=Math.max(0,Math.min(overlay.width-item.w,item.x));
+   const ly=Math.max(0,item.y-item.h-3);
+   ctx.save();ctx.font="600 13px DM Sans, sans-serif";ctx.fillStyle="#ffffffef";ctx.fillRect(lx,ly,item.w,item.h);ctx.fillStyle="#725321";ctx.textBaseline="middle";ctx.fillText(item.text,lx+7,ly+item.h/2);ctx.restore();
+  }
+  if(mirrored)ctx.restore();
+ }
+}
 function clearDrawing(){drawing.clear();feedback("Drawing canvas cleared.")}
 async function executeCommand(text){const c=parseCommand(text);if(!c.ok){feedback(c.message);return}if(c.mode){await setMode(c.mode);feedback(c.message+(session?"":" Start camera to use live inference."));return}switch(c.action){case"startCamera":await startCamera();break;case"stopCamera":await stopCamera();break;case"stopDrawing":drawing.pause();feedback("Drawing paused.");return;case"clearDrawing":clearDrawing();return}feedback(c.message)}
 $("startCamera").addEventListener("click",()=>startCamera());$("stopCamera").addEventListener("click",stopCamera);$("cameraSelect").addEventListener("change",switchCamera);$("cameraFacingSelect").addEventListener("change",e=>{preferredFacing=e.target.value;$("cameraSelect").value="";startCamera(preferredFacing)});$("retryModels").addEventListener("click",setupMode);document.querySelectorAll(".mode-button").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));$("commandForm").addEventListener("submit",e=>{e.preventDefault();const i=$("commandInput");executeCommand(i.value);i.value=""});
