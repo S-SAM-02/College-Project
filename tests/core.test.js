@@ -89,10 +89,10 @@ test('portal connects all five corresponding fingertip pairs', () => {
 
 import { COLLEGE_OBJECT_PROMPTS } from '../js/ai-manager.js';
 
-test('open-vocabulary detector prompts include common college objects', () => {
-  assert.ok(COLLEGE_OBJECT_PROMPTS.length >= 50);
-  for (const item of ['pen','laptop','mobile phone','headphones','calculator','water bottle','keyboard','computer mouse','charger','notebook']) {
-    assert.ok(COLLEGE_OBJECT_PROMPTS.includes(item), 'missing prompt: ' + item);
+test('real-time object model exposes only its supported common categories', () => {
+  assert.ok(COLLEGE_OBJECT_PROMPTS.length >= 20);
+  for (const item of ['person','laptop','cell phone','keyboard','book','bottle']) {
+    assert.ok(COLLEGE_OBJECT_PROMPTS.includes(item), 'missing common category: ' + item);
   }
   assert.equal(new Set(COLLEGE_OBJECT_PROMPTS).size, COLLEGE_OBJECT_PROMPTS.length);
 });
@@ -106,4 +106,14 @@ test('two detected hands do not activate fist-clear gesture',()=>{
  const tracker=new HandTracker(),open=makeLandmarks({0:{x:.5,y:.8}});
  const r=tracker.process({landmarks:[open,open],handednesses:[[{categoryName:'Left'}],[{categoryName:'Right'}]]},640,480);
  assert.equal(r.hands.length,2);assert.equal(r.fist,false);
+});
+
+test('pinchActive scales thumb-index distance against palm dimensions',()=>{
+ const raw=makeLandmarks({0:{x:.5,y:.8},5:{x:.4,y:.5},9:{x:.5,y:.45},17:{x:.6,y:.5},4:{x:.5,y:.45},8:{x:.52,y:.45}});
+ assert.equal(pinchActive({raw}),true);
+});
+test('portal status needs two valid 21-point hand landmark sets',()=>{
+ const one=makeLandmarks({0:{x:.5,y:.8}});
+ assert.equal(new HandPortal().status([{landmarks:one}]).active,false);
+ assert.equal(new HandPortal().status([{landmarks:one},{landmarks:one}]).active,true);
 });
