@@ -87,8 +87,6 @@ test('portal connects all five corresponding fingertip pairs', () => {
   assert.match(result.gesture, /five fingertip pairs linked/);
 });
 
-import { AIManager } from '../js/ai-manager.js';
-
 test('object detector uses the fast local COCO-SSD loader',()=>{
  const manager = new AIManager(()=>{},()=>{});
  assert.equal(typeof manager.loadObjects,'function');
@@ -130,8 +128,8 @@ test('Object Finder filters detections to objects near tracked hands',()=>{
  const found=filterObjectsNearHands(predictions,hands,640,480);
  assert.deepEqual(found.map(item=>item.class),['bottle']);
 });
-test('Object Finder does not show background detections without a tracked hand',()=>{
- assert.deepEqual(filterObjectsNearHands([{class:'bottle',score:.9,bbox:[20,20,80,100]}],[],640,480),[]);
+test('Object Finder still returns scene detections when hand tracking is unavailable',()=>{
+ assert.deepEqual(filterObjectsNearHands([{class:'bottle',score:.9,bbox:[20,20,80,100]}],[],640,480).map(p=>p.class),['bottle']);
 });
 
 test('object model and one-hand localization are independent',()=>{
