@@ -69,7 +69,7 @@ function startLoop(){
   schedulePreview()
  };
  const loadHandIfNeeded=()=>{
-  if(!session||!(mode==="objects"||mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand)return;
+  if(!session||!(mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand)return;
   if(handLoadNoticeShown)return;
   handLoadNoticeShown=true;
   if(mode!=="objects")setNotice("Loading hand landmark model…");
@@ -137,10 +137,11 @@ function handleHandResult(data,timestamp,arrivedAt){
  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects"))return;
  const tracked=handTracker.process(data,overlay.width,overlay.height);
  latestHands=tracked.hands;
+ const previousHandCallbackAt=latestHandCallbackAt;
  latestHandCallbackAt=arrivedAt;
  if(mode==="drawing")updateDrawingResult(tracked.fist);
  else if(mode==="portal")updatePortalResult(arrivedAt);
- $("inferenceStatus").textContent="Hand model updating";
+ if(mode!=="portal"||arrivedAt-previousHandCallbackAt>60)$("inferenceStatus").textContent="Hand model updating";
 }
 function updateDrawingResult(fist){const r=drawing.process(latestHands,fist);$("resultMain").textContent=r.drawing?"Drawing in air":latestHands.length?"Hand detected":"No hand landmarks";$("resultDescription").textContent=r.drawing?"Pinch held: ink follows the index fingertip. Release to pause.":latestHands.length?"Bring thumb and index closer to draw. A confirmed fist clears the canvas.":"Move one hand fully into the camera view; the live hand skeleton should appear.";$("metricValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s");$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
 function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"Five fingertip pairs connect the tracked hands.":"Move both hands fully into frame with palms facing the camera.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
