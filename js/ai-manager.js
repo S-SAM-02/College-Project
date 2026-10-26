@@ -168,7 +168,7 @@ export class AIManager{
    const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
    const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
    const modelPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
-   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.35:.4,minSuppressionThreshold:.25};
+   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.22:.4,minSuppressionThreshold:facingMode==="environment"?.18:.25};
    let detector;
    try{detector=await FaceDetector.createFromOptions(vision,options);}
    catch(gpuError){
@@ -194,7 +194,7 @@ export class AIManager{
     const result=detector.detectForVideo(video,ts),w=video.videoWidth,h=video.videoHeight;
     const detections=(result.detections||[]).flatMap(detection=>{
      const box=detection.boundingBox,score=Number(detection.categories?.[0]?.score);
-     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?.35:.4))return[];
+     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?.22:.4))return[];
      const x=Math.max(0,Math.min(w,box.originX)),y=Math.max(0,Math.min(h,box.originY));
      const right=Math.max(x,Math.min(w,box.originX+box.width)),bottom=Math.max(y,Math.min(h,box.originY+box.height));
      if(right<=x||bottom<=y)return[];

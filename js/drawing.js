@@ -5,7 +5,7 @@ export class AirDrawing {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-    this.smoother = new Smoother(0.62);
+    this.smoother = new Smoother(0.82);
     this.lastPoint = null;
     this.strokeActive = false;
     this.enabled = true;
@@ -32,7 +32,7 @@ export class AirDrawing {
         ctx.globalCompositeOperation = "destination-out";
         ctx.shadowBlur = 0;
         ctx.beginPath();
-        ctx.arc(center.x, center.y, Math.max(14, Math.min(28, this.canvas.width * 0.026)), 0, Math.PI * 2);
+        ctx.arc(center.x, center.y, Math.max(12, Math.min(24, this.canvas.width * 0.022)), 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
