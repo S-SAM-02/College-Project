@@ -155,7 +155,7 @@ async function runVisionInference(now){
   if(target!==mode)return;
   const rawPredictions=Array.isArray(predictions)?predictions:[];
   if(target==="objects"){
-   latestObjects=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.24):[];
+   latestObjects=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.18):[];
    updateObjectResult(latestObjects);
   }else{latestObjects=rawPredictions;updatePeopleResult();}
   ai.markInference("object");
