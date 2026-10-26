@@ -1,3 +1,13 @@
+export const COLLEGE_OBJECT_PROMPTS = [
+  "pen", "pencil", "marker", "highlighter", "eraser", "notebook", "book", "paper", "calculator",
+  "laptop", "computer monitor", "keyboard", "computer mouse", "mobile phone", "smartphone",
+  "headphones", "earphones", "headset", "USB flash drive", "charger", "power bank", "cable",
+  "water bottle", "cup", "mug", "backpack", "school bag", "wallet", "keys", "watch", "glasses",
+  "scissors", "stapler", "tape dispenser", "ruler", "desk lamp", "chair", "table", "plant",
+  "flower pot", "remote control", "camera", "tripod", "microphone", "speaker", "ID card",
+  "shoe", "cap", "ball", "phone case", "lunch box", "umbrella"
+];
+
 const MEDIAPIPE_VERSION = "0.10.14";
 const TFJS_VERSION = "4.22.0";
 const TRANSFORMERS_CDN = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
@@ -83,15 +93,7 @@ export class AIManager {
           const targetH = Math.round(h * targetW / w);
           canvas.width = targetW; canvas.height = targetH;
           canvas.getContext("2d", { alpha: false }).drawImage(video, 0, 0, targetW, targetH);
-          const candidates = [
-            "pen", "pencil", "marker", "highlighter", "eraser", "notebook", "book", "paper", "calculator",
-            "laptop", "computer monitor", "keyboard", "computer mouse", "mobile phone", "smartphone",
-            "headphones", "earphones", "headset", "USB flash drive", "charger", "power bank", "cable",
-            "water bottle", "cup", "mug", "backpack", "school bag", "wallet", "keys", "watch", "glasses",
-            "scissors", "stapler", "tape dispenser", "ruler", "desk lamp", "chair", "table", "plant",
-            "flower pot", "remote control", "camera", "tripod", "microphone", "speaker", "ID card",
-            "shoe", "cap", "ball", "person", "face", "hand", "phone case", "lunch box", "umbrella"
-          ];
+          const candidates = COLLEGE_OBJECT_PROMPTS;
           const output = await detector(canvas, candidates, { threshold: 0.045, top_k: 30 });
           const items = (Array.isArray(output) ? output : []).map(d => {
             const box = d.box || {};
