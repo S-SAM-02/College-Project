@@ -5,7 +5,7 @@ export class AirDrawing {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-    this.smoother = new Smoother(0.62);
+    this.smoother = new Smoother(0.78);
     this.lastPoint = null;
     this.enabled = true;
     this.wasFist = false;
@@ -13,17 +13,38 @@ export class AirDrawing {
 
   process(hands, fist) {
     const hand = Array.isArray(hands) && hands.length ? hands[0] : null;
-    if (fist) {
-      if (!this.wasFist) this.clear();
+    if (fist && hand) {
+      // Fist is a moving local eraser; it must not clear all existing strokes.
+      this.lastPoint = null;
+      this.smoother.reset();
+      const points = hand.landmarks || [];
+      const palmPoints = [0, 5, 9, 13, 17].map(index => points[index]).filter(point =>
+        Number.isFinite(point?.x) && Number.isFinite(point?.y));
+      if (palmPoints.length) {
+        const center = palmPoints.reduce((sum, point) => ({
+          x: sum.x + point.x / palmPoints.length,
+          y: sum.y + point.y / palmPoints.length
+        }), { x: 0, y: 0 });
+        const ctx = this.ctx;
+        const radius = Math.max(18, Math.min(34, this.canvas.width * 0.03));
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       this.wasFist = true;
-      return { drawing: false, gesture: "Fist detected · canvas cleared" };
+      return { drawing: false, gesture: "Fist eraser · move over the stroke to erase locally" };
     }
     this.wasFist = false;
 
     if (!this.enabled || !hand) {
+      // Hide/release the hand cursor without changing any pixels already drawn.
       this.lastPoint = null;
       this.smoother.reset();
-      return { drawing: false, gesture: hand ? "Drawing paused" : "No hand landmarks" };
+      return { drawing: false, gesture: hand ? "Drawing paused" : "Drawing preserved · no hand in frame" };
     }
 
     if (pinchActive(hand)) {

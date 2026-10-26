@@ -1,5 +1,10 @@
-import test from 'node:test';import assert from 'node:assert/strict';import{formatCount,mapBox,overlapRatio,distance,Smoother}from'../js/image-processing.js';import{parseCommand}from'../js/nlp.js';import{countPeople}from'../js/person-counter.js';import{filterObjectsNearHands}from'../js/object-in-hand.js';test('box mapping',()=>assert.deepEqual(mapBox([10,20,30,40],100,200,200,400),[20,40,60,80]));test('count formatting',()=>{assert.equal(formatCount(0),'0');assert.equal(formatCount(4),'4');assert.equal(formatCount(16),'Above 15');assert.equal(formatCount(-1),'—')});test('equal box overlap',()=>assert.equal(overlapRatio([0,0,10,10],[0,0,10,10]),1));test('separate box overlap',()=>assert.equal(overlapRatio([0,0,10,10],[20,20,3,3]),0));test('distance',()=>assert.equal(distance({x:0,y:0},{x:3,y:4}),5));test('smoothing',()=>{const s=new Smoother(.5);s.update({x:0,y:0});assert.deepEqual(s.update({x:10,y:10}),{x:5,y:5})});test('mode command parsing',()=>{assert.equal(parseCommand('open object finder').mode,'objects');assert.equal(parseCommand('start hand drawing').mode,'drawing');assert.equal(parseCommand('activate portal').mode,'portal');assert.equal(parseCommand('show person count').mode,'people')});test('action command parsing',()=>{assert.equal(parseCommand('reset the drawing').action,'clearDrawing');assert.equal(parseCommand('stop camera').action,'stopCamera')});test('unrecognized command rejected',()=>assert.equal(parseCommand('teleport to mars').ok,false));test('person thresholding',()=>assert.equal(countPeople([{class:'person',score:.9},{class:'person',score:.3},{class:'book',score:.9}]),'1'));
+import test from 'node:test';import assert from 'node:assert/strict';import{formatCount,mapBox,overlapRatio,distance,Smoother}from'../js/image-processing.js';import{parseCommand}from'../js/nlp.js';import{countPeople}from'../js/person-counter.js';import{filterObjectsNearHands}from'../js/object-in-hand.js';test('box mapping',()=>assert.deepEqual(mapBox([10,20,30,40],100,200,200,400),[20,40,60,80]));test('count formatting',()=>{assert.equal(formatCount(0),'0');assert.equal(formatCount(4),'4');assert.equal(formatCount(16),'Above 15');assert.equal(formatCount(-1),'—')});test('equal box overlap',()=>assert.equal(overlapRatio([0,0,10,10],[0,0,10,10]),1));test('separate box overlap',()=>assert.equal(overlapRatio([0,0,10,10],[20,20,3,3]),0));test('distance',()=>assert.equal(distance({x:0,y:0},{x:3,y:4}),5));test('smoothing',()=>{const s=new Smoother(.5);s.update({x:0,y:0});assert.deepEqual(s.update({x:10,y:10}),{x:5,y:5})});test('mode command parsing',()=>{assert.equal(parseCommand('open object finder').mode,'objects');assert.equal(parseCommand('start hand drawing').mode,'drawing');assert.equal(parseCommand('activate portal').mode,'portal');assert.equal(parseCommand('show person count').mode,'people')});test('action command parsing',()=>{assert.equal(parseCommand('reset the drawing').action,'clearDrawing');assert.equal(parseCommand('stop camera').action,'stopCamera')});test('unrecognized command rejected',()=>assert.equal(parseCommand('teleport to mars').ok,false));test('person thresholding includes lower-confidence person boxes',()=>assert.equal(countPeople([{class:'person',score:.9},{class:'person',score:.3},{class:'book',score:.9}]),'2'));
+test('person counter supports at least ten visible person boxes',()=>assert.equal(countPeople(Array.from({length:10},()=>({class:'person',score:.26}))), '10'));
+test('open-vocabulary labels normalize requested everyday objects',()=>{assert.equal(normalizeObjectLabel('mobile phone'),'mobile_phone');assert.equal(normalizeObjectLabel('identity card'),'id_card');assert.equal(normalizeObjectLabel('electrical wire'),'cable');assert.equal(normalizeObjectLabel('flower pot'),'flowerpot');assert.equal(normalizeObjectLabel('ballpoint pen'),'pen')});
+test('open-vocabulary mapping clamps boxes and merges duplicate prompt matches',()=>{const found=mapOpenVocabularyDetections([{label:'mobile phone',score:.32,box:{xmin:10,ymin:10,xmax:80,ymax:70}},{label:'smartphone',score:.3,box:{xmin:11,ymin:10,xmax:79,ymax:70}},{label:'pen',score:.25,box:{xmin:90,ymin:15,xmax:110,ymax:50}}],100,80,.1);assert.equal(found.length,2);assert.equal(found[0].class,'mobile_phone');assert.deepEqual(found[1].bbox,[90,15,10,35])});
 import { HandTracker, pinchActive, isFist } from '../js/hand-tracking.js';
+import { normalizeObjectLabel, mapOpenVocabularyDetections } from '../js/ai-manager.js';
+import { AirDrawing } from '../js/drawing.js';
 import { AIManager } from '../js/ai-manager.js';
 
 const makeLandmarks = (overrides = {}) => Array.from({ length: 21 }, (_, i) => ({
@@ -45,7 +50,7 @@ test('person finder count utility accepts local detector predictions', () => {
     {class:'person',score:0.52},
     {class:'person',score:0.2},
     {class:'chair',score:0.97}
-  ]),'2');
+  ]),'3');
 });
 
 import { HandPortal } from '../js/portal.js';
@@ -161,4 +166,23 @@ test('hand tracker tolerates absent handedness metadata',()=>{
 test('Object Finder does not require hand tracking to return visible objects',()=>{
  const predictions=[{class:'bottle',score:.8,bbox:[20,20,50,80]},{class:'chair',score:.9,bbox:[300,200,70,70]},{class:'person',score:.99,bbox:[15,20,50,80]}];
  assert.deepEqual(filterObjectsNearHands(predictions,[],640,480).map(p=>p.class),['chair','bottle']);
+});
+
+test('fist erases only a local circular area instead of clearing the canvas', () => {
+  const calls = { clearRect: 0, arc: [], composite: [] };
+  const ctx = {
+    save(){}, restore(){}, beginPath(){}, clearRect(){ calls.clearRect++; },
+    arc(x,y,r){ calls.arc.push({x,y,r}); }, fill(){},
+    set globalCompositeOperation(value){ calls.composite.push(value); },
+    set shadowBlur(value){}
+  };
+  const canvas = { width: 640, height: 360, getContext(){ return ctx; } };
+  const drawing = new AirDrawing(canvas);
+  const landmarks = Array.from({length:21},(_,i)=>({x:100+(i%5)*4,y:80+Math.floor(i/5)*4}));
+  const result = drawing.process([{landmarks}], true);
+  assert.equal(calls.clearRect, 0);
+  assert.equal(calls.arc.length, 1);
+  assert.ok(calls.arc[0].r > 0);
+  assert.ok(calls.composite.includes('destination-out'));
+  assert.match(result.gesture, /erase locally/);
 });

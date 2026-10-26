@@ -1,6 +1,6 @@
 import{CameraController}from"./camera.js";import{AIManager}from"./ai-manager.js";import{resizeCanvases}from"./image-processing.js";import{HandTracker,drawHandSkeleton}from"./hand-tracking.js";import{AirDrawing}from"./drawing.js";import{HandPortal}from"./portal.js";import{parseCommand}from"./nlp.js";import{PerformanceMeter}from"./performance.js";import{describePeople}from"./person-counter.js";
 const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0,portalHandsCache=[],portalLastBothAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
-const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Pinch thumb and index finger to draw; close your hand into a fist to clear."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible face detections locally. It does not identify people."}};
+const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Pinch thumb and index finger to draw. Close your fist and move over a stroke to erase only that area."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts multiple visible people in the frame. Overlapping or very distant people may still be missed."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
 function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
@@ -16,14 +16,15 @@ function onModelState(model,state,message){
  if(state==="error")setNotice(message);
  if(state==="ready"||state==="loaded"){
   if(model==="hand")$("engineStatus").textContent="MediaPipe hand tracking ready";
-  else $("engineStatus").textContent=mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";
+  else $("engineStatus").textContent=mode==="people"?"Multi-person detector ready":"Open-vocabulary object detector ready";
  }
 }
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
 async function setMode(next){
  if(!configs[next])return;
+ const prev=mode;
  mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();portalHandsCache=[];portalLastBothAt=0;handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
- if(next==="drawing"){drawing.resume();drawing.clear();}
+ if(next==="drawing"){drawing.resume();}
  updateModeUI();
  if(session){
   try{
@@ -44,8 +45,8 @@ async function setupMode(){
  if(!session)return;
  try{
   await ai.ensureMode(mode,preferredFacing);
-  if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
-  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";
+  if(mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
+  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?(preferredFacing==="environment"?"Rear-camera face detector ready":"Front-camera face detector ready"):"Open-vocabulary object detector ready";
   if(mode==="drawing"||mode==="portal")setNotice("Hand model ready. Show the full hand(s) in the camera view.");
   else setNotice("Waiting for the next analysis frame.");
  }catch(e){$("engineStatus").textContent="Initialization failed";setNotice(e.message)}
@@ -124,19 +125,20 @@ async function runVisionInference(now){
  finally{inferenceBusy=false}
 }
 function updateObjectResult(pred){
- const cs=pred.filter(p=>p.score>=.28&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
+ const minObjectScore=ai.lastObjectMode.startsWith("owlvit") ? 0.075 : 0.28;
+ const cs=pred.filter(p=>p.score>=minObjectScore&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
  if(!cs.length){
   stableClass=null;stableScore=0;
   $("resultMain").textContent="No common object detected";
-  $("resultDescription").textContent="Object recognition runs independently of hand tracking. Try a bottle, cup, book, person, chair or laptop in clear view.";
+  $("resultDescription").textContent="No object matched confidently in this frame. Move the item closer, improve lighting, or hold smaller objects against a plain background.";
   $("metricValue").textContent="0 objects";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"One hand tracked":"Object detection";return
  }
  const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
  $("resultMain").textContent=best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
- $("resultDescription").textContent="Detected a common object in the scene. This fast model recognizes a fixed set of common categories.";
+ $("resultDescription").textContent=ai.lastObjectMode.startsWith("owlvit")?"Open-vocabulary detection is matching visible items against a broad set of object prompts. Small or partly hidden objects may still be missed.":"Using the common-object fallback model. It recognizes fewer labels than the open-vocabulary model.";
  $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Object detection"
 }
-function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No clear faces detected in this frame. Improve lighting and keep faces unobstructed.":"Visible face detections. Very small, turned-away or occluded faces may be missed; photos and posters can sometimes be detected as faces.";$("metricValue").textContent=n;$("confidenceValue").textContent="Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
+function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No people were detected in this frame. Try brighter lighting and keep more of each person visible.":"Person boxes from the multi-person detector. Small, distant, overlapping or partly hidden people can still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent="Multi-person COCO-SSD";$("gestureValue").textContent=n+" people detected";if(!faceCountNote){setNotice("Person Finder counts detected person boxes locally (up to 30 candidates per frame). It does not identify individuals; overlapping people can be missed or occasionally double-counted.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects"))return;
  const tracked=handTracker.process(data,overlay.width,overlay.height);
@@ -162,10 +164,10 @@ function handleHandResult(data,timestamp,arrivedAt){
  latestHandCallbackAt=now;
  if(mode==="drawing")updateDrawingResult(tracked.fist);
  else if(mode==="portal")updatePortalResult(arrivedAt);
- if(mode!=="portal"||arrivedAt-previousHandCallbackAt>60)$("inferenceStatus").textContent="Hand model updating";
+ $("inferenceStatus").textContent="Hand model updating";
 }
-function updateDrawingResult(fist){const r=drawing.process(latestHands,fist);$("resultMain").textContent=r.drawing?"Drawing in air":latestHands.length?"Hand detected":"No hand landmarks";$("resultDescription").textContent=r.drawing?"Pinch held: ink follows the index fingertip. Release to pause.":latestHands.length?"Bring thumb and index closer to draw. A confirmed fist clears the canvas.":"Move one hand fully into the camera view; the live hand skeleton should appear.";$("metricValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s");$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
-function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"Five straight fingertip lines are held inside one rectangular frame.":"Show both hands fully in the camera view; the portal closes when either hand leaves the frame.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
+function updateDrawingResult(fist){const r=drawing.process(latestHands,fist);$("resultMain").textContent=r.drawing?"Drawing in air":latestHands.length?"Hand detected":"No hand landmarks";$("resultDescription").textContent=r.drawing?"Pinch held: ink follows the index fingertip. Release to pause.":latestHands.length?"Bring thumb and index closer to draw. Close your fist and move over the part to erase.":"Move one hand fully into the camera view; the live hand skeleton should appear.";$("metricValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s");$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
+function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"One rectangle with three straight fingertip connections.":"Show both hands fully in the camera view; the portal closes when either hand leaves the frame.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
 function renderOverlay(now){
  if(!overlay.width||!overlay.height)return;
  ctx.clearRect(0,0,overlay.width,overlay.height);
@@ -189,10 +191,10 @@ function renderOverlay(now){
   portal.render(ctx,latestHands,overlay.width,overlay.height);
  } else if(mode==="people"){
   for(const face of latestObjects){
-   if(face.class!=="face")continue;
+   if(face.class!=="person")continue;
    const[x,y,w,h]=face.bbox;
    ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.strokeRect(x,y,w,h);ctx.restore();
-   const text="Face · "+Math.round(face.score*100)+"%";
+   const text="Person · "+Math.round(face.score*100)+"%";
    labels.push({x,y,text,w:ctx.measureText(text).width+14,h:22,boxWidth:w});
   }
  }
