@@ -87,14 +87,12 @@ test('portal connects all five corresponding fingertip pairs', () => {
   assert.match(result.gesture, /five fingertip pairs linked/);
 });
 
-import { COLLEGE_OBJECT_PROMPTS } from '../js/ai-manager.js';
+import { COLLEGE_OBJECT_PROMPTS, OWL_OBJECT_PROMPTS } from '../js/ai-manager.js';
 
-test('real-time object model exposes only its supported common categories', () => {
-  assert.ok(COLLEGE_OBJECT_PROMPTS.length >= 20);
-  for (const item of ['person','laptop','cell phone','keyboard','book','bottle']) {
-    assert.ok(COLLEGE_OBJECT_PROMPTS.includes(item), 'missing common category: ' + item);
-  }
-  assert.equal(new Set(COLLEGE_OBJECT_PROMPTS).size, COLLEGE_OBJECT_PROMPTS.length);
+test('object detector uses open-vocabulary prompts beyond COCO categories',()=>{
+ assert.ok(OWL_OBJECT_PROMPTS.length>=40);
+ for(const prompt of ['pen','pencil','calculator','charger','power bank','ID card','headphones'])assert.ok(OWL_OBJECT_PROMPTS.includes(prompt));
+ assert.equal(new Set(OWL_OBJECT_PROMPTS).size,OWL_OBJECT_PROMPTS.length);
 });
 
 test('portal status reports two valid hand tracks without touching a canvas',()=>{
@@ -139,4 +137,18 @@ test('object model and one-hand localization are independent',()=>{
  assert.deepEqual(predictions.filter(p=>p.class!=='person'&&p.class!=='face').map(p=>p.class),['bottle','chair']);
  const landmarks=Array.from({length:21},(_,i)=>({x:70+(i%4)*10,y:55+Math.floor(i/4)*10,z:0}));
  assert.deepEqual(filterObjectsNearHands(predictions,[{landmarks}],640,480).map(p=>p.class),['bottle']);
+});
+
+test('hand tracker rejects malformed landmark coordinates instead of emitting broken points',()=>{
+ const tracker=new HandTracker();
+ const invalid=makeLandmarks({8:{x:NaN,y:0.5}});
+ assert.equal(tracker.process({landmarks:[invalid]},640,480).hands.length,0);
+});
+test('hand tracker tolerates absent handedness metadata',()=>{
+ const tracker=new HandTracker(),raw=makeLandmarks({0:{x:0.5,y:0.25}});
+ const result=tracker.process({landmarks:[raw]},800,400);
+ assert.equal(result.hands.length,1);
+ assert.equal(result.hands[0].side,'Hand 1');
+ assert.equal(result.hands[0].landmarks[0].x,400);
+ assert.equal(result.hands[0].landmarks[0].y,100);
 });

@@ -5,15 +5,51 @@ function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("comm
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
 function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
 function onDimensions(w,h,settings){resizeCanvases(video,[overlay,ink]);$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
-function onModelState(model,state,message){modelStates[model]=state;const p=model==="object"?"object":"hand",status=$(p+"ModelStatus"),tag=$(p+"ModelTag"),dot=$(p+"ModelDot");status.textContent=message;tag.textContent=state==="ready"?"READY":state==="loading"?"LOAD":state==="error"?"ERROR":state==="loaded"?"TEST":"IDLE";dot.textContent=state==="ready"?"✓":state==="error"?"!":state==="loading"?"·":"○";dot.parentElement.classList.toggle("ready",state==="ready");dot.parentElement.classList.toggle("error",state==="error");$("modelCount").textContent=Object.values(modelStates).filter(s=>s==="ready").length+" / 2 READY";if(state==="error")setNotice(message);if(state==="ready"||state==="loaded")$("engineStatus").textContent=model==="hand"?"Local hand tracking ready":mode==="people"?"Local face detector ready":"Local object detector ready"}
+function onModelState(model,state,message){
+ modelStates[model]=state;
+ const prefix=model==="object"?"object":"hand";
+ const status=$(prefix+"ModelStatus"),tag=$(prefix+"ModelTag"),dot=$(prefix+"ModelDot");
+ if(status)status.textContent=message;
+ if(tag)tag.textContent=state==="ready"?"READY":state==="error"?"ERROR":state==="loading"?"LOAD":state==="loaded"?"TEST":"IDLE";
+ if(dot){dot.textContent=state==="ready"?"✓":state==="error"?"!":state==="loading"?"·":"○";dot.parentElement.classList.toggle("ready",state==="ready");dot.parentElement.classList.toggle("error",state==="error");}
+ $("modelCount").textContent=Object.values(modelStates).filter(s=>s==="ready").length+" / 2 READY";
+ if(state==="error")setNotice(message);
+ if(state==="ready"||state==="loaded"){
+  if(model==="hand")$("engineStatus").textContent="MediaPipe hand tracking ready";
+  else $("engineStatus").textContent=mode==="people"?"Local face detector ready":"Open-vocabulary object detector ready";
+ }
+}
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
-async function setMode(next){if(!configs[next])return;mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);if(next==="drawing"){drawing.resume();drawing.clear();}updateModeUI();if(session){try{setNotice("Preparing "+configs[mode].title+"…");await ai.ensureMode(mode, preferredFacing);if(mode==="drawing"||mode==="portal"){ai.onHandResult=handleHandResult;drawing.resume();}setNotice(mode==="drawing"||mode==="portal"?"Hand tracking runs locally; show your full hand(s) in frame.":"Waiting for the next camera analysis…")}catch(e){setNotice(e.message)}}}
+async function setMode(next){
+ if(!configs[next])return;
+ mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
+ if(next==="drawing"){drawing.resume();drawing.clear();}
+ updateModeUI();
+ if(session){
+  try{
+   setNotice("Preparing "+configs[mode].title+"…");
+   await ai.ensureMode(mode,preferredFacing);
+   if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
+   if(mode==="drawing"||mode==="portal")drawing.resume();
+   setNotice(mode==="drawing"||mode==="portal"?"Hand tracking is starting; keep the full hand in frame.":"Waiting for the next camera analysis…");
+  }catch(e){setNotice(e.message)}
+ }
+}
 async function startCamera(facing=preferredFacing){if(session&&camera.facingMode===facing)return;try{cameraLoading(true,"Requesting camera permission…");const devices=await camera.start($("cameraSelect").value,facing);preferredFacing=facing;populateCameras(devices);updateFacingButtons();applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
 function friendlyCameraError(e){if(["NotAllowedError","PermissionDeniedError"].includes(e.name))return"Camera permission denied. Allow camera access in browser site settings, then retry.";if(["NotFoundError","DevicesNotFoundError"].includes(e.name))return"No camera was found. Connect a camera or choose an available device.";if(["NotReadableError","TrackStartError"].includes(e.name))return"The camera is busy. Close other apps using it and retry.";return e.message||"Camera startup failed. Use HTTPS or localhost and check browser permissions."}
 function populateCameras(devices){const s=$("cameraSelect"),old=s.value;s.replaceChildren();s.add(new Option("Automatic camera",""));devices.forEach((d,i)=>s.add(new Option(d.label||"Camera "+(i+1),d.deviceId)));s.disabled=devices.length===0;if(devices.some(d=>d.deviceId===old))s.value=old}function updateFacingButtons(){$("cameraFacingSelect").value=preferredFacing}
 async function switchCamera(){if(!session)return;try{cameraLoading(true,"Switching camera…");const ds=await camera.start($("cameraSelect").value,preferredFacing);populateCameras(ds);resizeCanvases(video,[overlay,ink]);applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
 async function stopCamera(){cancelAnimationFrame(raf);await camera.stop();latestObjects=[];latestHands=[];handTracker.reset();portal.reset();onCameraState("offline","Camera offline")}
-async function setupMode(){if(!session)return;try{await ai.ensureMode(mode, preferredFacing);if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;$("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";setNotice(mode==="drawing"||mode==="portal"?"Hand landmarks are processed locally on this device.":"Waiting for the next analysis frame.")}catch(e){$("engineStatus").textContent="Initialization failed";setNotice(e.message)}}
+async function setupMode(){
+ if(!session)return;
+ try{
+  await ai.ensureMode(mode,preferredFacing);
+  if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
+  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";
+  if(mode==="drawing"||mode==="portal")setNotice("Hand model ready. Show the full hand(s) in the camera view.");
+  else setNotice("Waiting for the next analysis frame.");
+ }catch(e){$("engineStatus").textContent="Initialization failed";setNotice(e.message)}
+}
 function cancelFrameScheduler(){
  if(videoFrameToken!==null&&video.cancelVideoFrameCallback){try{video.cancelVideoFrameCallback(videoFrameToken)}catch{}videoFrameToken=null}
  cancelAnimationFrame(raf);cancelAnimationFrame(inferenceRaf)
@@ -26,21 +62,33 @@ function startLoop(){
   if(!session)return;
   renderFpsFrames++;
   if(now-renderFpsWindowStart>=500){$("fpsLabel").textContent=Math.round(renderFpsFrames*1000/(now-renderFpsWindowStart))+" preview FPS";renderFpsFrames=0;renderFpsWindowStart=now}
-  if(video.readyState>=2&&video.videoWidth){if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);renderOverlay(now)}
+  if(video.readyState>=2&&video.videoWidth){
+   if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);
+   renderOverlay(now)
+  }
   schedulePreview()
+ };
+ const loadHandIfNeeded=()=>{
+  if(!session||!(mode==="objects"||mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand)return;
+  if(handLoadNoticeShown)return;
+  handLoadNoticeShown=true;
+  if(mode!=="objects")setNotice("Loading hand landmark model…");
+  ai.loadHands().then(()=>{handLoadNoticeShown=false;ai.onHandResult=handleHandResult;setNotice("Hand landmark model ready. Show one full hand to the camera.")})
+   .catch(e=>{handLoadNoticeShown=false;onModelState("hand","error",e.message);setNotice("Hand tracking could not start: "+e.message)});
  };
  const onVideoFrame=(now,meta={})=>{
   if(!session)return;
   if(video.readyState>=2&&video.videoWidth){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
    if(mode==="objects"||mode==="drawing"||mode==="portal"){
-    if(!ai.handLandmarker&&!ai.loading.hand&&!handLoadNoticeShown){
-     handLoadNoticeShown=true;setNotice("Loading hand landmark model…");
-     ai.loadHands().then(()=>{ai.onHandResult=handleHandResult}).catch(e=>{onModelState("hand","error",e.message);handLoadNoticeShown=false});
-    }
+    ai.onHandResult=handleHandResult;
+    loadHandIfNeeded();
     if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
      lastHandInferenceAt=mediaTime;handInferenceBusy=true;
-     ai.handLandmarker.detect(video,now).then(data=>handleHandResult(data,now,performance.now())).catch(e=>onModelState("hand","error",e.message)).finally(()=>{handInferenceBusy=false});
+     Promise.resolve().then(()=>ai.handLandmarker.detect(video,now))
+      .then(data=>{if(session)handleHandResult(data,now,performance.now())})
+      .catch(e=>{onModelState("hand","error","Hand inference error: "+(e?.message||String(e)))})
+      .finally(()=>{handInferenceBusy=false});
     }
    }
    if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference){
