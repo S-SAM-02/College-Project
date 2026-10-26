@@ -1,5 +1,5 @@
-const FRAME_FINGERS = [4, 20];
-const LINK_FINGERS = [8, 12, 16];
+const FRAME_FINGERS = [4, 8];
+const LINK_FINGERS = [12, 16, 20];
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 export class HandPortal {
@@ -18,8 +18,8 @@ export class HandPortal {
     return {
       active: valid.length === 2,
       hands: valid.length,
-      gesture: valid.length === 2 ? "Portal connected · both hands locked"
-        : valid.length === 1 ? "Second hand not found" : "Show both hands"
+      gesture: valid.length === 2 ? "Portal connected · thumb-index frame locked"
+        : valid.length === 1 ? "Second hand not found" : "Show both hands; pinch thumb and index to form each side"
     };
   }
 
@@ -76,7 +76,7 @@ export class HandPortal {
     }
     ctx.restore();
     this.active = true;
-    return { ...state, gesture: "Portal connected · flowing fingertip links" };
+    return { ...state, gesture: "Portal connected · thumb-index frame + flowing links" };
   }
 
   reset() { this.active = false; this.previous.clear(); this.lastTime = 0; }
