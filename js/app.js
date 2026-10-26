@@ -66,28 +66,20 @@ function startLoop(){
    if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);
    renderOverlay(now);
   }
-  // Browsers with video-frame callbacks render exactly once per incoming camera frame.
   if(!hasVideoCallback)schedulePreview();
  };
  const loadHandIfNeeded=()=>{
   if(!session||!(mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand||handLoadNoticeShown)return;
-  handLoadNoticeShown=true;
-  setNotice("Loading hand landmark model…");
-  ai.loadHands().then(()=>{
-   handLoadNoticeShown=false;ai.onHandResult=handleHandResult;
-   setNotice("Hand landmark model ready. Show the full hand(s) to the camera.");
-  }).catch(e=>{
-   handLoadNoticeShown=false;onModelState("hand","error",e.message);
-   setNotice("Hand tracking could not start: "+e.message);
-  });
+  handLoadNoticeShown=true;setNotice("Loading hand landmark model…");
+  ai.loadHands().then(()=>{handLoadNoticeShown=false;ai.onHandResult=handleHandResult;setNotice("Hand landmark model ready. Show the full hand(s) to the camera.")})
+   .catch(e=>{handLoadNoticeShown=false;onModelState("hand","error",e.message);setNotice("Hand tracking could not start: "+e.message)});
  };
  const onVideoFrame=(now,meta={})=>{
   if(!session)return;
   if(video.readyState>=2&&video.videoWidth){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
    if(mode==="drawing"||mode==="portal"){
-    ai.onHandResult=handleHandResult;
-    loadHandIfNeeded();
+    ai.onHandResult=handleHandResult;loadHandIfNeeded();
     if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
      lastHandInferenceAt=mediaTime;handInferenceBusy=true;
      Promise.resolve().then(()=>ai.handLandmarker.detect(video,now))
@@ -101,16 +93,11 @@ function startLoop(){
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message));
    }
   }
-  if(session){
-   if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((nextNow,nextMeta)=>{onVideoFrame(nextNow,nextMeta);renderPreview(nextNow)});
-   else setTimeout(()=>{if(session)inferenceRaf=requestAnimationFrame(()=>onVideoFrame(performance.now(),{mediaTime:video.currentTime}))},0);
-  }
+  if(session&&hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(onVideoFrame);
+  else if(session)setTimeout(()=>{if(session){renderPreview(performance.now());inferenceRaf=requestAnimationFrame(now2=>onVideoFrame(now2,{mediaTime:video.currentTime}))}},0);
  };
  if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((now,meta)=>{onVideoFrame(now,meta);renderPreview(now)});
- else {
-   schedulePreview();
-   inferenceRaf=requestAnimationFrame(now=>onVideoFrame(now,{mediaTime:video.currentTime}));
- }
+ else {schedulePreview();inferenceRaf=requestAnimationFrame(now=>onVideoFrame(now,{mediaTime:video.currentTime}))}
 }
 async function runVisionInference(now){
  if(inferenceBusy||!session||video.readyState<2)return;
