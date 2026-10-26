@@ -93,7 +93,7 @@ function startLoop(){
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message));
    }
   }
-  if(session&&hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(onVideoFrame);
+  if(session&&hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((nextNow,nextMeta)=>{renderPreview(nextNow);onVideoFrame(nextNow,nextMeta)});
   else if(session)setTimeout(()=>{if(session){renderPreview(performance.now());inferenceRaf=requestAnimationFrame(now2=>onVideoFrame(now2,{mediaTime:video.currentTime}))}},0);
  };
  if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((now,meta)=>{renderPreview(now);onVideoFrame(now,meta)});
@@ -138,7 +138,7 @@ function handleHandResult(data,timestamp,arrivedAt){
  if(mode!=="portal"||arrivedAt-previousHandCallbackAt>60)$("inferenceStatus").textContent="Hand model updating";
 }
 function updateDrawingResult(fist){const r=drawing.process(latestHands,fist);$("resultMain").textContent=r.drawing?"Drawing in air":latestHands.length?"Hand detected":"No hand landmarks";$("resultDescription").textContent=r.drawing?"Pinch held: ink follows the index fingertip. Release to pause.":latestHands.length?"Bring thumb and index closer to draw. A confirmed fist clears the canvas.":"Move one hand fully into the camera view; the live hand skeleton should appear.";$("metricValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s");$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
-function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"Five fingertip pairs connect the tracked hands.":"Move both hands fully into frame with palms facing the camera.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
+function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"Five straight fingertip lines are held inside one rectangular frame.":"Show both hands fully in the camera view; the portal closes when either hand leaves the frame.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
 function renderOverlay(now){
  if(!overlay.width||!overlay.height)return;
  ctx.clearRect(0,0,overlay.width,overlay.height);
