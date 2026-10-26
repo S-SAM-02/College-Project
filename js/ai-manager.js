@@ -157,24 +157,41 @@ export class AIManager{
   catch(error){const message="Object detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.object=null}
  }
- async loadPeople(){
-  if(this.peopleDetector)return this.peopleDetector;
+ async loadPeople(facingMode=this.currentFacingMode){
+  this.currentFacingMode=facingMode;
+  if(this.faceDetector&&this.faceFacingMode===facingMode)return this.faceDetector;
   if(this.loading.people)return this.loading.people;
-  this.onModelState("object","loading","Loading multi-person detector (up to 30 detections)…");
+  this.onModelState("object","loading",facingMode==="environment"?"Loading rear-camera face detector…":"Loading front-camera face detector…");
   this.loading.people=(async()=>{
-   const coco=await this.loadCocoDetector();
-   this.peopleDetector={detect:async(video,timestamp=performance.now())=>{
-    const started=performance.now(),predictions=await coco.detect(video,30,0.20);
-    const people=predictions.filter(item=>item.class==="person"&&item.score>=0.20);
-    this.lastPeopleCount=people.length;this.lastSummary=`${people.length} person detection(s)`;
-    this.lastObjectResult=people;this.lastObjectMode="coco-ssd-multi-person";
-    this.lastObjectInferenceMs=performance.now()-started;return people;
+   const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
+   const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
+   const modelAssetPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
+   const common={runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?0.35:0.42,minSuppressionThreshold:0.25};
+   let detector;
+   try{detector=await FaceDetector.createFromOptions(vision,{...common,baseOptions:{modelAssetPath,delegate:"GPU"}});}
+   catch(gpuError){try{detector=await FaceDetector.createFromOptions(vision,{...common,baseOptions:{modelAssetPath,delegate:"CPU"}});}catch(cpuError){throw new Error("Face detector failed to initialize for this camera. "+(cpuError?.message||gpuError?.message||"Unknown model error"));}}
+   this.faceTask=detector;this.faceFacingMode=facingMode;
+   this.faceDetector={detect:async(video,timestamp=performance.now())=>{
+    if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Waiting for a live camera frame.");
+    const ts=Math.max(this.lastFaceTimestamp+1,Math.floor(timestamp));this.lastFaceTimestamp=ts;const startedFace=performance.now();
+    const result=detector.detectForVideo(video,ts),w=video.videoWidth,h=video.videoHeight;
+    const detections=(result.detections||[]).flatMap(d=>{
+     const box=d.boundingBox,score=Number(d.categories?.[0]?.score);
+     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?0.35:0.42))return[];
+     const x=Math.max(0,Math.min(w,box.originX)),y=Math.max(0,Math.min(h,box.originY));
+     const right=Math.max(x,Math.min(w,box.originX+box.width)),bottom=Math.max(y,Math.min(h,box.originY+box.height));
+     return right>x&&bottom>y?[{class:"face",score,bbox:[x,y,right-x,bottom-y]}]:[];
+    });
+    this.lastPeopleCount=detections.length;this.lastSummary=`${detections.length} face(s) detected`;
+    this.lastObjectResult=detections;this.lastObjectMode="mediapipe-face-"+(facingMode==="environment"?"rear":"front");
+    this.lastObjectInferenceMs=performance.now()-startedFace;
+    return detections;
    }};
-   this.onModelState("object","loaded","Multi-person COCO-SSD detector ready");
-   return this.peopleDetector;
+   this.onModelState("object","loaded",facingMode==="environment"?"Rear-camera face detector ready":"Front-camera face detector ready");
+   return this.faceDetector;
   })();
   try{return await this.loading.people}
-  catch(error){const message="Multi-person detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
+  catch(error){const message="Face detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.people=null}
  }
  async loadHands(){
