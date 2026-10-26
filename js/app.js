@@ -124,12 +124,12 @@ async function runVisionInference(now){
  finally{inferenceBusy=false}
 }
 function updateObjectResult(pred){
- const minObjectScore=ai.lastObjectMode.startsWith("owlvit")?.075:.28;
+ const minObjectScore=ai.lastObjectMode.startsWith("owlvit") ? 0.075 : 0.28;
  const cs=pred.filter(p=>p.score>=minObjectScore&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
  if(!cs.length){
   stableClass=null;stableScore=0;
   $("resultMain").textContent="No common object detected";
-  $("resultDescription").textContent="Object recognition runs independently of hand tracking. Try a bottle, cup, book, person, chair or laptop in clear view.";
+  $("resultDescription").textContent="No object matched confidently in this frame. Move the item closer, improve lighting, or hold smaller objects against a plain background.";
   $("metricValue").textContent="0 objects";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"One hand tracked":"Object detection";return
  }
  const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
