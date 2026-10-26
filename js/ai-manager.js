@@ -113,7 +113,7 @@ export class AIManager {
             const x2 = Math.max(x1, Math.min(w, Number(box.xmax) * w / targetW));
             const y2 = Math.max(y1, Math.min(h, Number(box.ymax) * h / targetH));
             return {
-              class: String(d.label || "object").toLowerCase().replace(/[\\s-]+/g, "_"),
+              class: String(d.label || "object").toLowerCase().replace(/[\s-]+/g, "_"),
               score: Number(d.score) || 0,
               bbox: [x1, y1, x2 - x1, y2 - y1]
             };
@@ -169,7 +169,7 @@ export class AIManager {
           const people = predictions.filter(p => p.class === "person" && p.score >= 0.35);
           this.lastPeopleCount = people.length;
           const mapped = predictions.map(p => ({
-            class: String(p.class || "object").toLowerCase().replace(/[\\s-]+/g, "_"),
+            class: String(p.class || "object").toLowerCase().replace(/[\s-]+/g, "_"),
             score: Number(p.score) || 0,
             bbox: Array.isArray(p.bbox) ? [
               Math.max(0, p.bbox[0]), Math.max(0, p.bbox[1]),
