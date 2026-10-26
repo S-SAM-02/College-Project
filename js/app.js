@@ -177,7 +177,7 @@ function updateObjectResult(pred){
  const best=objects[0]||people[0];
  if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
  $("resultMain").textContent=people.length?people.length+" person"+(people.length===1?"":"s")+" detected":best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
- $("resultDescription").textContent="Showing "+objects.length+" item"+(objects.length===1?"":"s")+" beside your tracked hand. Objects away from the hand are ignored."";
+ $("resultDescription").textContent="Showing "+objects.length+" item"+(objects.length===1?"":"s")+" beside your tracked hand. Objects away from the hand are ignored.";
  $("metricValue").textContent=detections.length+" detection"+(detections.length===1?"":"s");
  $("confidenceValue").textContent=Math.round(best.score*100)+"% best";
  $("gestureValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s")+" tracked";
