@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#faf9f6">
+  <meta name="description" content="OBJECT MIND — a privacy-first, browser-based AI vision and gesture laboratory.">
+  <title>OBJECT MIND — Intelligent Vision Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.js"></script>
+  <script defer src="./js/app.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="OBJECT MIND home"><span class="brand-mark">O<span>·</span>M</span><span class="brand-copy"><strong>OBJECT MIND</strong><small>INTELLIGENT VISION LAB</small></span></a>
+    <div class="top-meta"><span class="secure-dot"></span><span>ON-DEVICE PROCESSING</span><span class="top-divider"></span><button id="aboutButton" class="text-button" type="button">About the lab <span aria-hidden="true">↗</span></button></div>
+  </header>
+
+  <main class="shell">
+    <section class="intro">
+      <div class="eyebrow"><span class="eyebrow-line"></span> COMPUTER VISION · GESTURE INTELLIGENCE</div>
+      <h1>See the world.<br><span>Understand it.</span></h1>
+      <p class="intro-copy">An intelligent vision workspace built around live perception, natural interaction and thoughtful design. Your camera stays in your browser.</p>
+      <div class="intro-foot"><span class="gold-chip">AI / ML</span><span class="gold-chip">DIGITAL IMAGE PROCESSING</span><span class="gold-chip">GESTURE SYSTEMS</span></div>
+    </section>
+
+    <section class="workspace" aria-label="Vision workspace">
+      <div class="workspace-head">
+        <div><div class="section-overline">01 / INTERACTIVE WORKSPACE</div><h2>Vision console</h2></div>
+        <div class="session-state"><span id="sessionDot" class="state-dot"></span><span id="sessionStatus" aria-live="polite">Camera offline</span></div>
+      </div>
+      <nav class="mode-switcher" aria-label="Choose vision mode">
+        <button class="mode-button active" data-mode="objects" type="button"><span class="mode-index">01</span><span class="mode-icon">◈</span><span><strong>Object Finder</strong><small>Understand objects</small></span></button>
+        <button class="mode-button" data-mode="drawing" type="button"><span class="mode-index">02</span><span class="mode-icon">✳</span><span><strong>Air Drawing</strong><small>Sketch with gestures</small></span></button>
+        <button class="mode-button" data-mode="portal" type="button"><span class="mode-index">03</span><span class="mode-icon">◎</span><span><strong>Two-Hand Portal</strong><small>Connect both hands</small></span></button>
+        <button class="mode-button" data-mode="people" type="button"><span class="mode-index">04</span><span class="mode-icon">⌁</span><span><strong>Person Finder</strong><small>Count visible people</small></span></button>
+      </nav>
+
+      <div class="console-grid">
+        <section class="camera-column" aria-label="Live camera">
+          <div class="camera-frame" id="cameraFrame">
+            <video id="cameraVideo" autoplay playsinline muted aria-label="Live camera preview"></video>
+            <canvas id="overlayCanvas" aria-hidden="true"></canvas>
+            <canvas id="inkCanvas" aria-hidden="true"></canvas>
+            <div id="cameraPlaceholder" class="camera-placeholder">
+              <div class="lens-art"><span class="lens-ring ring-one"></span><span class="lens-ring ring-two"></span><span class="lens-core">O</span><span class="lens-spark">✦</span></div>
+              <p class="placeholder-title">Your vision workspace awaits</p><p class="placeholder-copy">Enable your camera to start real-time AI perception.</p>
+              <button id="startCamera" class="primary-button" type="button"><span>Start camera</span><span aria-hidden="true">↗</span></button>
+              <small class="permission-note">Camera access is requested only when you begin.</small>
+            </div>
+            <div id="cameraLoading" class="camera-loading" hidden><span class="spinner"></span><span id="loadingLabel">Requesting camera access…</span></div>
+            <div class="camera-topline"><span class="live-label"><span class="live-pulse"></span> LIVE VIEW</span><span id="resolutionLabel">— × —</span></div>
+            <div class="camera-bottomline"><span id="visionLabel">OBJECT FINDER</span><span id="fpsLabel">— FPS</span></div>
+            <button id="stopCamera" class="camera-stop" type="button" hidden aria-label="Stop camera">Stop session <span>×</span></button>
+          </div>
+          <div class="camera-tools"><div class="camera-tool-group"><span class="tool-caption">CAMERA INPUT</span><select id="cameraSelect" aria-label="Select camera" disabled><option value="">Default camera</option></select></div><label class="toggle-control"><input id="mirrorToggle" type="checkbox"><span class="toggle-track"></span><span>Mirror preview</span></label><button id="retryModels" class="subtle-button" type="button">↻ Retry AI setup</button></div>
+          <div class="technical-strip"><div><span class="technical-label">MODEL ENGINE</span><strong id="engineStatus">Not initialized</strong></div><div><span class="technical-label">INFERENCE</span><strong id="inferenceStatus">Waiting</strong></div><div><span class="technical-label">PIPELINE</span><strong id="pipelineStatus">DIP · ML</strong></div></div>
+        </section>
+
+        <aside class="insight-panel" aria-label="Detection results">
+          <div class="panel-header"><div><div class="section-overline">LIVE ANALYSIS</div><h3 id="resultTitle">Object intelligence</h3></div><span class="panel-emblem">✦</span></div>
+          <div id="resultHero" class="result-hero"><div class="result-symbol">◈</div><div class="result-kicker">AWAITING INPUT</div><div class="result-main" id="resultMain">Ready when<br>you are.</div><p id="resultDescription" class="result-description">Start the camera to let the vision models analyse the scene.</p></div>
+          <div class="result-details">
+            <div class="detail-row"><span id="metricLabel">DETECTION</span><strong id="metricValue">—</strong></div>
+            <div class="detail-row"><span id="confidenceLabel">CONFIDENCE</span><strong id="confidenceValue">—</strong></div>
+            <div class="detail-row"><span id="gestureLabel">GESTURE STATE</span><strong id="gestureValue">Waiting</strong></div>
+          </div>
+          <div class="panel-divider"></div>
+          <div class="model-health-head"><span>AI MODEL HEALTH</span><span id="modelCount">0 / 2 READY</span></div>
+          <div class="model-row"><span class="model-status-icon" id="objectModelDot">○</span><span><strong>Object detection</strong><small id="objectModelStatus">Waiting to initialize</small></span><span class="model-tag" id="objectModelTag">IDLE</span></div>
+          <div class="model-row"><span class="model-status-icon" id="handModelDot">○</span><span><strong>Hand landmarks</strong><small id="handModelStatus">Waiting to initialize</small></span><span class="model-tag" id="handModelTag">IDLE</span></div>
+          <div id="noticeBox" class="notice-box" role="status" aria-live="polite"><span class="notice-icon">i</span><span id="noticeText">Models are downloaded from their official CDN when initialized. Your camera frames are processed locally.</span></div>
+        </aside>
+      </div>
+      <div class="workspace-footer"><span><span class="footer-shield">◇</span> Camera processing remains on this device</span><span>Build 01.00 <span class="footer-sep">/</span> OBJECT MIND</span></div>
+    </section>
+
+    <section class="command-section">
+      <div class="command-intro"><div class="section-overline">02 / NATURAL LANGUAGE INTERFACE</div><h2>Give the vision a direction.</h2><p>Use a simple text command to control the workspace. Voice input is available where your browser supports it.</p></div>
+      <form id="commandForm" class="command-form"><label for="commandInput" class="sr-only">Enter a command</label><span class="command-prefix">⌘</span><input id="commandInput" autocomplete="off" placeholder="Try “start hand drawing” or “show the person count”…"><button class="voice-button" id="voiceButton" type="button" aria-label="Start voice command" title="Voice input">♩</button><button class="command-submit" type="submit" aria-label="Run command">Run <span>↗</span></button></form><div id="commandFeedback" class="command-feedback" aria-live="polite">Supported commands: open a mode, stop drawing, reset drawing, start/stop camera.</div>
+    </section>
+
+    <section class="principles">
+      <div class="principle"><span class="principle-number">01</span><div><h3>Perception, not illusion</h3><p>Live detections come from actual model inference. Unsupported objects remain unlabelled.</p></div></div>
+      <div class="principle"><span class="principle-number">02</span><div><h3>Privacy by design</h3><p>Camera frames are not uploaded or saved by this application.</p></div></div>
+      <div class="principle"><span class="principle-number">03</span><div><h3>Measured performance</h3><p>Processing indicators reflect measured timing, not a decorative FPS value.</p></div></div>
+    </section>
+
+    <footer class="site-footer"><a class="footer-brand" href="./">OBJECT MIND <span>◆</span></a><span>INTELLIGENT VISION LAB</span><span>© 2026 · Built for exploration.</span></footer>
+  </main>
+
+  <dialog id="aboutDialog" class="about-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close" type="submit">×</button></form><div class="section-overline">ABOUT OBJECT MIND</div><h2>Intelligence with a clear point of view.</h2><p>OBJECT MIND is a browser-based computer vision lab combining object detection, hand landmarks, gesture-driven interactions and simple natural-language controls.</p><div class="about-facts"><div><strong>DIP</strong><span>Frame sizing, coordinate mapping and temporal smoothing.</span></div><div><strong>ML / NN</strong><span>Browser inference using COCO-SSD and MediaPipe Hand Landmarker.</span></div><div><strong>NLP</strong><span>Explicit rule-based commands, with optional browser speech recognition.</span></div></div><p class="dialog-note">Models and libraries are downloaded from third-party CDNs when used. Camera content stays on this device; browser/model CDN requests still require an internet connection.</p></dialog>
+</body>
+</html>
