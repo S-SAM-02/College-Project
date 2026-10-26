@@ -1,5 +1,6 @@
 const MEDIAPIPE_VERSION = "0.10.14";
 const HANDS_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
+const HAND_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
 const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
 export class AIManager {
@@ -14,6 +15,7 @@ export class AIManager {
     this.lastPeopleCount = 0;
     this.lastSummary = "";
     this.lastFrameAt = 0;
+    this.lastObjectResult = null;
   }
   async analyze(video, mode = this.currentMode) {
     if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
@@ -48,13 +50,16 @@ export class AIManager {
     this.onModelState("object", "loading", "Connecting to OpenAI vision backend…");
     this.loading.object = Promise.resolve({
       detect: async video => {
-        const result = await this.analyze(video, this.currentMode);
+        const mode = this.currentMode === "people" ? "people" : "objects";
+        const result = await this.analyze(video, mode);
         const w = video.videoWidth, h = video.videoHeight;
-        return (result.objects || []).map(item => {
+        const predictions = (result.objects || []).map(item => {
           const label = item.label.toLowerCase().trim().replace(/[\s-]+/g, "_");
           const [x, y, bw, bh] = item.bbox;
           return { class: label, score: item.confidence, bbox: [x * w / 1000, y * h / 1000, bw * w / 1000, bh * h / 1000] };
         });
+        this.lastObjectResult = { mode, at: performance.now(), predictions };
+        return predictions;
       }
     });
     try {
@@ -72,7 +77,7 @@ export class AIManager {
     this.onModelState("hand", "loading", "Loading local hand-landmark engine…");
     this.loading.hand = (async () => {
       const { FilesetResolver, HandLandmarker } = await import(HANDS_CDN);
-      const vision = await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`);
+      const vision = await FilesetResolver.forVisionTasks(HAND_WASM);
       const options = {
         baseOptions: { modelAssetPath: HAND_MODEL, delegate: "GPU" },
         runningMode: "VIDEO",
@@ -85,15 +90,14 @@ export class AIManager {
         this.handTask = await HandLandmarker.createFromOptions(vision, options);
       } catch {
         this.handTask = await HandLandmarker.createFromOptions(vision, {
-          ...options,
-          baseOptions: { modelAssetPath: HAND_MODEL, delegate: "CPU" }
+          ...options, baseOptions: { modelAssetPath: HAND_MODEL, delegate: "CPU" }
         });
       }
       const adapter = {
         detectForVideo: (video, timestamp = performance.now()) => {
           const safeTimestamp = Math.max(0, Math.floor(timestamp));
           const result = this.handTask.detectForVideo(video, safeTimestamp);
-          const landmarks = (result.landmarks || []).map(hand => hand.map(p => ({x:p.x,y:p.y,z:p.z||0})));
+          const landmarks = (result.landmarks || []).map(hand => hand.map(p => ({ x: p.x, y: p.y, z: p.z || 0 })));
           const handednesses = (result.handednesses || []).map(pair => {
             const category = pair?.[0];
             return [{ categoryName: category?.categoryName || "Unknown", score: category?.score || 0 }];
