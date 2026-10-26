@@ -47,3 +47,42 @@ test('person finder count utility accepts local detector predictions', () => {
     {class:'chair',score:0.97}
   ]),'2');
 });
+
+import { HandPortal } from '../js/portal.js';
+
+test('pinch activates relative to palm size', () => {
+  const raw = makeLandmarks({
+    0: {x:.5,y:.8}, 5:{x:.4,y:.5}, 9:{x:.5,y:.45}, 17:{x:.6,y:.5},
+    4:{x:.5,y:.45}, 8:{x:.52,y:.45}
+  });
+  assert.equal(pinchActive({raw}), true);
+});
+
+test('fist detector recognizes curled fingertips', () => {
+  const raw = makeLandmarks({
+    0:{x:.5,y:.8},
+    5:{x:.36,y:.57}, 6:{x:.37,y:.60}, 8:{x:.38,y:.61},
+    9:{x:.45,y:.54}, 10:{x:.46,y:.57}, 12:{x:.47,y:.58},
+    13:{x:.55,y:.54}, 14:{x:.56,y:.57}, 16:{x:.57,y:.58},
+    17:{x:.64,y:.58}, 18:{x:.65,y:.61}, 20:{x:.66,y:.62}
+  });
+  assert.equal(isFist(raw), true);
+});
+
+test('portal connects all five corresponding fingertip pairs', () => {
+  const ctx = Object.fromEntries([
+    'clearRect','save','restore','beginPath','moveTo','lineTo','closePath','fill','stroke','quadraticCurveTo','arc'
+  ].map(name => [name, () => {}]));
+  const left = makeLandmarks({
+    4:{x:.2,y:.35}, 8:{x:.25,y:.3}, 12:{x:.26,y:.4}, 16:{x:.24,y:.5}, 20:{x:.18,y:.55}
+  });
+  const right = makeLandmarks({
+    4:{x:.8,y:.35}, 8:{x:.75,y:.3}, 12:{x:.74,y:.4}, 16:{x:.76,y:.5}, 20:{x:.82,y:.55}
+  });
+  const portal = new HandPortal();
+  const result = portal.render(ctx, [
+    {landmarks:left},{landmarks:right}
+  ], 640, 480, 1000);
+  assert.equal(result.active, true);
+  assert.match(result.gesture, /all five finger pairs linked/);
+});
