@@ -85,16 +85,23 @@ export class AIManager{
     this.loading.hand=(async()=>{
       const {FilesetResolver,HandLandmarker}=await import(HANDS_CDN);
       const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
-      const normalizeResult=result=>({
+      const normalize=result=>({
         landmarks:(result?.landmarks||[]).map(points=>points.map(p=>({x:p.x,y:p.y,z:p.z||0}))),
         handednesses:(result?.handednesses||[]).map(pair=>[{categoryName:pair?.[0]?.categoryName||"Unknown",score:pair?.[0]?.score||0}])
       });
+      const deliver=(result,timestamp)=>{
+        const data=normalize(result);
+        this.latestHandResult=data;
+        this.latestHandResultAt=performance.now();
+        this.handResultCount=(this.handResultCount||0)+1;
+        try{this.onHandResult?.(data,timestamp,this.latestHandResultAt);}catch(error){this.lastHandError=error?.message||String(error);}
+      };
       const options={
         baseOptions:{modelAssetPath:HAND_MODEL,delegate:"GPU"},
         runningMode:"LIVE_STREAM",numHands:2,
         minHandDetectionConfidence:0.32,minHandPresenceConfidence:0.32,minTrackingConfidence:0.32,
-        resultListener:(result)=>{this.latestHandResult=normalizeResult(result);this.latestHandResultAt=performance.now();this.handResultCount=(this.handResultCount||0)+1;},
-        errorListener:(error)=>{this.lastHandError=error?.message||String(error);}
+        resultListener:(result,input)=>deliver(result,input?.timestamp),
+        errorListener:error=>{this.lastHandError=error?.message||String(error);}
       };
       try{this.handTask=await HandLandmarker.createFromOptions(vision,options);}
       catch{this.handTask=await HandLandmarker.createFromOptions(vision,{...options,baseOptions:{modelAssetPath:HAND_MODEL,delegate:"CPU"}});}
@@ -108,7 +115,7 @@ export class AIManager{
         getLastError:()=>this.lastHandError||""
       };
       this.handLandmarker=adapter;
-      this.onModelState("hand","loaded","Asynchronous MediaPipe two-hand landmarks ready");
+      this.onModelState("hand","loaded","MediaPipe asynchronous two-hand landmarks ready");
       return adapter;
     })();
     try{return await this.loading.hand;}
