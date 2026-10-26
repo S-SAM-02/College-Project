@@ -201,3 +201,12 @@ test('air drawing does not clear existing ink when switching into drawing mode',
   drawing.resume();
   assert.equal(calls.clearRect,0);
 });
+
+
+test('pinch detector does not start drawing while thumb and index are apart',()=>{
+ const raw=makeLandmarks({
+  0:{x:.5,y:.8},5:{x:.4,y:.5},9:{x:.5,y:.45},17:{x:.6,y:.5},
+  4:{x:.35,y:.42},8:{x:.58,y:.42}
+ });
+ assert.equal(pinchActive({raw}),false);
+});
