@@ -2,6 +2,10 @@ export const COLLEGE_OBJECT_PROMPTS = ["person","bottle","cup","book","cell phon
 const MEDIAPIPE_VERSION="0.10.14",TFJS_VERSION="4.22.0";
 const TFJS_CDN=`https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@${TFJS_VERSION}/dist/tf.min.js`;
 const COCO_CDN="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js";
+const TRANSFORMERS_VERSION="3.7.2";
+const TRANSFORMERS_CDN=`https://cdn.jsdelivr.net/npm/@huggingface/transformers@${TRANSFORMERS_VERSION}`;
+const OWL_MODEL="Xenova/owlvit-base-patch32";
+const OWL_PROMPTS=["pen","pencil","marker","book","calculator","laptop","keyboard","mouse","mobile phone","headphones","earphones","charger","power bank","bottle","cup","backpack","glasses","scissors","ruler","stapler","keys","watch","plant","flower pot","remote control","camera","microphone","speaker","ID card","water bottle","notebook","tablet","smartphone","wallet","umbrella","mug","water glass","shoe","bag","computer mouse","computer monitor","banana","apple","orange","sports ball","chair","clock","vase","handbag","suitcase"];
 const HANDS_CDN=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
 const HAND_WASM=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
 const HAND_MODEL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
@@ -10,7 +14,36 @@ const FACE_MODEL_REAR="https://storage.googleapis.com/mediapipe-models/face_dete
 function injectScript(src,test,label){if(test())return Promise.resolve();const found=[...document.scripts].find(s=>s.src===src);if(found)return new Promise((resolve,reject)=>{found.addEventListener("load",resolve,{once:true});found.addEventListener("error",()=>reject(new Error(label+" failed to load. Check network and retry.")),{once:true})});return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.async=true;s.crossOrigin="anonymous";s.onload=resolve;s.onerror=()=>{s.remove();reject(new Error(label+" failed to load. Check network and retry."))};document.head.append(s)})}
 export class AIManager{
  constructor(onModelState,onNotice){this.onModelState=onModelState;this.onNotice=onNotice;this.objectModel=null;this.handLandmarker=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;this.currentFacingMode="user";this.loading={object:null,hand:null,people:null};this.currentMode="objects";this.lastPeopleCount=0;this.lastSummary="";this.lastObjectMode="";this.lastObjectResult=null;this.lastObjectInferenceAt=0;this.lastFaceTimestamp=0;this.lastHandTimestamp=0;this.lastObjectInferenceMs=0;}
- async loadObjects(){if(this.objectModel)return this.objectModel;if(this.loading.object)return this.loading.object;this.onModelState("object","loading","Loading COCO-SSD Lite object detector…");this.loading.object=(async()=>{await injectScript(TFJS_CDN,()=>Boolean(window.tf),"TensorFlow.js");await window.tf.ready();try{await window.tf.setBackend("webgl");await window.tf.ready()}catch{try{await window.tf.setBackend("cpu");await window.tf.ready()}catch{}}await injectScript(COCO_CDN,()=>Boolean(window.cocoSsd),"COCO-SSD");const detector=await window.cocoSsd.load({base:"lite_mobilenet_v2"});const model={detect:async video=>{if(!video?.videoWidth||!video?.videoHeight)throw new Error("Waiting for a live camera frame.");const started=performance.now(),pred=await detector.detect(video,20,0.28),w=video.videoWidth,h=video.videoHeight;const mapped=pred.map(p=>({class:String(p.class||"object").toLowerCase().replace(/[\\s-]+/g,"_"),score:Number(p.score)||0,bbox:Array.isArray(p.bbox)?[Math.max(0,p.bbox[0]),Math.max(0,p.bbox[1]),Math.min(w,p.bbox[0]+p.bbox[2])-Math.max(0,p.bbox[0]),Math.min(h,p.bbox[1]+p.bbox[3])-Math.max(0,p.bbox[1])]:[0,0,0,0]})).filter(p=>p.score>=0.28&&p.bbox[2]>0&&p.bbox[3]>0);this.lastObjectInferenceMs=performance.now()-started;this.lastObjectInferenceAt=performance.now();this.lastObjectMode="coco";this.lastObjectResult=mapped;this.lastPeopleCount=mapped.filter(p=>p.class==="person").length;this.lastSummary=mapped.map(p=>p.class).join(", ");return mapped}};this.objectModel=model;this.onModelState("object","loaded","COCO-SSD Lite ready — common object categories");return model})();try{return await this.loading.object}catch(e){this.onModelState("object","error","Object model failed to load: "+(e?.message||"runtime/download error"));throw e}finally{this.loading.object=null}}
+ async loadObjects(){
+  if(this.objectModel)return this.objectModel;
+  if(this.loading.object)return this.loading.object;
+  this.onModelState("object","loading","Loading open-vocabulary object detector…");
+  this.loading.object=(async()=>{
+    const transformers=await import(TRANSFORMERS_CDN);
+    const {pipeline,env}=transformers;
+    env.allowLocalModels=false;env.useBrowserCache=true;
+    const detector=await pipeline("zero-shot-object-detection",OWL_MODEL,{device:"webgpu"});
+    const model={detect:async video=>{
+      if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
+      const started=performance.now();
+      const output=await detector(video,OWL_PROMPTS,{threshold:0.13});
+      const w=video.videoWidth,h=video.videoHeight;
+      const mapped=(Array.isArray(output)?output:[]).map(item=>{
+        const box=item.box||{},x1=Math.max(0,Math.min(w,Number(box.xmin)||0)),y1=Math.max(0,Math.min(h,Number(box.ymin)||0)),x2=Math.max(x1,Math.min(w,Number(box.xmax)||0)),y2=Math.max(y1,Math.min(h,Number(box.ymax)||0));
+        return{class:String(item.label||"object").toLowerCase().replace(/[\s-]+/g,"_"),score:Number(item.score)||0,bbox:[x1,y1,x2-x1,y2-y1]};
+      }).filter(p=>p.score>=0.13&&p.bbox[2]>0&&p.bbox[3]>0);
+      this.lastObjectInferenceMs=performance.now()-started;this.lastObjectInferenceAt=performance.now();this.lastObjectMode="owlvit";this.lastObjectResult=mapped;this.lastPeopleCount=mapped.filter(p=>p.class==="person").length;this.lastSummary=mapped.map(p=>p.class).join(", ");return mapped;
+    }};
+    this.objectModel=model;
+    this.onModelState("object","loaded","Open-vocabulary detector ready (prompted object labels)");
+    return model;
+  })();
+  try{return await this.loading.object}
+  catch(error){
+    const message="Open-vocabulary detector failed to load. Check network access and memory, then retry: "+(error?.message||"unknown model error");
+    this.onModelState("object","error",message);throw new Error(message);
+  }finally{this.loading.object=null}
+ }
   async loadPeople(facingMode = this.currentFacingMode) {
     this.currentFacingMode = facingMode;
     if (this.faceDetector && this.faceFacingMode === facingMode) return this.faceDetector;
