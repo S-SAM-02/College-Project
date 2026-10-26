@@ -200,3 +200,17 @@ test('drawing preserves existing ink when hand is lost and does not connect sepa
  assert.equal(calls.clearRect,0);
  assert.equal(calls.lineTo.length,0,"new pinch after a release starts a new stroke");
 });
+
+test('drawing preserves existing ink and breaks strokes on pinch release', () => {
+ const calls={clearRect:0,lineTo:[],arc:[]};
+ const ctx={save(){},restore(){},beginPath(){},clearRect(){calls.clearRect++},moveTo(){},lineTo(...args){calls.lineTo.push(args)},stroke(){},arc(x,y,r){calls.arc.push([x,y,r])},fill(){},set strokeStyle(v){},set fillStyle(v){},set lineWidth(v){},set lineCap(v){},set lineJoin(v){},set shadowColor(v){},set shadowBlur(v){},set globalCompositeOperation(v){}};
+ const canvas={width:640,height:360,getContext(){return ctx}};
+ const drawing=new AirDrawing(canvas);
+ const makeHand=pinch=>{const raw=Array.from({length:21},(_,i)=>({x:.25+(i%5)*.03,y:.25+Math.floor(i/5)*.03,z:0}));raw[4]={x:.25,y:.25};raw[8]={x:pinch?0.255:0.36,y:.25};return {raw,indexTip:{x:100,y:100},wrist:{x:120,y:140},landmarks:raw.map(p=>({x:p.x*640,y:p.y*360}))};};
+ drawing.process([makeHand(true)],false);
+ drawing.process([],false);
+ drawing.process([makeHand(true)],false);
+ drawing.process([makeHand(false)],false);
+ assert.equal(calls.clearRect,0,"hand loss and pinch release must keep old ink");
+ assert.equal(calls.lineTo.length,0,"a fresh pinch after hand loss starts a separate stroke");
+});
