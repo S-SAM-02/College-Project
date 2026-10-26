@@ -1,5 +1,6 @@
 const MEDIAPIPE_VERSION = "0.10.14";
 const TFJS_VERSION = "4.22.0";
+const TRANSFORMERS_CDN = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 const TFJS_CDN = `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@${TFJS_VERSION}/dist/tf.min.js`;
 const COCO_CDN = `https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js`;
 const HANDS_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
@@ -31,6 +32,9 @@ export class AIManager {
     this.onModelState = onModelState;
     this.onNotice = onNotice;
     this.objectModel = null;
+    this.zeroShotDetector = null;
+    this.zeroShotLoading = null;
+    this.zeroShotLastAt = 0;
     this.handLandmarker = null;
     this.handTask = null;
     this.faceTask = null;
@@ -45,7 +49,83 @@ export class AIManager {
     this.lastFrameAt = 0;
     this.lastObjectResult = null;
     this.lastObjectInferenceAt = 0;
+    this.lastObjectMode = "";
     this.lastFaceTimestamp = 0;
+  }
+
+  async loadZeroShotObjects() {
+    if (this.zeroShotDetector) return this.zeroShotDetector;
+    if (this.zeroShotLoading) return this.zeroShotLoading;
+    this.onModelState("object", "loading", "Loading open-vocabulary object model (first download can be large)…");
+    this.zeroShotLoading = (async () => {
+      const mod = await import(TRANSFORMERS_CDN);
+      const pipeline = mod.pipeline;
+      if (typeof pipeline !== "function") throw new Error("Open-vocabulary detector failed to initialize.");
+      const detector = await pipeline("zero-shot-object-detection", "Xenova/owlvit-base-patch32", {
+        device: "webgpu",
+        dtype: "q8"
+      }).catch(async () => pipeline("zero-shot-object-detection", "Xenova/owlvit-base-patch32", {
+        device: "wasm",
+        dtype: "q8"
+      }));
+      this.zeroShotDetector = {
+        detect: async video => {
+          if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
+          const now = performance.now();
+          if (now - this.zeroShotLastAt < 1350 && this.lastObjectMode === "zero-shot") {
+            return this.lastObjectResult?.predictions || [];
+          }
+          this.zeroShotLastAt = now;
+          const w = video.videoWidth, h = video.videoHeight;
+          const canvas = document.createElement("canvas");
+          const targetW = Math.min(640, w);
+          const targetH = Math.round(h * targetW / w);
+          canvas.width = targetW; canvas.height = targetH;
+          canvas.getContext("2d", { alpha: false }).drawImage(video, 0, 0, targetW, targetH);
+          const candidates = [
+            "pen", "pencil", "marker", "highlighter", "eraser", "notebook", "book", "paper", "calculator",
+            "laptop", "computer monitor", "keyboard", "computer mouse", "mobile phone", "smartphone",
+            "headphones", "earphones", "headset", "USB flash drive", "charger", "power bank", "cable",
+            "water bottle", "cup", "mug", "backpack", "school bag", "wallet", "keys", "watch", "glasses",
+            "scissors", "stapler", "tape dispenser", "ruler", "desk lamp", "chair", "table", "plant",
+            "flower pot", "remote control", "camera", "tripod", "microphone", "speaker", "ID card",
+            "shoe", "cap", "ball", "person", "face", "hand", "phone case", "lunch box", "umbrella"
+          ];
+          const output = await detector(canvas, candidates, { threshold: 0.055, top_k: 15 });
+          const items = (Array.isArray(output) ? output : []).map(d => {
+            const box = d.box || {};
+            const x1 = Math.max(0, Math.min(w, Number(box.xmin) * w / targetW));
+            const y1 = Math.max(0, Math.min(h, Number(box.ymin) * h / targetH));
+            const x2 = Math.max(x1, Math.min(w, Number(box.xmax) * w / targetW));
+            const y2 = Math.max(y1, Math.min(h, Number(box.ymax) * h / targetH));
+            return {
+              class: String(d.label || "object").toLowerCase().replace(/[\\s-]+/g, "_"),
+              score: Number(d.score) || 0,
+              bbox: [x1, y1, x2 - x1, y2 - y1]
+            };
+          }).filter(d => d.score >= 0.055 && d.bbox[2] > 8 && d.bbox[3] > 8);
+          const bestByLabel = new Map();
+          for (const item of items) {
+            const prior = bestByLabel.get(item.class);
+            if (!prior || item.score > prior.score) bestByLabel.set(item.class, item);
+          }
+          const mapped = [...bestByLabel.values()].sort((a, b) => b.score - a.score).slice(0, 15);
+          this.lastObjectResult = { at: now, predictions: mapped };
+          this.lastObjectInferenceAt = now;
+          this.lastObjectMode = "zero-shot";
+          this.lastSummary = mapped.map(item => item.class).join(", ");
+          this.lastPeopleCount = mapped.filter(item => item.class === "person").length;
+          return mapped;
+        }
+      };
+      this.onModelState("object", "loaded", "Open-vocabulary model loaded; recognizes prompted common items");
+      return this.zeroShotDetector;
+    })();
+    try { return await this.zeroShotLoading; }
+    catch (error) {
+      this.onModelState("object", "error", "Open-vocabulary model unavailable: " + (error?.message || "download failed"));
+      throw error;
+    } finally { this.zeroShotLoading = null; }
   }
 
   async loadObjects() {
@@ -63,7 +143,7 @@ export class AIManager {
         detect: async video => {
           if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
           const now = performance.now();
-          if (now - this.lastObjectInferenceAt < 650) {
+          if (this.lastObjectMode === "coco" && now - this.lastObjectInferenceAt < 650) {
             return this.lastObjectResult?.predictions || [];
           }
           this.lastObjectInferenceAt = now;
@@ -81,6 +161,7 @@ export class AIManager {
             ] : [0, 0, 0, 0]
           })).filter(p => p.bbox[2] > 0 && p.bbox[3] > 0);
           this.lastObjectResult = { at: now, predictions: mapped };
+          this.lastObjectMode = "coco";
           return mapped;
         }
       };
@@ -213,7 +294,7 @@ export class AIManager {
   async ensureMode(mode, facingMode = this.currentFacingMode) {
     this.currentMode = mode;
     this.currentFacingMode = facingMode;
-    if (mode === "objects") return this.loadObjects();
+    if (mode === "objects") return this.loadZeroShotObjects();
     if (mode === "people") return this.loadPeople(facingMode);
     if (mode === "drawing" || mode === "portal") return this.loadHands();
     return null;
