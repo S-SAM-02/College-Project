@@ -51,11 +51,11 @@
             </div>
             <div id="cameraLoading" class="camera-loading" hidden><span class="spinner"></span><span id="loadingLabel">Requesting camera access…</span></div>
             <div class="camera-topline"><span class="live-label"><span class="live-pulse"></span> LIVE VIEW</span><span id="resolutionLabel">— × —</span></div>
-            <div class="camera-bottomline"><span id="visionLabel">OBJECT FINDER</span><span id="fpsLabel">— FPS</span></div>
+            <div class="camera-bottomline"><span id="visionLabel">OBJECT FINDER</span><span id="fpsLabel">— AI FPS</span></div>
             <button id="stopCamera" class="camera-stop" type="button" hidden aria-label="Stop camera">Stop session <span>×</span></button>
           </div>
           <div class="camera-tools"><div class="camera-tool-group"><span class="tool-caption">CAMERA INPUT</span><select id="cameraSelect" aria-label="Select camera" disabled><option value="">Default camera</option></select></div><div class="camera-tool-group"><label class="tool-caption" for="cameraFacingSelect">CAMERA FACING</label><select id="cameraFacingSelect" aria-label="Choose camera facing"><option value="user" selected>Front camera</option><option value="environment">Rear camera</option></select></div><button id="retryModels" class="subtle-button" type="button">↻ Retry AI setup</button></div>
-          <div class="technical-strip"><div><span class="technical-label">MODEL ENGINE</span><strong id="engineStatus">Not initialized</strong></div><div><span class="technical-label">INFERENCE</span><strong id="inferenceStatus">Waiting</strong></div><div><span class="technical-label">PIPELINE</span><strong id="pipelineStatus">DIP · ML</strong></div></div>
+          <div class="technical-strip"><div><span class="technical-label">MODEL ENGINE</span><strong id="engineStatus">Not initialized</strong></div><div><span class="technical-label">INFERENCE</span><strong id="inferenceStatus">Waiting</strong></div><div><span class="technical-label">PIPELINE</span><strong id="pipelineStatus">OpenAI Vision</strong></div></div>
         </section>
 
         <aside class="insight-panel" aria-label="Detection results">
