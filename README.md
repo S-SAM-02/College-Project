@@ -1,33 +1,40 @@
 # OBJECT MIND — Intelligent Vision Lab
 
-Premium browser vision and gesture workspace with live object detection, hand landmarks, air drawing, two-hand fingertip portal, visible-person counting and text/optional voice commands.
+Premium browser vision workspace with an unmirrored live camera preview, OpenAI-powered sampled-frame analysis, approximate hand landmarks for gesture interactions, visible-person estimates, and natural-language controls.
 
-## Publish on GitHub Pages
-Open repository **Settings → Pages**, select **Deploy from a branch**, choose `main` and `/(root)`. This project is static, but Pages publishing is a repository setting and must be enabled separately. Access the resulting HTTPS URL and allow camera access.
+## Important: deployment and API setup
+
+The frontend no longer loads TensorFlow.js, COCO-SSD, MediaPipe, external model weights, or Google Fonts. It calls the server endpoint `/api/vision`, which sends compressed camera snapshots to the OpenAI Responses API. **GitHub Pages is static hosting and cannot run this API route. Deploy the repository to Vercel (or adapt the endpoint to another serverless Node host) for AI features to work.**
+
+1. Import this GitHub repository into Vercel and deploy it.
+2. In Vercel **Project → Settings → Environment Variables**, add `OPENAI_API_KEY` with your OpenAI API key. Do not put this secret in HTML, JavaScript, GitHub, or a public `.env` file.
+3. Optionally set `OPENAI_VISION_MODEL` to a vision-capable model available to your OpenAI API project. The default is `gpt-4.1-mini`.
+4. Redeploy after setting the environment variables.
+5. Open the HTTPS deployment, allow camera access, and select the desired front or rear camera.
+
+OpenAI API usage is billed separately from a ChatGPT subscription. No database is used by this application. The backend sets `store: false` for Responses API requests; sampled camera images are still transmitted to OpenAI for analysis. Do not use this app with sensitive footage unless you are comfortable with that data flow.
 
 ## Features
-- Object Finder: TensorFlow.js 4.22.0 and COCO-SSD 2.2.3 (lite MobileNet V2), supported-class labels, confidence and live bounding boxes.
-- Air Drawing and Portal: MediaPipe Tasks Vision 0.10.22 Hand Landmarker. Pinch-to-draw, fist-to-clear and fingertip-connected canvas portal effect.
-- Person Finder: current-frame COCO-SSD person-class count, without facial identification.
-- DIP: coordinate-aware canvas sizing and temporal smoothing.
-- NLP: explicit rule-based commands plus optional browser Web Speech API.
-- Metrics: measured frame-loop FPS and inference duration; model becomes READY only after live inference succeeds.
-- Privacy: application camera frames are processed locally and are not uploaded or saved by this code.
 
-## Run locally
-Requires Node.js 20+. Serve this folder, for example with `npx serve .`, and open the localhost URL. Camera access requires HTTPS or localhost. Internet access is required to fetch browser libraries and model weights from jsDelivr and Google Cloud Storage. CDN requests expose ordinary network metadata; application code does not upload video frames.
+- **Camera:** standard browser `getUserMedia`; front/rear selection uses camera facing constraints; no CSS mirror transform is applied. Camera permissions require HTTPS or localhost.
+- **Object Finder:** OpenAI vision analyzes a sampled frame and estimates visible object labels and bounding boxes for common home/college items. Labels and coordinates can be wrong; they are not detector-grade guarantees.
+- **Air Drawing:** estimated 21-point hand landmarks are smoothed and used for pinch-to-draw and fist-to-clear interactions.
+- **Two-Hand Portal:** a canvas effect follows estimated index fingertips; it is not a physical or 3D portal.
+- **Person Finder:** uses the model's estimated number of visible people. It is not face recognition, persistent identity tracking, or an exact count.
+- **Commands:** rule-based text commands and optional browser speech recognition remain local.
+- **No database:** no database is configured or required.
 
-## Usage
-1. Choose a mode and click **Start camera**. Approve camera access.
-2. Wait for a successful live inference and a READY model indicator.
-3. Object Finder recognises only COCO-SSD's known classes; a box is not proof that an object is being held.
-4. Air Drawing: pinch thumb and index fingertips to draw; a confirmed fist clears the canvas.
-5. Two-Hand Portal: bring both index fingertips closer, then separate them to release.
-6. Person Finder counts frame-based full-person detections. Partial/occluded people may be missed; detections across frames are not persistent unique-person identities.
-7. Commands: `open object finder`, `start hand drawing`, `activate portal`, `show person count`, `stop drawing`, `reset drawing`, `start camera`, `stop camera`.
+## Accuracy and latency
 
-## Camera and limitations
-Native orientation is the default; mirroring is optional. Camera switching stops previous tracks. Stop the session or leave the page to release camera resources. COCO-SSD supports a finite list of object labels and does not generate exhaustive product descriptions. Object-to-hand association is not a verified grasp classifier. Person Finder is full-person detection, not face counting. Browser, GPU, network and lighting affect performance. The portal is a canvas effect, not a real 3D portal.
+GPT vision is a general image-understanding model, not a dedicated real-time hand-pose engine. Hand joint positions, object boxes, and person counts are approximate and may flicker or be incorrect, especially during fast motion, occlusion, or poor lighting. Requests are throttled to about one analyzed frame per second to limit latency and API usage. This cannot guarantee 100% hand tracking or 60–80% object recognition for every environment. If low-latency, reliable continuous hand tracking becomes a strict requirement, a dedicated on-device hand-landmark model would be technically more suitable, but that would conflict with the requirement to remove third-party models.
 
-## Quality checks and test report
-Run `npm run check` and `npm test`. GitHub Actions checks JS syntax, unit tests and the main files on push/pull request. Tests cover coordinate scaling, box overlap, distances, smoothing, command parsing, count formatting and person filtering. A physical-camera run, hosted-browser interaction and cross-device test still require a real device and are not claimed as completed.
+## Run checks
+
+Requires Node.js 20+.
+
+```sh
+npm run check
+npm test
+```
+
+For local camera access, serve the site over localhost. To test the OpenAI route locally, use the Vercel CLI and set `OPENAI_API_KEY` in a local untracked `.env.local` file. Never commit that file. A real camera, API-key, and deployed-host smoke test is still required; code checks alone do not prove end-to-end camera operation.
