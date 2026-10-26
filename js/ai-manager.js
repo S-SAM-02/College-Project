@@ -143,7 +143,7 @@ export class AIManager {
   }
 
   markInference(model) {
-    this.onModelState("object", "ready", "Local COCO-SSD detector is analyzing the camera");
+    this.onModelState(model === "hand" ? "hand" : "object", "ready", model === "hand" ? "Local hand landmarks updating from live frames" : "Local COCO-SSD detector is analyzing the camera");
   }
 
   dispose() {
