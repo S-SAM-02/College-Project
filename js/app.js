@@ -14,7 +14,6 @@ function populateCameras(devices){const s=$("cameraSelect"),old=s.value;s.replac
 async function switchCamera(){if(!session)return;try{cameraLoading(true,"Switching camera…");const ds=await camera.start($("cameraSelect").value,preferredFacing);populateCameras(ds);resizeCanvases(video,[overlay,ink]);applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
 async function stopCamera(){cancelAnimationFrame(raf);await camera.stop();latestObjects=[];latestHands=[];handTracker.reset();portal.reset();onCameraState("offline","Camera offline")}
 async function setupMode(){if(!session)return;try{await ai.ensureMode(mode, preferredFacing);$("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";setNotice(mode==="drawing"||mode==="portal"?"Hand landmarks are processed locally on this device.":"Waiting for the next analysis frame.")}catch(e){$("engineStatus").textContent="Initialization failed";setNotice(e.message)}}
-function cancelFrameScheduler(){if(videoFrameToken!==null&&video.cancelVideoFrameCallback){try{video.cancelVideoFrameCallback(videoFrameToken)}catch{}videoFrameToken=null}cancelAnimationFrame(raf)}
 function cancelFrameScheduler(){
  if(videoFrameToken!==null&&video.cancelVideoFrameCallback){try{video.cancelVideoFrameCallback(videoFrameToken)}catch{}videoFrameToken=null}
  cancelAnimationFrame(raf)
