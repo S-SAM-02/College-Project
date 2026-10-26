@@ -43,9 +43,10 @@ function startLoop(){
      ai.loadHands().then(()=>{
       ai.onHandResult=(data,timestamp,arrivedAt)=>{
        if(!session||!(mode==="drawing"||mode==="portal"))return;
-       latestHands=handTracker.process(data,overlay.width,overlay.height).hands;
+       const tracked=handTracker.process(data,overlay.width,overlay.height);
+       latestHands=tracked.hands;
        latestHandCallbackAt=arrivedAt;
-       if(mode==="drawing")updateDrawingResult(handTracker.lastFist||false);
+       if(mode==="drawing")updateDrawingResult(tracked.fist);
        else updatePortalResult(arrivedAt);
        $("inferenceStatus").textContent="Hand model updating";
       };
