@@ -89,13 +89,22 @@ export class AIManager{
     try{detector=await globalThis.cocoSsd.load({base:"lite_mobilenet_v2"});}
     catch(secondError){throw new Error("COCO-SSD model weights could not be loaded. "+(secondError?.message||firstError?.message||"Unknown model error"));}
    }
-   this.cocoModel={detect:async(video,maxNumBoxes=15,minScore=0.22)=>{
+   this.cocoModel={detect:async(video,maxNumBoxes=12,minScore=0.16)=>{
     if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
-    const started=performance.now(),found=await detector.detect(video,Math.min(20,Math.max(8,maxNumBoxes)),minScore),w=video.videoWidth,h=video.videoHeight;
+    // Downscale the inference input to reduce latency on laptop CPUs while preserving original coordinates.
+    const started=performance.now(),sourceWidth=video.videoWidth,sourceHeight=video.videoHeight;
+    const inferenceWidth=Math.min(640,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
+    let input=video;
+    if(scale<0.999){
+     if(!this.objectInputCanvas){this.objectInputCanvas=document.createElement("canvas");this.objectInputContext=this.objectInputCanvas.getContext("2d",{alpha:false,desynchronized:true});}
+     const canvas=this.objectInputCanvas;canvas.width=inferenceWidth;canvas.height=inferenceHeight;
+     this.objectInputContext.drawImage(video,0,0,inferenceWidth,inferenceHeight);input=canvas;
+    }
+    const found=await detector.detect(input,Math.min(12,Math.max(6,maxNumBoxes)),minScore),w=sourceWidth,h=sourceHeight;
     const mapped=(Array.isArray(found)?found:[]).map(item=>{
      const b=item.bbox||[],x=Math.max(0,Math.min(w,Number(b[0])||0)),y=Math.max(0,Math.min(h,Number(b[1])||0));
      const right=Math.max(x,Math.min(w,x+(Number(b[2])||0))),bottom=Math.max(y,Math.min(h,y+(Number(b[3])||0)));
-     return{class:String(item.class||"object").toLowerCase().replace(/[\s-]+/g,"_"),score:Number(item.score)||0,bbox:[x,y,right-x,bottom-y]};
+     return{class:String(item.class||"object").toLowerCase().replace(/[\s-]+/g,"_"),score:Number(item.score)||0,bbox:[x/scale,y/scale,(right-x)/scale,(bottom-y)/scale]};
     }).filter(p=>p.score>=minScore&&p.bbox[2]>0&&p.bbox[3]>0)
       .sort((a,b)=>b.score-a.score).slice(0,Math.min(40,Math.max(20,maxNumBoxes)));
     this.lastObjectInferenceMs=performance.now()-started;this.lastObjectInferenceAt=performance.now();
@@ -113,7 +122,7 @@ export class AIManager{
   this.onModelState("object","loading","Loading lightweight local object detector…");
   this.loading.object=(async()=>{
    const coco=await this.loadCocoDetector();
-   this.objectModel={detect:async video=>{const result=await coco.detect(video,15,0.16);this.lastObjectMode="coco-ssd-hand-local";return result;}};
+   this.objectModel={detect:async video=>{const result=await coco.detect(video,12,0.16);this.lastObjectMode="coco-ssd-hand-local";return result;}};
    this.onModelState("object","loaded","Lightweight local object detector ready");
    return this.objectModel;
   })();
