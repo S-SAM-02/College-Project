@@ -86,3 +86,13 @@ test('portal connects all five corresponding fingertip pairs', () => {
   assert.equal(result.active, true);
   assert.match(result.gesture, /all five finger pairs linked/);
 });
+
+import { COLLEGE_OBJECT_PROMPTS } from '../js/ai-manager.js';
+
+test('open-vocabulary detector prompts include common college objects', () => {
+  assert.ok(COLLEGE_OBJECT_PROMPTS.length >= 50);
+  for (const item of ['pen','laptop','mobile phone','headphones','calculator','water bottle','keyboard','computer mouse','charger','notebook']) {
+    assert.ok(COLLEGE_OBJECT_PROMPTS.includes(item), 'missing prompt: ' + item);
+  }
+  assert.equal(new Set(COLLEGE_OBJECT_PROMPTS).size, COLLEGE_OBJECT_PROMPTS.length);
+});
