@@ -9,13 +9,14 @@ const COCO_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.
 const TRANSFORMERS_CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 const OWL_VIT_MODEL="Xenova/owlvit-base-patch32";
 export const OBJECT_PROMPTS=[
+ "person","people","human","man","woman","child","person in background","distant person","group of people",
  "smartphone","mobile phone","cell phone","pen","ballpoint pen","pencil",
  "identity card","ID card","student ID badge","plastic card","USB cable",
  "wire","electrical cable","charging cable","charger cable","flowerpot",
  "flower pot","plant pot","potted plant","calculator","notebook","book",
  "water bottle","cup","laptop","keyboard","computer mouse","headphones",
  "earphones","power bank","remote control","keys","wallet","glasses","watch",
- "backpack","bag","scissors","phone charger","flower","plant","chair","person"
+ "backpack","bag","scissors","phone charger","flower","plant","chair"
 ];
 const ensureScript=(src,ready,label)=>new Promise((resolve,reject)=>{
  if(ready())return resolve();
@@ -85,19 +86,20 @@ export class AIManager{
    await ensureScript(COCO_SCRIPT,()=>Boolean(globalThis.cocoSsd),"COCO-SSD");
    if(globalThis.tf?.ready)await globalThis.tf.ready();
    let detector;
-   try{detector=await globalThis.cocoSsd.load({base:"lite_mobilenet_v2"});}
+   try{detector=await globalThis.cocoSsd.load({base:"mobilenet_v2"});}
    catch(firstError){
-    try{detector=await globalThis.cocoSsd.load({base:"mobilenet_v2"});}
+    try{detector=await globalThis.cocoSsd.load({base:"lite_mobilenet_v2"});}
     catch(secondError){throw new Error("COCO-SSD model weights could not be loaded. "+(secondError?.message||firstError?.message||"Unknown model error"));}
    }
-   this.cocoModel={detect:async(video,maxNumBoxes=12,minScore=0.28)=>{
+   this.cocoModel={detect:async(video,maxNumBoxes=35,minScore=0.12)=>{
     if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
-    const started=performance.now(),found=await detector.detect(video,maxNumBoxes,minScore),w=video.videoWidth,h=video.videoHeight;
+    const started=performance.now(),found=await detector.detect(video,Math.min(40,Math.max(20,maxNumBoxes)),minScore),w=video.videoWidth,h=video.videoHeight;
     const mapped=(Array.isArray(found)?found:[]).map(item=>{
      const b=item.bbox||[],x=Math.max(0,Math.min(w,Number(b[0])||0)),y=Math.max(0,Math.min(h,Number(b[1])||0));
      const right=Math.max(x,Math.min(w,x+(Number(b[2])||0))),bottom=Math.max(y,Math.min(h,y+(Number(b[3])||0)));
      return{class:String(item.class||"object").toLowerCase().replace(/[\s-]+/g,"_"),score:Number(item.score)||0,bbox:[x,y,right-x,bottom-y]};
-    }).filter(p=>p.score>=minScore&&p.bbox[2]>0&&p.bbox[3]>0);
+    }).filter(p=>p.score>=minScore&&p.bbox[2]>0&&p.bbox[3]>0)
+      .sort((a,b)=>b.score-a.score).slice(0,Math.min(40,Math.max(20,maxNumBoxes)));
     this.lastObjectInferenceMs=performance.now()-started;this.lastObjectInferenceAt=performance.now();
     this.lastObjectResult=mapped;this.lastPeopleCount=mapped.filter(p=>p.class==="person"&&p.score>=minScore).length;
     this.lastSummary=mapped.map(p=>p.class).join(", ");return mapped;
@@ -144,12 +146,13 @@ export class AIManager{
     this.onModelState("object","loaded","Open-vocabulary object detector ready");
     return model;
    }catch(owlError){
+    // Multi-box COCO-SSD fallback for reliable person and everyday-object boxes.
     const coco=await this.loadCocoDetector();
     this.objectModel={detect:async video=>{
-     const result=await coco.detect(video,20,0.28);
-     this.lastObjectMode="coco-ssd-fallback";return result;
+     const result=await coco.detect(video,35,0.12);
+     this.lastObjectMode="coco-ssd-multi-box";return result;
     }};
-    this.onModelState("object","loaded","Open-vocabulary model unavailable; common-object fallback ready");
+    this.onModelState("object","loaded","Multi-object detector ready (up to 35 boxes)");
     return this.objectModel;
    }
   })();
