@@ -40,21 +40,33 @@ function startLoop(){
   if(!session)return;
   renderFpsFrames++;
   if(now-renderFpsWindowStart>=500){$("fpsLabel").textContent=Math.round(renderFpsFrames*1000/(now-renderFpsWindowStart))+" preview FPS";renderFpsFrames=0;renderFpsWindowStart=now}
-  if(video.readyState>=2&&video.videoWidth){if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);renderOverlay(now)}
+  if(video.readyState>=2&&video.videoWidth){
+   if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);
+   renderOverlay(now)
+  }
   schedulePreview()
+ };
+ const loadHandIfNeeded=()=>{
+  if(!session||!(mode==="objects"||mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand)return;
+  if(handLoadNoticeShown)return;
+  handLoadNoticeShown=true;
+  if(mode!=="objects")setNotice("Loading hand landmark model…");
+  ai.loadHands().then(()=>{handLoadNoticeShown=false;ai.onHandResult=handleHandResult;setNotice("Hand landmark model ready. Show one full hand to the camera.")})
+   .catch(e=>{handLoadNoticeShown=false;onModelState("hand","error",e.message);setNotice("Hand tracking could not start: "+e.message)});
  };
  const onVideoFrame=(now,meta={})=>{
   if(!session)return;
   if(video.readyState>=2&&video.videoWidth){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
    if(mode==="objects"||mode==="drawing"||mode==="portal"){
-    if(!ai.handLandmarker&&!ai.loading.hand&&!handLoadNoticeShown){
-     handLoadNoticeShown=true;setNotice("Loading hand landmark model…");
-     ai.loadHands().then(()=>{ai.onHandResult=handleHandResult}).catch(e=>{onModelState("hand","error",e.message);handLoadNoticeShown=false});
-    }
+    ai.onHandResult=handleHandResult;
+    loadHandIfNeeded();
     if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
      lastHandInferenceAt=mediaTime;handInferenceBusy=true;
-     ai.handLandmarker.detect(video,now).then(data=>handleHandResult(data,now,performance.now())).catch(e=>onModelState("hand","error",e.message)).finally(()=>{handInferenceBusy=false});
+     Promise.resolve().then(()=>ai.handLandmarker.detect(video,now))
+      .then(data=>{if(session)handleHandResult(data,now,performance.now())})
+      .catch(e=>{onModelState("hand","error","Hand inference error: "+(e?.message||String(e)))})
+      .finally(()=>{handInferenceBusy=false});
     }
    }
    if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference){
