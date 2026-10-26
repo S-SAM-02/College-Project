@@ -38,3 +38,22 @@
   .command-form input { width: 0; }
   .site-footer { min-width: 0; }
 }
+
+
+/* Only refine phone layout: stack analysis and keep selectors inside the viewport. */
+@media (max-width: 600px) {
+  .topbar { gap: 8px; padding-inline: 12px; }
+  .brand-copy strong { font-size: 10px; }
+  .brand-copy small { font-size: 7px; letter-spacing: 1px; }
+  .workspace-head { align-items: flex-start; gap: 8px; }
+  .session-state { max-width: 52%; white-space: normal; line-height: 1.35; }
+  .camera-tools { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .camera-tool-group select { font-size: 10px; text-overflow: ellipsis; }
+  .technical-strip { grid-template-columns: minmax(0,1fr); }
+  .technical-strip > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .technical-strip strong { text-align: right; }
+  .insight-panel { display: grid; grid-template-columns: minmax(0,1fr); }
+  .panel-header, .result-hero, .result-details, .model-health-head, .model-row, .notice-box { grid-column: 1; }
+  .result-hero { min-height: 0; }
+  .notice-box { margin-top: 12px; }
+}
