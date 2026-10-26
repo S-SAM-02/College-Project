@@ -36,7 +36,7 @@ async function setMode(next){
   }catch(e){setNotice(e.message)}
  }
 }
-async function startCamera(facing=preferredFacing){if(session&&camera.facingMode===facing)return;try{cameraLoading(true,"Requesting camera permission…");const devices=await camera.start($("cameraSelect").value,facing);preferredFacing=facing;populateCameras(devices);updateFacingButtons();applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
+async function startCamera(facing=preferredFacing){if(session&&camera.facingMode===facing)return;const previousFacing=preferredFacing;preferredFacing=facing;updateFacingButtons();applyCameraOrientation();try{cameraLoading(true,"Requesting camera permission…");const devices=await camera.start($("cameraSelect").value,facing);populateCameras(devices);updateFacingButtons();applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){preferredFacing=previousFacing;updateFacingButtons();applyCameraOrientation();const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
 function friendlyCameraError(e){if(["NotAllowedError","PermissionDeniedError"].includes(e.name))return"Camera permission denied. Allow camera access in browser site settings, then retry.";if(["NotFoundError","DevicesNotFoundError"].includes(e.name))return"No camera was found. Connect a camera or choose an available device.";if(["NotReadableError","TrackStartError"].includes(e.name))return"The camera is busy. Close other apps using it and retry.";return e.message||"Camera startup failed. Use HTTPS or localhost and check browser permissions."}
 function populateCameras(devices){const s=$("cameraSelect"),old=s.value;s.replaceChildren();s.add(new Option("Automatic camera",""));devices.forEach((d,i)=>s.add(new Option(d.label||"Camera "+(i+1),d.deviceId)));s.disabled=devices.length===0;if(devices.some(d=>d.deviceId===old))s.value=old}function updateFacingButtons(){$("cameraFacingSelect").value=preferredFacing}
 async function switchCamera(){if(!session)return;try{cameraLoading(true,"Switching camera…");const ds=await camera.start($("cameraSelect").value,preferredFacing);populateCameras(ds);resizeCanvases(video,[overlay,ink]);applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
@@ -138,7 +138,7 @@ function updateObjectResult(pred){
  $("resultDescription").textContent=ai.lastObjectMode.startsWith("owlvit")?"Open-vocabulary detection is matching visible items against a broad set of object prompts. Small or partly hidden objects may still be missed.":"Using the common-object fallback model. It recognizes fewer labels than the open-vocabulary model.";
  $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Object detection"
 }
-function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No people were detected in this frame. Try brighter lighting and keep more of each person visible.":"Person boxes from the multi-person detector. Small, distant, overlapping or partly hidden people can still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent="Multi-person COCO-SSD";$("gestureValue").textContent=n+" people detected";if(!faceCountNote){setNotice("Person Finder counts detected person boxes locally (up to 30 candidates per frame). It does not identify individuals; overlapping people can be missed or occasionally double-counted.");faceCountNote=true}}
+function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?(preferredFacing==="environment"?"No rear-camera face matched this frame. Move closer, improve lighting, and keep faces unobstructed.":"No clear face detected in this frame. Improve lighting and keep faces unobstructed."):"Visible face detections. The rear camera uses a full-range model with a lower threshold for distant faces; small or occluded faces can still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent=preferredFacing==="environment"?"Rear-camera full-range model":"Local face model";$("gestureValue").textContent=n+" faces detected";if(!faceCountNote){setNotice("Person Finder counts visible face detections locally, not identities. It may miss small, turned-away or occluded faces.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects"))return;
  const tracked=handTracker.process(data,overlay.width,overlay.height);
@@ -191,10 +191,10 @@ function renderOverlay(now){
   portal.render(ctx,latestHands,overlay.width,overlay.height);
  } else if(mode==="people"){
   for(const face of latestObjects){
-   if(face.class!=="person")continue;
+   if(face.class!=="face")continue;
    const[x,y,w,h]=face.bbox;
    ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.strokeRect(x,y,w,h);ctx.restore();
-   const text="Person · "+Math.round(face.score*100)+"%";
+   const text="Face · "+Math.round(face.score*100)+"%";
    labels.push({x,y,text,w:ctx.measureText(text).width+14,h:22,boxWidth:w});
   }
  }
