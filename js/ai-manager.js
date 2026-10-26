@@ -5,6 +5,7 @@ const COCO_CDN = `https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3
 const HANDS_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
 const HAND_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
 const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const FACE_MODEL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite";
 
 function injectScript(src, test, label) {
   if (test()) return Promise.resolve();
@@ -31,13 +32,15 @@ export class AIManager {
     this.objectModel = null;
     this.handLandmarker = null;
     this.handTask = null;
-    this.loading = { object: null, hand: null };
+    this.faceDetector = null;
+    this.loading = { object: null, hand: null, people: null };
     this.currentMode = "objects";
     this.lastPeopleCount = 0;
     this.lastSummary = "";
     this.lastFrameAt = 0;
     this.lastObjectResult = null;
     this.lastObjectInferenceAt = 0;
+    this.lastFaceTimestamp = 0;
   }
 
   async loadObjects() {
@@ -85,6 +88,61 @@ export class AIManager {
       this.onModelState("object", "error", error?.message || "Local object detector could not load.");
       throw error;
     } finally { this.loading.object = null; }
+  }
+
+  async loadPeople() {
+    if (this.faceDetector) return this.faceDetector;
+    if (this.loading.people) return this.loading.people;
+    this.onModelState("object", "loading", "Loading local face detector…");
+    this.loading.people = (async () => {
+      const { FilesetResolver, FaceDetector } = await import(HANDS_CDN);
+      const vision = await FilesetResolver.forVisionTasks(HAND_WASM);
+      const options = {
+        baseOptions: { modelAssetPath: FACE_MODEL, delegate: "GPU" },
+        runningMode: "VIDEO",
+        minDetectionConfidence: 0.48,
+        minSuppressionThreshold: 0.3
+      };
+      let detector;
+      try {
+        detector = await FaceDetector.createFromOptions(vision, options);
+      } catch {
+        detector = await FaceDetector.createFromOptions(vision, {
+          ...options, baseOptions: { modelAssetPath: FACE_MODEL, delegate: "CPU" }
+        });
+      }
+      this.faceDetector = {
+        detect: async (video, timestamp = performance.now()) => {
+          if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
+          const ts = Math.max(this.lastFaceTimestamp + 1, Math.floor(timestamp));
+          this.lastFaceTimestamp = ts;
+          const result = detector.detectForVideo(video, ts);
+          const w = video.videoWidth, h = video.videoHeight;
+          const detections = (result.detections || []).flatMap((detection) => {
+            const box = detection.boundingBox;
+            const score = Number(detection.categories?.[0]?.score ?? detection.categories?.[0]?.score);
+            if (!box || !Number.isFinite(score) || score < 0.48) return [];
+            const x = Math.max(0, Math.min(w, box.originX));
+            const y = Math.max(0, Math.min(h, box.originY));
+            const right = Math.max(x, Math.min(w, box.originX + box.width));
+            const bottom = Math.max(y, Math.min(h, box.originY + box.height));
+            if (right <= x || bottom <= y) return [];
+            return [{ class: "face", score, bbox: [x, y, right - x, bottom - y] }];
+          });
+          this.lastPeopleCount = detections.length;
+          this.lastSummary = `${detections.length} visible face(s) detected`;
+          return detections;
+        }
+      };
+      this.onModelState("object", "loaded", "Local face detector loaded; counting visible faces");
+      return this.faceDetector;
+    })();
+    try { return await this.loading.people; }
+    catch (error) {
+      const message = "Face detector failed to load. Check network access and retry: " + (error?.message || "model unavailable");
+      this.onModelState("object", "error", message);
+      throw new Error(message);
+    } finally { this.loading.people = null; }
   }
 
   async loadHands() {
@@ -137,7 +195,8 @@ export class AIManager {
 
   async ensureMode(mode) {
     this.currentMode = mode;
-    if (mode === "objects" || mode === "people") return this.loadObjects();
+    if (mode === "objects") return this.loadObjects();
+    if (mode === "people") return this.loadPeople();
     if (mode === "drawing" || mode === "portal") return this.loadHands();
     return null;
   }
@@ -148,7 +207,9 @@ export class AIManager {
 
   dispose() {
     try { this.handTask?.close?.(); } catch {}
+    try { this.faceDetector?.close?.(); } catch {}
     this.handTask = null;
+    this.faceDetector = null;
     this.handLandmarker = null;
     this.objectModel = null;
   }
