@@ -5,7 +5,8 @@ const COCO_CDN = `https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3
 const HANDS_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
 const HAND_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
 const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
-const FACE_MODEL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite";
+const FACE_MODEL_FRONT = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite";
+const FACE_MODEL_REAR = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/latest/blaze_face_full_range.tflite";
 
 function injectScript(src, test, label) {
   if (test()) return Promise.resolve();
@@ -34,6 +35,9 @@ export class AIManager {
     this.handTask = null;
     this.faceTask = null;
     this.faceDetector = null;
+    this.faceFacingMode = null;
+    this.loadingPeopleFacingMode = null;
+    this.currentFacingMode = "user";
     this.loading = { object: null, hand: null, people: null };
     this.currentMode = "objects";
     this.lastPeopleCount = 0;
@@ -91,15 +95,25 @@ export class AIManager {
     } finally { this.loading.object = null; }
   }
 
-  async loadPeople() {
-    if (this.faceDetector) return this.faceDetector;
-    if (this.loading.people) return this.loading.people;
+  async loadPeople(facingMode = this.currentFacingMode) {
+    this.currentFacingMode = facingMode;
+    if (this.faceDetector && this.faceFacingMode === facingMode) return this.faceDetector;
+    if (this.loading.people) {
+      await this.loading.people.catch(() => {});
+      if (this.faceDetector && this.faceFacingMode === facingMode) return this.faceDetector;
+    }
+    if (this.faceTask && this.faceFacingMode !== facingMode) {
+      try { this.faceTask.close?.(); } catch {}
+      this.faceTask = null;
+      this.faceDetector = null;
+    }
     this.onModelState("object", "loading", "Loading local face detector…");
+    this.loadingPeopleFacingMode = facingMode;
     this.loading.people = (async () => {
       const { FilesetResolver, FaceDetector } = await import(HANDS_CDN);
       const vision = await FilesetResolver.forVisionTasks(HAND_WASM);
       const options = {
-        baseOptions: { modelAssetPath: FACE_MODEL, delegate: "GPU" },
+        baseOptions: { modelAssetPath: facingMode === "environment" ? FACE_MODEL_REAR : FACE_MODEL_FRONT, delegate: "GPU" },
         runningMode: "VIDEO",
         minDetectionConfidence: 0.48,
         minSuppressionThreshold: 0.3
@@ -109,10 +123,11 @@ export class AIManager {
         detector = await FaceDetector.createFromOptions(vision, options);
       } catch {
         detector = await FaceDetector.createFromOptions(vision, {
-          ...options, baseOptions: { modelAssetPath: FACE_MODEL, delegate: "CPU" }
+          ...options, baseOptions: { modelAssetPath: facingMode === "environment" ? FACE_MODEL_REAR : FACE_MODEL_FRONT, delegate: "CPU" }
         });
       }
       this.faceTask = detector;
+      this.faceFacingMode = facingMode;
       this.faceDetector = {
         detect: async (video, timestamp = performance.now()) => {
           if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
@@ -198,7 +213,7 @@ export class AIManager {
   async ensureMode(mode) {
     this.currentMode = mode;
     if (mode === "objects") return this.loadObjects();
-    if (mode === "people") return this.loadPeople();
+    if (mode === "people") return this.loadPeople(arguments.length > 1 ? arguments[1] : this.currentFacingMode);
     if (mode === "drawing" || mode === "portal") return this.loadHands();
     return null;
   }
@@ -213,6 +228,7 @@ export class AIManager {
     this.handTask = null;
     this.faceTask = null;
     this.faceDetector = null;
+    this.faceFacingMode = null;
     this.handLandmarker = null;
     this.objectModel = null;
   }
