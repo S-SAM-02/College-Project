@@ -1,32 +1,33 @@
 # OBJECT MIND — Intelligent Vision Lab
 
-Premium browser vision workspace with an unmirrored live camera preview, OpenAI-powered sampled-frame analysis, approximate hand landmarks for gesture interactions, visible-person estimates, and natural-language controls.
+Premium browser vision workspace with a mirrored selfie preview on the front-facing camera, unmirrored rear-camera preview, local two-hand tracking, OpenAI object analysis, and approximate visible-person counting.
 
-## Important: deployment and API setup
+## Deploy and configure
 
-The frontend no longer loads TensorFlow.js, COCO-SSD, MediaPipe, external model weights, or Google Fonts. It calls the server endpoint `/api/vision`, which sends compressed camera snapshots to the OpenAI Responses API. **GitHub Pages is static hosting and cannot run this API route. Deploy the repository to Vercel (or adapt the endpoint to another serverless Node host) for AI features to work.**
+The OpenAI endpoint is `/api/vision`; GitHub Pages is static hosting and cannot execute that API route. Import this repository into Vercel, add `OPENAI_API_KEY` in Project → Settings → Environment Variables, then redeploy. Do not commit the key or expose it in frontend JavaScript. Optionally set `OPENAI_VISION_MODEL` to a vision-capable model enabled for your API project; default is `gpt-4.1-mini`.
 
-1. Import this GitHub repository into Vercel and deploy it.
-2. In Vercel **Project → Settings → Environment Variables**, add `OPENAI_API_KEY` with your OpenAI API key. Do not put this secret in HTML, JavaScript, GitHub, or a public `.env` file.
-3. Optionally set `OPENAI_VISION_MODEL` to a vision-capable model available to your OpenAI API project. The default is `gpt-4.1-mini`.
-4. Redeploy after setting the environment variables.
-5. Open the HTTPS deployment, allow camera access, and select the desired front or rear camera.
-
-OpenAI API usage is billed separately from a ChatGPT subscription. No database is used by this application. The backend sets `store: false` for Responses API requests; sampled camera images are still transmitted to OpenAI for analysis. Do not use this app with sensitive footage unless you are comfortable with that data flow.
+OpenAI API usage is billed separately from a ChatGPT subscription. Object/person frames are compressed and sent to OpenAI for analysis. Hand tracking runs locally after loading the MediaPipe runtime and hand-landmark model from their public hosts.
 
 ## Features
 
-- **Camera:** standard browser `getUserMedia`; front/rear selection uses camera facing constraints; no CSS mirror transform is applied. Camera permissions require HTTPS or localhost.
-- **Object Finder:** OpenAI vision analyzes a sampled frame and estimates visible object labels and bounding boxes for common home/college items. Labels and coordinates can be wrong; they are not detector-grade guarantees.
-- **Air Drawing:** estimated 21-point hand landmarks are smoothed and used for pinch-to-draw and fist-to-clear interactions.
-- **Two-Hand Portal:** a canvas effect follows estimated index fingertips; it is not a physical or 3D portal.
-- **Person Finder:** uses the model's estimated number of visible people. It is not face recognition, persistent identity tracking, or an exact count.
-- **Commands:** rule-based text commands and optional browser speech recognition remain local.
-- **No database:** no database is configured or required.
+- **Camera:** browser camera permissions; the front-facing preview and overlay are horizontally mirrored together so left/right movement feels natural. Rear camera stays unmirrored.
+- **Air Drawing:** dedicated local 21-landmark hand tracking; pinch thumb and index to draw, close the hand into a fist to clear.
+- **Two-Hand Portal:** local two-hand tracking updates the fingertips continuously; move both index fingers together to connect the portal effect.
+- **Object Finder:** OpenAI vision returns visible object labels and approximate bounding boxes for sampled frames. Labels and boxes may be imperfect.
+- **Person Finder:** OpenAI vision estimates the number of real people visible in a frame. It does not identify faces or track identities. Dense groups, partial people and occlusions can cause inaccurate counts.
+- **Commands:** rule-based text commands and optional browser speech recognition.
 
-## Accuracy and latency
+## Troubleshooting
 
-GPT vision is a general image-understanding model, not a dedicated real-time hand-pose engine. Hand joint positions, object boxes, and person counts are approximate and may flicker or be incorrect, especially during fast motion, occlusion, or poor lighting. Requests are throttled to about one analyzed frame per second to limit latency and API usage. This cannot guarantee 100% hand tracking or 60–80% object recognition for every environment. If low-latency, reliable continuous hand tracking becomes a strict requirement, a dedicated on-device hand-landmark model would be technically more suitable, but that would conflict with the requirement to remove third-party models.
+- If object/person analysis shows an error on GitHub Pages, deploy to Vercel: static hosting cannot run `/api/vision`.
+- If the API fails after deployment, confirm `OPENAI_API_KEY` is configured for the deployment environment, that the API project has billing/model access, and inspect Vercel function logs. Redeploy after changing environment variables.
+- If hand tracking does not initialize, ensure the browser/network can access jsDelivr and the MediaPipe model host, then press “Retry AI setup”. GPU initialization automatically falls back to CPU.
+- Camera access requires HTTPS or localhost.
+- A real device, camera, API key and deployed-host smoke test are still needed; automated syntax checks cannot prove all hardware/browser combinations.
+
+## Accuracy notes
+
+Local hand landmarks are suitable for more responsive gesture interaction than asking a general vision-language model to invent joint coordinates. Tracking can still fail under occlusion, poor lighting or motion blur. OpenAI image analysis is sampled at roughly one frame per second to limit latency and API cost, so object/person modes are not continuous 30/60-FPS detectors. A high crowd count remains an estimate, not a guarantee that every person has been counted exactly.
 
 ## Run checks
 
@@ -37,4 +38,4 @@ npm run check
 npm test
 ```
 
-For local camera access, serve the site over localhost. To test the OpenAI route locally, use the Vercel CLI and set `OPENAI_API_KEY` in a local untracked `.env.local` file. Never commit that file. A real camera, API-key, and deployed-host smoke test is still required; code checks alone do not prove end-to-end camera operation.
+For a local OpenAI endpoint test, use the Vercel CLI and an untracked local `.env.local` containing the key. Never commit that file.
