@@ -94,7 +94,18 @@ export class AIManager {
           canvas.width = targetW; canvas.height = targetH;
           canvas.getContext("2d", { alpha: false }).drawImage(video, 0, 0, targetW, targetH);
           const candidates = COLLEGE_OBJECT_PROMPTS;
-          const output = await detector(canvas, candidates, { threshold: 0.045, top_k: 30 });
+          let output;
+          try {
+            output = await detector(canvas, candidates, { threshold: 0.045, top_k: 30 });
+          } catch (error) {
+            this.onModelState("object", "error", "Open-vocabulary inference failed; switching to common-object fallback: " + (error?.message || "inference error"));
+            const fallback = await this.loadObjects();
+            this.zeroShotDetector = fallback;
+            this.lastObjectMode = "coco";
+            const predictions = await fallback.detect(video);
+            this.lastObjectResult = { at: now, predictions };
+            return predictions;
+          }
           const items = (Array.isArray(output) ? output : []).map(d => {
             const box = d.box || {};
             const x1 = Math.max(0, Math.min(w, Number(box.xmin) * w / targetW));
