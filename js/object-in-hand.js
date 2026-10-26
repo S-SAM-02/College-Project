@@ -1,4 +1,4 @@
-// Keep Object Finder focused on objects near a tracked hand instead of boxing the background.
+// Optional helper for callers that explicitly want held-object localization.
 export function handZones(hands, width, height) {
   if (!Array.isArray(hands) || !width || !height) return [];
   return hands.flatMap(hand => {
@@ -15,7 +15,8 @@ export function handZones(hands, width, height) {
 
 export function filterObjectsNearHands(predictions, hands, width, height, minScore = 0.28) {
   const zones = handZones(hands, width, height);
-  if (!zones.length || !Array.isArray(predictions)) return [];
+  if (!Array.isArray(predictions)) return [];
+  if (!zones.length) return predictions.filter(item => item && item.class !== "person" && item.class !== "face" && Number.isFinite(item.score) && item.score >= minScore && Array.isArray(item.bbox) && item.bbox.length >= 4 && item.bbox[2] > 0 && item.bbox[3] > 0).sort((a,b)=>b.score-a.score);
   return predictions.filter(item => {
     if (!item || item.class === "person" || item.class === "face" || !Number.isFinite(item.score) || item.score < minScore) return false;
     const box = item.bbox;
