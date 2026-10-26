@@ -107,14 +107,3 @@ test('two detected hands do not activate fist-clear gesture',()=>{
  const r=tracker.process({landmarks:[open,open],handednesses:[[{categoryName:'Left'}],[{categoryName:'Right'}]]},640,480);
  assert.equal(r.hands.length,2);assert.equal(r.fist,false);
 });
-
-test('portal status reports two valid hand tracks without touching canvas',()=>{
- const left=makeLandmarks({4:{x:.2,y:.35},8:{x:.25,y:.3},12:{x:.26,y:.4},16:{x:.24,y:.5},20:{x:.18,y:.55}});
- const right=makeLandmarks({4:{x:.8,y:.35},8:{x:.75,y:.3},12:{x:.74,y:.4},16:{x:.76,y:.5},20:{x:.82,y:.55}});
- assert.equal(new HandPortal().status([{landmarks:left},{landmarks:right}]).active,true);
-});
-test('two detected hands do not activate fist-clear gesture',()=>{
- const tracker=new HandTracker(),open=makeLandmarks({0:{x:.5,y:.8}});
- const r=tracker.process({landmarks:[open,open],handednesses:[[{categoryName:'Left'}],[{categoryName:'Right'}]]},640,480);
- assert.equal(r.hands.length,2);assert.equal(r.fist,false);
-});
