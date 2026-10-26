@@ -167,7 +167,7 @@ export class AIManager{
    const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
    const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
    const modelAssetPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
-   const common={runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?0.22:0.40,minSuppressionThreshold:0.18};
+   const common={runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?0.18:0.40,minSuppressionThreshold:facingMode==="environment"?0.15:0.18};
    let detector;
    try{detector=await FaceDetector.createFromOptions(vision,{...common,baseOptions:{modelAssetPath,delegate:"GPU"}});}
    catch(gpuError){try{detector=await FaceDetector.createFromOptions(vision,{...common,baseOptions:{modelAssetPath,delegate:"CPU"}});}catch(cpuError){throw new Error("Face detector failed to initialize for this camera. "+(cpuError?.message||gpuError?.message||"Unknown model error"));}}
@@ -178,7 +178,7 @@ export class AIManager{
     const result=detector.detectForVideo(video,ts),w=video.videoWidth,h=video.videoHeight;
     const detections=(result.detections||[]).flatMap(d=>{
      const box=d.boundingBox,score=Number(d.categories?.[0]?.score);
-     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?0.22:0.40))return[];
+     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?0.18:0.40))return[];
      const x=Math.max(0,Math.min(w,box.originX)),y=Math.max(0,Math.min(h,box.originY));
      const right=Math.max(x,Math.min(w,box.originX+box.width)),bottom=Math.max(y,Math.min(h,box.originY+box.height));
      return right>x&&bottom>y?[{class:"face",score,bbox:[x,y,right-x,bottom-y]}]:[];
