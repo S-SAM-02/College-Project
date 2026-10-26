@@ -160,17 +160,23 @@ async function runVisionInference(now){
  finally{inferenceBusy=false}
 }
 function updateObjectResult(pred){
- const cs=pred.filter(p=>p.score>=.28&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
- if(!cs.length){
+ const detections=pred.filter(p=>Number.isFinite(p?.score)&&p.score>=.12&&Array.isArray(p.bbox)&&p.bbox.length>=4&&p.bbox[2]>0&&p.bbox[3]>0)
+  .sort((a,b)=>b.score-a.score);
+ const people=detections.filter(p=>p.class==="person");
+ const objects=detections.filter(p=>p.class!=="person"&&p.class!=="face");
+ if(!detections.length){
   stableClass=null;stableScore=0;
-  $("resultMain").textContent="No common object detected";
-  $("resultDescription").textContent="Object recognition runs independently of hand tracking. Try a bottle, cup, book, person, chair or laptop in clear view.";
-  $("metricValue").textContent="0 objects";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"One hand tracked":"Object detection";return
+  $("resultMain").textContent="Nothing detected yet";
+  $("resultDescription").textContent="Move the camera toward people or everyday objects and let the detector analyze the scene. Very distant, blurred or dim subjects may still be missed.";
+  $("metricValue").textContent="0 detections";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"Hand tracked":"Scanning scene";return
  }
- const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
- $("resultMain").textContent=best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
- $("resultDescription").textContent="Detected a common object in the scene. This fast model recognizes a fixed set of common categories.";
- $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Object detection"
+ const best=objects[0]||people[0];
+ if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
+ $("resultMain").textContent=people.length?people.length+" person"+(people.length===1?"":"s")+" detected":best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+ $("resultDescription").textContent=people.length+" person"+(people.length===1?"":"s")+" and "+objects.length+" other object"+(objects.length===1?"":"s")+" detected in this frame. Multiple detections are kept for near and farther subjects; lighting, distance and occlusion still affect results.";
+ $("metricValue").textContent=detections.length+" detection"+(detections.length===1?"":"s");
+ $("confidenceValue").textContent=Math.round(best.score*100)+"% best";
+ $("gestureValue").textContent=people.length+" people · "+objects.length+" objects";
 }
 function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?(preferredFacing==="environment"?"No face detected yet. Keep the rear camera steady, move closer, and improve lighting; detections combine wide-range and short-range passes.":"No clear faces detected in this frame. Improve lighting and keep faces unobstructed."):"Visible face detections. Small, turned-away or occluded faces may still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent=preferredFacing==="environment"?"Rear-camera full-range model":"Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
@@ -210,11 +216,11 @@ function renderOverlay(now){
  ctx.save();
  if(mirrored){ctx.translate(overlay.width,0);ctx.scale(-1,1)}
  if(mode==="objects"){
-  const boxes=latestObjects.filter(p=>p.class!=="person"&&p.class!=="face"&&p.score>=.055);
+  const boxes=latestObjects.filter(p=>p.class!=="face"&&p.score>=.12);
   for(const b of boxes){
    const[x,y,w,h]=b.bbox;
    ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.shadowColor="#c6a15b40";ctx.shadowBlur=7;ctx.strokeRect(x,y,w,h);ctx.restore();
-   const text=b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%";
+   const text=(b.class==="person"?"Person":b.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase()))+" · "+Math.round(b.score*100)+"%";
    labels.push({x,y,text,w:ctx.measureText(text).width+14,h:24,boxWidth:w});
   }
  } else if(mode==="drawing"){
