@@ -1,5 +1,5 @@
 import{CameraController}from"./camera.js";import{AIManager}from"./ai-manager.js";import{resizeCanvases}from"./image-processing.js";import{HandTracker,drawHandSkeleton}from"./hand-tracking.js";import{AirDrawing}from"./drawing.js";import{HandPortal}from"./portal.js";import{parseCommand}from"./nlp.js";import{PerformanceMeter}from"./performance.js";import{describePeople}from"./person-counter.js";import{filterObjectsNearHands}from"./object-in-hand.js";
-const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0,portalHandsCache=[],portalLastBothAt=0,lastOverlayRenderAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
+const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastHandMediaTime=-1,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0,portalHandsCache=[],portalLastBothAt=0,lastOverlayRenderAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Hold thumb and index together to draw one stroke. Release to stop; pinch again to begin a new stroke. Leaving the frame preserves ink. A fist erases only beneath it."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible faces locally; rear-camera distant faces may be harder to detect."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
@@ -28,7 +28,7 @@ function onModelState(model,state,message){
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
 async function setMode(next){
  if(!configs[next])return;
- mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();portalHandsCache=[];portalLastBothAt=0;handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
+ mode=next;lastInference=0;lastHandMediaTime=-1;lastHandInferenceAt=0;lastVisionInferenceAt=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();portalHandsCache=[];portalLastBothAt=0;handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
  if(next==="drawing"){drawing.resume();}
  updateModeUI();
  if(session){
@@ -49,7 +49,7 @@ async function startCamera(facing=preferredFacing){
   cancelFrameScheduler();cameraLoading(true,"Requesting camera permission…");feedback("Opening "+(facing==="user"?"front":"rear")+" camera…");
   const devices=await camera.start($("cameraSelect").value,facing);
   preferredFacing=facing;populateCameras(devices);updateFacingButtons();applyCameraOrientation();
-  latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;
+  latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;lastHandMediaTime=-1;lastVisionInferenceAt=0;
   await setupMode();cameraLoading(false);
   if(session)startLoop();
  }catch(e){
@@ -122,16 +122,16 @@ function startLoop(){
    if(mode==="drawing"||mode==="portal"||mode==="objects"){
     ai.onHandResult=handleHandResult;loadHandIfNeeded();
     const handInterval=mode==="objects"?65:45;
-    if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastInference&&now-lastHandInferenceAt>=handInterval){
-     lastHandInferenceAt=now;handInferenceBusy=true;
+    if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandMediaTime&&now-lastHandInferenceAt>=handInterval){
+     lastHandMediaTime=mediaTime;lastHandInferenceAt=now;handInferenceBusy=true;
      Promise.resolve().then(()=>ai.handLandmarker.detect(video,now))
       .then(data=>{if(session)handleHandResult(data,now,performance.now())})
       .catch(e=>onModelState("hand","error","Hand inference error: "+(e?.message||String(e))))
       .finally(()=>{handInferenceBusy=false});
     }
    }
-   const inferenceInterval=mode==="objects"?240:((mode==="people"&&preferredFacing==="environment")?200:140);
-   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference
+   const inferenceInterval=mode==="objects"?320:((mode==="people"&&preferredFacing==="environment")?200:140);
+   if((mode==="objects"||mode==="people")&&!inferenceBusy&&!handInferenceBusy&&mediaTime!==lastInference
       &&performance.now()-lastVisionInferenceAt>=inferenceInterval){
     lastInference=mediaTime;lastVisionInferenceAt=performance.now();
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message));
@@ -155,7 +155,8 @@ async function runVisionInference(now){
   if(target!==mode)return;
   const rawPredictions=Array.isArray(predictions)?predictions:[];
   if(target==="objects"){
-   latestObjects=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.18):[];
+   const filtered=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.18):[];
+   latestObjects=mergeStableHeldObjects(latestObjects,filtered);
    updateObjectResult(latestObjects);
   }else{latestObjects=rawPredictions;updatePeopleResult();}
   ai.markInference("object");
@@ -163,6 +164,19 @@ async function runVisionInference(now){
   $("inferenceStatus").textContent="AI "+Math.round(elapsed)+" ms";
  }catch(e){setNotice((target==="people"?"Face":"Object")+" model error: "+e.message);onModelState("object","error",e.message)}
  finally{inferenceBusy=false}
+}
+function mergeStableHeldObjects(previous,current){
+ const now=performance.now();
+ const valid=item=>item&&Array.isArray(item.bbox)&&item.bbox.length>=4&&item.bbox.slice(0,4).every(Number.isFinite)&&item.bbox[2]>0&&item.bbox[3]>0;
+ const overlap=(a,b)=>{const [ax,ay,aw,ah]=a.bbox,[bx,by,bw,bh]=b.bbox;const ix=Math.max(0,Math.min(ax+aw,bx+bw)-Math.max(ax,bx));const iy=Math.max(0,Math.min(ay+ah,by+bh)-Math.max(ay,by));const inter=ix*iy;return inter/Math.max(1,aw*ah+bw*bh-inter)};
+ const next=(Array.isArray(current)?current:[]).filter(valid).map(item=>({...item,lastSeen:now}));
+ // Bridge brief missed frames, but never retain a disappeared object for long.
+ for(const old of (Array.isArray(previous)?previous:[]).filter(valid)){
+  if(now-(old.lastSeen||0)>520)continue;
+  if(next.some(item=>item.class===old.class&&overlap(item,old)>.12))continue;
+  next.push({...old,score:Math.min(old.score||.5,.7),lastSeen:old.lastSeen||now});
+ }
+ return next.sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,6);
 }
 function updateObjectResult(pred){
  const detections=pred.filter(p=>Number.isFinite(p?.score)&&p.score>=.12&&Array.isArray(p.bbox)&&p.bbox.length>=4&&p.bbox[2]>0&&p.bbox[3]>0)
