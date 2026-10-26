@@ -41,9 +41,10 @@ export class AirDrawing {
     this.wasFist = false;
 
     if (!this.enabled || !hand) {
+      // Hide/release the hand cursor without changing any pixels already drawn.
       this.lastPoint = null;
       this.smoother.reset();
-      return { drawing: false, gesture: hand ? "Drawing paused" : "No hand landmarks" };
+      return { drawing: false, gesture: hand ? "Drawing paused" : "Drawing preserved · no hand in frame" };
     }
 
     if (pinchActive(hand)) {
