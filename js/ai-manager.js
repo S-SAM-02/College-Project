@@ -1,11 +1,12 @@
-export const COLLEGE_OBJECT_PROMPTS = ["person","bottle","cup","book","cell phone","laptop","keyboard","mouse","backpack","handbag","suitcase","umbrella","scissors","clock","vase","chair","remote","tv","sports ball","bowl","wine glass","fork","spoon","knife","banana","apple","orange"];
+export const OWL_OBJECT_PROMPTS=["pen","pencil","marker","book","calculator","laptop","keyboard","mouse","mobile phone","headphones","earphones","charger","power bank","bottle","cup","backpack","glasses","scissors","ruler","stapler","keys","watch","plant","flower pot","remote control","camera","microphone","speaker","ID card","water bottle","notebook","tablet","smartphone","wallet","umbrella","mug","water glass","shoe","bag","computer mouse","computer monitor","banana","apple","orange","sports ball","chair","clock","vase","handbag","suitcase"];
+export const COLLEGE_OBJECT_PROMPTS=OWL_OBJECT_PROMPTS;
 const MEDIAPIPE_VERSION="0.10.14",TFJS_VERSION="4.22.0";
 const TFJS_CDN=`https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@${TFJS_VERSION}/dist/tf.min.js`;
 const COCO_CDN="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js";
 const TRANSFORMERS_VERSION="3.7.2";
 const TRANSFORMERS_CDN=`https://cdn.jsdelivr.net/npm/@huggingface/transformers@${TRANSFORMERS_VERSION}`;
 const OWL_MODEL="Xenova/owlvit-base-patch32";
-const OWL_PROMPTS=["pen","pencil","marker","book","calculator","laptop","keyboard","mouse","mobile phone","headphones","earphones","charger","power bank","bottle","cup","backpack","glasses","scissors","ruler","stapler","keys","watch","plant","flower pot","remote control","camera","microphone","speaker","ID card","water bottle","notebook","tablet","smartphone","wallet","umbrella","mug","water glass","shoe","bag","computer mouse","computer monitor","banana","apple","orange","sports ball","chair","clock","vase","handbag","suitcase"];
+const OWL_PROMPTS=OWL_OBJECT_PROMPTS;
 const HANDS_CDN=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
 const HAND_WASM=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
 const HAND_MODEL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
