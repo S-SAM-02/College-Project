@@ -1,5 +1,3 @@
-import { distance } from "./image-processing.js";
-
 const TIP_INDEXES = [4, 8, 12, 16, 20];
 
 export class HandPortal {
