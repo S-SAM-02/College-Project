@@ -160,13 +160,14 @@ export class AIManager{
  async loadPeople(facingMode=this.currentFacingMode){
   this.currentFacingMode=facingMode;
   if(this.faceDetector&&this.faceFacingMode===facingMode)return this.faceDetector;
-  if(this.loading.people)return this.loading.people;
+  if(this.loading.people){await this.loading.people.catch(()=>{});if(this.faceDetector&&this.faceFacingMode===facingMode)return this.faceDetector;}
+  if(this.faceTask&&this.faceFacingMode!==facingMode){try{this.faceTask.close?.()}catch{}this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;}
   this.onModelState("object","loading",facingMode==="environment"?"Loading rear-camera face detector…":"Loading front-camera face detector…");
   this.loading.people=(async()=>{
    const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
    const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
    const modelAssetPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
-   const common={runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?0.35:0.42,minSuppressionThreshold:0.25};
+   const common={runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?0.32:0.42,minSuppressionThreshold:0.2};
    let detector;
    try{detector=await FaceDetector.createFromOptions(vision,{...common,baseOptions:{modelAssetPath,delegate:"GPU"}});}
    catch(gpuError){try{detector=await FaceDetector.createFromOptions(vision,{...common,baseOptions:{modelAssetPath,delegate:"CPU"}});}catch(cpuError){throw new Error("Face detector failed to initialize for this camera. "+(cpuError?.message||gpuError?.message||"Unknown model error"));}}
@@ -177,15 +178,14 @@ export class AIManager{
     const result=detector.detectForVideo(video,ts),w=video.videoWidth,h=video.videoHeight;
     const detections=(result.detections||[]).flatMap(d=>{
      const box=d.boundingBox,score=Number(d.categories?.[0]?.score);
-     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?0.35:0.42))return[];
+     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?0.32:0.42))return[];
      const x=Math.max(0,Math.min(w,box.originX)),y=Math.max(0,Math.min(h,box.originY));
      const right=Math.max(x,Math.min(w,box.originX+box.width)),bottom=Math.max(y,Math.min(h,box.originY+box.height));
      return right>x&&bottom>y?[{class:"face",score,bbox:[x,y,right-x,bottom-y]}]:[];
     });
     this.lastPeopleCount=detections.length;this.lastSummary=`${detections.length} face(s) detected`;
     this.lastObjectResult=detections;this.lastObjectMode="mediapipe-face-"+(facingMode==="environment"?"rear":"front");
-    this.lastObjectInferenceMs=performance.now()-startedFace;
-    return detections;
+    this.lastObjectInferenceMs=performance.now()-startedFace;return detections;
    }};
    this.onModelState("object","loaded",facingMode==="environment"?"Rear-camera face detector ready":"Front-camera face detector ready");
    return this.faceDetector;
@@ -194,7 +194,7 @@ export class AIManager{
   catch(error){const message="Face detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.people=null}
  }
- async loadHands(){
+  async loadHands(){
   if(this.handLandmarker)return this.handLandmarker;
   if(this.loading.hand)return this.loading.hand;
   this.onModelState("hand","loading","Loading MediaPipe Hand Landmarker…");
