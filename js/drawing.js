@@ -14,10 +14,30 @@ export class AirDrawing {
 
   process(hands, fist) {
     const hand = Array.isArray(hands) && hands.length ? hands[0] : null;
-    if (fist) {
-      if (!this.wasFist) this.clear();
+    if (fist && hand) {
+      // Small moving eraser under the closed hand; never clear the whole ink layer.
+      this.lastPoint = null;
+      this.strokeActive = false;
+      this.smoother.reset();
+      const points = hand.landmarks || [];
+      const palmPoints = [0, 5, 9, 13, 17].map(index => points[index]).filter(point =>
+        Number.isFinite(point?.x) && Number.isFinite(point?.y));
+      if (palmPoints.length) {
+        const center = palmPoints.reduce((sum, point) => ({
+          x: sum.x + point.x / palmPoints.length,
+          y: sum.y + point.y / palmPoints.length
+        }), { x: 0, y: 0 });
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, Math.max(14, Math.min(28, this.canvas.width * 0.026)), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       this.wasFist = true;
-      return { drawing: false, gesture: "Fist detected · canvas cleared" };
+      return { drawing: false, gesture: "Fist eraser · move over the stroke to erase locally" };
     }
     this.wasFist = false;
 
