@@ -5,7 +5,7 @@ export class AirDrawing {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-    this.smoother = new Smoother(0.62);
+    this.smoother = new Smoother(0.78);
     this.lastPoint = null;
     this.enabled = true;
     this.wasFist = false;
