@@ -1,4 +1,4 @@
-import { Smoother } from "./image-processing.js";
+import { Smoother, clamp, distance } from "./image-processing.js";
 import { pinchActive } from "./hand-tracking.js";
 
 export class AirDrawing {
@@ -10,6 +10,30 @@ export class AirDrawing {
     this.strokeActive = false;
     this.enabled = true;
     this.wasFist = false;
+    this.lastEraserPoint = null;
+  }
+
+  resize(width, height) {
+    width = Math.max(1, Math.round(Number(width) || 1));
+    height = Math.max(1, Math.round(Number(height) || 1));
+    if (this.canvas.width === width && this.canvas.height === height) return false;
+    const oldWidth = this.canvas.width, oldHeight = this.canvas.height;
+    let snapshot = null;
+    const doc = this.canvas.ownerDocument || (typeof document !== "undefined" ? document : null);
+    if (doc && oldWidth > 0 && oldHeight > 0) {
+      snapshot = doc.createElement("canvas");
+      snapshot.width = oldWidth; snapshot.height = oldHeight;
+      snapshot.getContext("2d")?.drawImage(this.canvas, 0, 0);
+    }
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.ctx = this.canvas.getContext("2d");
+    if (snapshot && this.ctx) this.ctx.drawImage(snapshot, 0, 0, oldWidth, oldHeight, 0, 0, width, height);
+    this.lastPoint = null;
+    this.lastEraserPoint = null;
+    this.strokeActive = false;
+    this.smoother.reset();
+    return true;
   }
 
   process(hands, fist) {
@@ -27,14 +51,26 @@ export class AirDrawing {
           x: sum.x + point.x / palmPoints.length,
           y: sum.y + point.y / palmPoints.length
         }), { x: 0, y: 0 });
+        const palmWidth = points[5] && points[17] ? distance(points[5], points[17]) : 0;
+        const radius = clamp(palmWidth * 0.62 || this.canvas.width * 0.03, 18, Math.max(24, this.canvas.width * 0.065));
         const ctx = this.ctx;
         ctx.save();
         ctx.globalCompositeOperation = "destination-out";
         ctx.shadowBlur = 0;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = radius * 2;
+        if (this.lastEraserPoint) {
+          ctx.beginPath();
+          ctx.moveTo(this.lastEraserPoint.x, this.lastEraserPoint.y);
+          ctx.lineTo(center.x, center.y);
+          ctx.stroke();
+        }
         ctx.beginPath();
-        ctx.arc(center.x, center.y, Math.max(12, Math.min(24, this.canvas.width * 0.022)), 0, Math.PI * 2);
+        ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+        this.lastEraserPoint = center;
       }
       this.wasFist = true;
       return { drawing: false, gesture: "Fist eraser · move over the stroke to erase locally" };
@@ -43,11 +79,13 @@ export class AirDrawing {
 
     if (!this.enabled || !hand) {
       this.lastPoint = null;
+      this.lastEraserPoint = null;
       this.strokeActive = false;
       this.smoother.reset();
       return { drawing: false, gesture: hand ? "Drawing paused · existing ink kept" : "Hand left view · existing ink kept" };
     }
 
+    this.lastEraserPoint = null;
     if (pinchActive(hand)) {
       const point = this.smoother.update(hand.indexTip);
       if (!this.strokeActive) { this.lastPoint = null; this.strokeActive = true; }
@@ -78,15 +116,16 @@ export class AirDrawing {
     this.lastPoint = null;
     this.strokeActive = false;
     this.smoother.reset();
-    return { drawing: false, gesture: "Pinch thumb and index to start a new stroke · old ink kept" };
+    return { drawing: false, gesture: "Touch thumb and index to draw · release to pause; existing ink stays" };
   }
 
   clear() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.lastPoint = null;
+    this.lastEraserPoint = null;
     this.strokeActive = false;
     this.smoother.reset();
   }
-  pause() { this.enabled = false; this.lastPoint = null; this.strokeActive = false; this.smoother.reset(); }
+  pause() { this.enabled = false; this.lastPoint = null; this.lastEraserPoint = null; this.strokeActive = false; this.smoother.reset(); }
   resume() { this.enabled = true; }
 }
