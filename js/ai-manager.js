@@ -210,10 +210,11 @@ export class AIManager {
     } finally { this.loading.hand = null; }
   }
 
-  async ensureMode(mode) {
+  async ensureMode(mode, facingMode = this.currentFacingMode) {
     this.currentMode = mode;
+    this.currentFacingMode = facingMode;
     if (mode === "objects") return this.loadObjects();
-    if (mode === "people") return this.loadPeople(arguments.length > 1 ? arguments[1] : this.currentFacingMode);
+    if (mode === "people") return this.loadPeople(facingMode);
     if (mode === "drawing" || mode === "portal") return this.loadHands();
     return null;
   }
