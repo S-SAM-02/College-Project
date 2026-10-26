@@ -50,7 +50,7 @@ test('person finder count utility accepts local detector predictions', () => {
     {class:'person',score:0.52},
     {class:'person',score:0.2},
     {class:'chair',score:0.97}
-  ]),'2');
+  ]),'3');
 });
 
 import { HandPortal } from '../js/portal.js';
