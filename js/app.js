@@ -45,7 +45,7 @@ async function setupMode(){
  try{
   await ai.ensureMode(mode,preferredFacing);
   if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
-  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";
+  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Camera face detector ready":"Open-vocabulary object detector ready";
   if(mode==="drawing"||mode==="portal")setNotice("Hand model ready. Show the full hand(s) in the camera view.");
   else setNotice("Waiting for the next analysis frame.");
  }catch(e){$("engineStatus").textContent="Initialization failed";setNotice(e.message)}
