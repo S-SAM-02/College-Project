@@ -102,14 +102,11 @@ function startLoop(){
    }
   }
   if(session){
-   if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(onVideoFrame);
+   if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((nextNow,nextMeta)=>{onVideoFrame(nextNow,nextMeta);renderPreview(nextNow)});
    else setTimeout(()=>{if(session)inferenceRaf=requestAnimationFrame(()=>onVideoFrame(performance.now(),{mediaTime:video.currentTime}))},0);
   }
  };
- if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(now=>{
-   onVideoFrame(now);
-   renderPreview(now);
- });
+ if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((now,meta)=>{onVideoFrame(now,meta);renderPreview(now)});
  else {
    schedulePreview();
    inferenceRaf=requestAnimationFrame(now=>onVideoFrame(now,{mediaTime:video.currentTime}));
