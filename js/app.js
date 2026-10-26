@@ -5,7 +5,20 @@ function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("comm
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
 function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
 function onDimensions(w,h,settings){resizeCanvases(video,[overlay,ink]);$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
-function onModelState(model,state,message){modelStates[model]=state;const p=model==="object"?"object":"hand",status=$(p+"ModelStatus"),tag=$(p+"ModelTag"),dot=$(p+"ModelDot");status.textContent=message;tag.textContent=state==="ready"?"READY":state==="loading"?"LOAD":state==="error"?"ERROR":state==="loaded"?"TEST":"IDLE";dot.textContent=state==="ready"?"✓":state==="error"?"!":state==="loading"?"·":"○";dot.parentElement.classList.toggle("ready",state==="ready");dot.parentElement.classList.toggle("error",state==="error");$("modelCount").textContent=Object.values(modelStates).filter(s=>s==="ready").length+" / 2 READY";if(state==="error")setNotice(message);if(state==="ready"||state==="loaded")$("engineStatus").textContent=model==="hand"?"Local hand tracking ready":mode==="people"?"Local face detector ready":"Local object detector ready"}
+function onModelState(model,state,message){
+ modelStates[model]=state;
+ const prefix=model==="object"?"object":"hand";
+ const status=$(prefix+"ModelStatus"),tag=$(prefix+"ModelTag"),dot=$(prefix+"ModelDot");
+ if(status)status.textContent=message;
+ if(tag)tag.textContent=state==="ready"?"READY":state==="error"?"ERROR":state==="loading"?"LOAD":state==="loaded"?"TEST":"IDLE";
+ if(dot){dot.textContent=state==="ready"?"✓":state==="error"?"!":state==="loading"?"·":"○";dot.parentElement.classList.toggle("ready",state==="ready");dot.parentElement.classList.toggle("error",state==="error");}
+ $("modelCount").textContent=Object.values(modelStates).filter(s=>s==="ready").length+" / 2 READY";
+ if(state==="error")setNotice(message);
+ if(state==="ready"||state==="loaded"){
+  if(model==="hand")$("engineStatus").textContent="MediaPipe hand tracking ready";
+  else $("engineStatus").textContent=mode==="people"?"Local face detector ready":"Open-vocabulary object detector ready";
+ }
+}
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
 async function setMode(next){
  if(!configs[next])return;
