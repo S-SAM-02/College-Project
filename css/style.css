@@ -134,3 +134,36 @@
   .mode-button { padding: 10px 7px; gap: 6px; }
   .mode-button strong { white-space: normal; }
 }
+
+/* Focused mobile camera layout correction: preview and overlays share one viewport. */
+.camera-frame { aspect-ratio: 16 / 10; min-height: 0; height: auto; }
+.camera-frame video, .camera-frame canvas { width: 100%; height: 100%; inset: 0; }
+.camera-frame video, .camera-frame canvas { object-fit: fill; }
+.camera-frame #overlayCanvas, .camera-frame #inkCanvas { pointer-events: none; }
+@media (max-width: 760px) {
+ .shell { width: 100%; max-width: 100%; padding-left: 12px; padding-right: 12px; }
+ .workspace { width: 100%; max-width: 100%; padding: 16px 11px 0; overflow: hidden; }
+ .console-grid { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+ .camera-column, .insight-panel { flex: 0 0 auto; width: 100%; min-width: 0; max-width: 100%; }
+ .camera-frame { width: 100%; aspect-ratio: 4 / 3; height: auto; min-height: 0; overflow: hidden; }
+ .camera-frame video, .camera-frame canvas { object-fit: fill; }
+ .camera-placeholder { padding: 16px 10px; }
+ .camera-tools { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; width: 100%; }
+ .camera-tool-group { display: grid; width: 100%; min-width: 0; gap: 5px; }
+ .camera-tool-group select, #cameraFacingSelect { width: 100%; min-width: 0; max-width: 100%; }
+ .subtle-button { grid-column: 1 / -1; justify-self: start; }
+ .insight-panel { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 12px; overflow: hidden; }
+ .panel-header, .result-hero, .result-details, .model-health-head, .model-row, .notice-box { width: 100%; min-width: 0; max-width: 100%; }
+ .result-hero { min-height: 0; padding: 16px 0; }
+ .model-row { grid-template-columns: 16px minmax(0,1fr) auto; }
+ .command-section { grid-template-columns: minmax(0,1fr); gap: 18px; }
+ .command-form { display: flex; width: 100%; min-width: 0; gap: 5px; }
+ .command-form input { flex: 1 1 0; width: 0; min-width: 0; }
+}
+@media (max-width: 380px) {
+ .shell { padding-left: 9px; padding-right: 9px; }
+ .workspace { padding-left: 8px; padding-right: 8px; }
+ .mode-button { gap: 6px; padding: 9px 6px; }
+ .mode-button strong, .mode-button small { white-space: normal; }
+ .camera-topline, .camera-bottomline { left: 7px; right: 7px; }
+}
