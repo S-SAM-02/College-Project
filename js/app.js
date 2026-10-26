@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFr
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Pinch thumb and index finger to draw; close your hand into a fist to clear."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible face detections locally. It does not identify people."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— AI FPS";cancelAnimationFrame(raf);ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
-function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.remove("mirrored-overlay");overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
+function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
 function onDimensions(w,h,settings){resizeCanvases(video,[overlay,ink]);$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
 function onModelState(model,state,message){modelStates[model]=state;const p=model==="object"?"object":"hand",status=$(p+"ModelStatus"),tag=$(p+"ModelTag"),dot=$(p+"ModelDot");status.textContent=message;tag.textContent=state==="ready"?"READY":state==="loading"?"LOAD":state==="error"?"ERROR":state==="loaded"?"TEST":"IDLE";dot.textContent=state==="ready"?"✓":state==="error"?"!":state==="loading"?"·":"○";dot.parentElement.classList.toggle("ready",state==="ready");dot.parentElement.classList.toggle("error",state==="error");$("modelCount").textContent=Object.values(modelStates).filter(s=>s==="ready").length+" / 2 READY";if(state==="error")setNotice(message);if(state==="ready"||state==="loaded")$("engineStatus").textContent=model==="hand"?"Local hand tracking ready":mode==="people"?"Local face detector ready":"Local object detector ready"}
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
@@ -25,42 +25,42 @@ function renderOverlay(now){
  ctx.clearRect(0,0,overlay.width,overlay.height);
  const mirrored=preferredFacing==="user";
  const labels=[];
+ ctx.save();
+ if(mirrored){ctx.translate(overlay.width,0);ctx.scale(-1,1)}
  if(mode==="objects"){
-  const boxes=latestObjects.filter(p=>p.class!=="person"&&p.class!=="face"&&p.score>=.035);
+  const boxes=latestObjects.filter(p=>p.class!=="person"&&p.class!=="face"&&p.score>=.055);
   for(const b of boxes){
    const[x,y,w,h]=b.bbox;
    ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.shadowColor="#c6a15b40";ctx.shadowBlur=7;ctx.strokeRect(x,y,w,h);ctx.restore();
-   labels.push({x,y,text:b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%",w:ctx.measureText(b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%").width+14,h:24});
+   const text=b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%";
+   labels.push({x,y,text,w:ctx.measureText(text).width+14,h:24,boxWidth:w});
   }
- } else if(mode==="drawing"&&latestHands.length) {
+ } else if(mode==="drawing"&&latestHands.length){
   drawHandSkeleton(ctx,latestHands);
- } else if(mode==="portal") {
+ } else if(mode==="portal"){
   const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height,now);
   $("resultMain").textContent=portalResult.active?"Portal connected":"Show both hands";
   $("resultDescription").textContent=portalResult.active?"Blue landmarks and five fingertip links are updating from both hands.":"Keep both hands open and fully inside the frame.";
   $("metricValue").textContent=latestHands.length+" / 2 hands";
   $("confidenceValue").textContent="Local landmarks";
   $("gestureValue").textContent=portalResult.gesture;
- } else if(mode==="people") {
+ } else if(mode==="people"){
   for(const face of latestObjects){
    if(face.class!=="face")continue;
    const[x,y,w,h]=face.bbox;
    ctx.save();ctx.strokeStyle="#C6A15B";ctx.lineWidth=Math.max(2,overlay.width*.002);ctx.strokeRect(x,y,w,h);ctx.restore();
-   labels.push({x,y,text:"Face · "+Math.round(face.score*100)+"%",w:ctx.measureText("Face · "+Math.round(face.score*100)+"%").width+14,h:22});
+   const text="Face · "+Math.round(face.score*100)+"%";
+   labels.push({x,y,text,w:ctx.measureText(text).width+14,h:22,boxWidth:w});
   }
  }
- // Geometry is mirrored through the CSS preview; labels are drawn after that pass
- // in a separate, unmirrored coordinate pass so text always reads left-to-right.
- if(labels.length){
-  if(mirrored){
-   ctx.save();ctx.translate(overlay.width,0);ctx.scale(-1,1);
-  }
-  for(const item of labels){
-   const lx=Math.max(0,Math.min(overlay.width-item.w,item.x));
-   const ly=Math.max(0,item.y-item.h-3);
-   ctx.save();ctx.font="600 13px DM Sans, sans-serif";ctx.fillStyle="#ffffffef";ctx.fillRect(lx,ly,item.w,item.h);ctx.fillStyle="#725321";ctx.textBaseline="middle";ctx.fillText(item.text,lx+7,ly+item.h/2);ctx.restore();
-  }
-  if(mirrored)ctx.restore();
+ ctx.restore();
+ // Boxes/landmarks use a mirrored geometry transform for the front camera.
+ // Text uses mirrored box coordinates but is painted untransformed, so glyphs stay readable.
+ for(const item of labels){
+  const mirroredBoxX=mirrored?overlay.width-item.x-item.boxWidth:item.x;
+  const lx=Math.max(0,Math.min(overlay.width-item.w,mirroredBoxX));
+  const ly=Math.max(0,item.y-item.h-3);
+  ctx.save();ctx.font="600 13px DM Sans, sans-serif";ctx.fillStyle="#ffffffef";ctx.fillRect(lx,ly,item.w,item.h);ctx.fillStyle="#725321";ctx.textBaseline="middle";ctx.fillText(item.text,lx+7,ly+item.h/2);ctx.restore();
  }
 }
 function clearDrawing(){drawing.clear();feedback("Drawing canvas cleared.")}
