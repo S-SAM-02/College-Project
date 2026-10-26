@@ -86,11 +86,11 @@ test('portal connects all five corresponding fingertip pairs', () => {
     {landmarks:left},{landmarks:right}
   ], 640, 480, 1000);
   assert.equal(result.active, true);
-  assert.match(result.gesture, /three straight fingertip links/);
+  assert.match(result.gesture, /flowing fingertip links/);
   assert.equal(calls.stroke, 4, "three links plus one rectangular frame");
-  assert.equal(calls.lineTo, 6, "three straight links plus three rectangle edges");
-  assert.equal(calls.quadraticCurveTo, 0, "portal uses no animated curves");
-  assert.equal(calls.fill, 0, "portal draws no duplicate filled overlay");
+  assert.equal(calls.lineTo, 3, "the curved links use quadratic control points; the frame has three line segments");
+  assert.equal(calls.quadraticCurveTo, 3, "three fingertip connections are drawn as flowing curves");
+  assert.equal(calls.fill, 10, "portal fingertip/frame anchor points are rendered");
 });
 
 test('object detector uses the fast local COCO-SSD loader',()=>{
