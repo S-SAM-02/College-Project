@@ -1,28 +1,19 @@
 # OBJECT MIND — Intelligent Vision Lab
 
-A browser-first computer-vision workspace with a mirrored front-camera preview, local two-hand tracking, air drawing, a two-hand portal, common-object detection, and visible-face counting.
+A browser-first vision workspace with local object detection, local face counting, MediaPipe hand tracking, air drawing, and a two-hand fingertip portal.
 
-## How the models work
+## Models
 
-The app layout and application logic are maintained in this repository. On first use, the browser downloads pretrained model runtime/weights:
-- **TensorFlow.js + COCO-SSD** for common-object bounding boxes.
-- **MediaPipe Face Detector** for visible-face detection in Person Finder.
-- **MediaPipe Hand Landmarker** for 21 hand landmarks used by air drawing and two-hand gestures.
+The UI and application logic are maintained in this repository. The browser downloads public pretrained runtimes/weights on first use:
+- **Object Finder:** Transformers.js with `Xenova/owlvit-base-patch32`, an open-vocabulary detector prompted with a curated list of 50 college/everyday item names (pen, pencil, marker, book, calculator, laptop, keyboard, mouse, mobile phone, headphones, earphones, charger, power bank, bottle, cup, backpack, glasses, scissors, ruler, stapler, keys, watch, plant, flower pot, remote, camera, microphone, speaker, ID card and more). It returns approximate boxes/labels; it does not learn new weights from those names. Large downloads and slower inference are expected on first run. A local COCO-SSD fallback remains available if the open-vocabulary model cannot load.
+- **Person Finder:** MediaPipe Face Detector with short-range model for front camera and full-range model for rear camera. It counts face detections, not people identities. It will undercount crowded scenes when faces are tiny, occluded, or turned away; it is not a validated 50–100 person crowd-counting system.
+- **Air Drawing and Two-Hand Portal:** MediaPipe Hand Landmarker returns 21 landmarks per detected hand. Blue skeleton lines show the five fingers. Pinch thumb/index to draw; close the hand into a fist to clear. The portal links all five corresponding fingertip pairs when two hands are visible.
 
-After these downloads, inference runs on the user's device. No API key or server endpoint is required for these core modes. Internet access is required on first use to fetch public library/model files. COCO-SSD recognizes common trained categories, not arbitrary items. Person Finder counts visible faces rather than identifying people; tiny, turned-away or occluded faces may be missed, and a face in a photo or poster can sometimes be detected.
-
-## Features
-
-- **Camera:** browser permission-based camera. The front-facing preview and canvas overlays are horizontally mirrored together; the rear camera remains unmirrored.
-- **Air Drawing:** pinch thumb and index together to draw; release to pause; close your hand into a fist to clear the canvas.
-- **Two-Hand Portal:** local two-hand tracking; bringing both index fingertips close activates the portal effect.
-- **Object Finder:** COCO-SSD detections with bounding boxes and confidence for the model's supported common classes.
-- **Person Finder:** local face detection and face boxes. This is not facial recognition and does not identify anyone.
-- **Commands:** project-owned text-command parsing and optional browser speech recognition.
+All inference runs in the browser after model download. No API key or server endpoint is needed for these modes. First use requires internet access to download public runtime/model files.
 
 ## Run and deploy
 
-Requires a modern browser with camera support and a secure context (HTTPS or localhost). GitHub Pages can host the complete static app; core detection no longer relies on the `/api/vision` endpoint.
+Requires HTTPS or localhost, camera permission, and a modern browser. GitHub Pages can host the static app.
 
 ```sh
 npm run check
@@ -31,7 +22,8 @@ npm test
 
 ## Troubleshooting
 
-- If the camera is black, allow camera permission in browser site settings and reload.
-- If a model is still loading, keep the page open and online. Press **Retry AI setup** after correcting network restrictions. Blocking jsDelivr or the MediaPipe model host can prevent first use.
-- If front-camera movement feels reversed, ensure **Front camera · mirrored** is selected. Preview and overlays are mirrored together.
-- If object or face detections are inconsistent, improve lighting, keep objects/faces fully in frame, and avoid motion blur. The pretrained models are general detectors, not guaranteed exact item or crowd classifiers.
+- Keep items well-lit, still, and large enough in frame. Open-vocabulary detection is slower than fixed-class detectors and can still return false positives or miss unfamiliar views.
+- The first object model download is large; allow it to finish once before expecting repeated detection. If it fails, use **Retry AI setup** and check network access to jsDelivr and Hugging Face.
+- For hand tracking, keep the full hand visible, palm facing the camera, fingers separated, and use even lighting. Retry model setup if the blue landmark overlay never appears.
+- Person Finder counts detected faces. It cannot guarantee that every person in a large crowd is found.
+- The front-facing video preview is mirrored, while the object/face label text remains readable. The rear-facing preview and labels remain natural.
