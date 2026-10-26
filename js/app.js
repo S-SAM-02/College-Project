@@ -105,7 +105,7 @@ function startLoop(){
   }
  };
  const loadHandIfNeeded=()=>{
-  if(!session||!(mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand||handLoadNoticeShown)return;
+  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects")||ai.handLandmarker||ai.loading.hand||handLoadNoticeShown)return;
   handLoadNoticeShown=true;setNotice("Loading hand landmark model…");
   ai.loadHands().then(()=>{
    handLoadNoticeShown=false;ai.onHandResult=handleHandResult;
