@@ -2,3 +2,13 @@
 /* Unified front/rear camera selector */
 #cameraFacingSelect{max-width:145px;border:1px solid var(--line);background:#fff;border-radius:5px;padding:7px 24px 7px 9px;color:var(--muted);font-size:10px}
 @media(max-width:600px){#cameraFacingSelect{max-width:130px;font-size:9px}}
+
+/* Front-facing camera: mirror video and canvas layers as one coordinate space. */
+.camera-frame video.mirrored-preview,
+.camera-frame canvas.mirrored-overlay {
+  transform: scaleX(-1);
+}
+.camera-frame video,
+.camera-frame canvas {
+  transform-origin: center;
+}
