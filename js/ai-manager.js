@@ -78,7 +78,43 @@ export class AIManager{
     } finally { this.loading.people = null; }
   }
 
-  async loadHands(){if(this.handLandmarker)return this.handLandmarker;if(this.loading.hand)return this.loading.hand;this.onModelState("hand","loading","Loading MediaPipe two-hand landmarks…");this.loading.hand=(async()=>{const{FilesetResolver,HandLandmarker}=await import(HANDS_CDN),vision=await FilesetResolver.forVisionTasks(HAND_WASM),options={baseOptions:{modelAssetPath:HAND_MODEL,delegate:"GPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:0.32,minHandPresenceConfidence:0.32,minTrackingConfidence:0.32};try{this.handTask=await HandLandmarker.createFromOptions(vision,options)}catch{this.handTask=await HandLandmarker.createFromOptions(vision,{...options,baseOptions:{modelAssetPath:HAND_MODEL,delegate:"CPU"}})}const adapter={detectForVideo:(video,timestamp=performance.now())=>{if(!video?.videoWidth)throw new Error("Camera frame is not ready.");const ts=Math.max(this.lastHandTimestamp+1,Math.floor(timestamp));this.lastHandTimestamp=ts;const result=this.handTask.detectForVideo(video,ts);return{landmarks:(result.landmarks||[]).map(points=>points.map(p=>({x:p.x,y:p.y,z:p.z||0}))),handednesses:(result.handednesses||[]).map(pair=>[{categoryName:pair?.[0]?.categoryName||"Unknown",score:pair?.[0]?.score||0}])}}};this.handLandmarker=adapter;this.onModelState("hand","loaded","MediaPipe two-hand landmarks ready");return adapter})();try{return await this.loading.hand}catch(e){this.onModelState("hand","error","Hand model failed to load: "+(e?.message||"runtime/download error"));throw e}finally{this.loading.hand=null}}
+  async loadHands(){
+    if(this.handLandmarker)return this.handLandmarker;
+    if(this.loading.hand)return this.loading.hand;
+    this.onModelState("hand","loading","Loading asynchronous MediaPipe two-hand landmarks…");
+    this.loading.hand=(async()=>{
+      const {FilesetResolver,HandLandmarker}=await import(HANDS_CDN);
+      const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
+      const normalizeResult=result=>({
+        landmarks:(result?.landmarks||[]).map(points=>points.map(p=>({x:p.x,y:p.y,z:p.z||0}))),
+        handednesses:(result?.handednesses||[]).map(pair=>[{categoryName:pair?.[0]?.categoryName||"Unknown",score:pair?.[0]?.score||0}])
+      });
+      const options={
+        baseOptions:{modelAssetPath:HAND_MODEL,delegate:"GPU"},
+        runningMode:"LIVE_STREAM",numHands:2,
+        minHandDetectionConfidence:0.32,minHandPresenceConfidence:0.32,minTrackingConfidence:0.32,
+        resultListener:(result)=>{this.latestHandResult=normalizeResult(result);this.latestHandResultAt=performance.now();this.handResultCount=(this.handResultCount||0)+1;},
+        errorListener:(error)=>{this.lastHandError=error?.message||String(error);}
+      };
+      try{this.handTask=await HandLandmarker.createFromOptions(vision,options);}
+      catch{this.handTask=await HandLandmarker.createFromOptions(vision,{...options,baseOptions:{modelAssetPath:HAND_MODEL,delegate:"CPU"}});}
+      const adapter={
+        detectAsync:(video,timestamp=performance.now())=>{
+          if(!video?.videoWidth)throw new Error("Camera frame is not ready.");
+          const ts=Math.max(this.lastHandTimestamp+1,Math.floor(timestamp));this.lastHandTimestamp=ts;
+          this.handTask.detectAsync(video,ts);
+        },
+        getLatestResult:()=>({result:this.latestHandResult||{landmarks:[],handednesses:[]},at:this.latestHandResultAt||0,count:this.handResultCount||0}),
+        getLastError:()=>this.lastHandError||""
+      };
+      this.handLandmarker=adapter;
+      this.onModelState("hand","loaded","Asynchronous MediaPipe two-hand landmarks ready");
+      return adapter;
+    })();
+    try{return await this.loading.hand;}
+    catch(error){this.onModelState("hand","error","Hand model failed to load: "+(error?.message||"runtime/download error"));throw error;}
+    finally{this.loading.hand=null;}
+  }
  async ensureMode(mode,facingMode=this.currentFacingMode){this.currentMode=mode;this.currentFacingMode=facingMode;if(mode==="objects")return this.loadObjects();if(mode==="people")return this.loadPeople(facingMode);if(mode==="drawing"||mode==="portal")return this.loadHands();return null}
  markInference(model){this.onModelState(model==="hand"?"hand":"object","ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"Local face detector analyzing the camera":"COCO-SSD Lite detecting common classes")}
  dispose(){try{this.handTask?.close?.()}catch{}try{this.faceTask?.close?.()}catch{}this.handTask=null;this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;this.handLandmarker=null;this.objectModel=null}
