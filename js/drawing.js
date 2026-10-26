@@ -5,7 +5,7 @@ export class AirDrawing {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-    this.smoother = new Smoother(0.78);
+    this.smoother = new Smoother(0.86);
     this.lastPoint = null;
     this.enabled = true;
     this.wasFist = false;
@@ -21,10 +21,9 @@ export class AirDrawing {
       const palmPoints = [0, 5, 9, 13, 17].map(index => points[index]).filter(point =>
         Number.isFinite(point?.x) && Number.isFinite(point?.y));
       if (palmPoints.length) {
-        const center = palmPoints.reduce((sum, point) => ({
-          x: sum.x + point.x / palmPoints.length,
-          y: sum.y + point.y / palmPoints.length
-        }), { x: 0, y: 0 });
+        const center = hand.wrist && Number.isFinite(hand.wrist.x) && Number.isFinite(hand.wrist.y)
+          ? { x: hand.wrist.x * 0.25 + palmPoints[0].x * 0.75, y: hand.wrist.y * 0.25 + palmPoints[0].y * 0.75 }
+          : palmPoints.reduce((sum, point) => ({ x: sum.x + point.x / palmPoints.length, y: sum.y + point.y / palmPoints.length }), { x: 0, y: 0 });
         const ctx = this.ctx;
         const radius = Math.max(18, Math.min(34, this.canvas.width * 0.03));
         ctx.save();
