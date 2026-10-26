@@ -84,7 +84,7 @@ test('portal connects all five corresponding fingertip pairs', () => {
     {landmarks:left},{landmarks:right}
   ], 640, 480, 1000);
   assert.equal(result.active, true);
-  assert.match(result.gesture, /all five finger pairs linked/);
+  assert.match(result.gesture, /five fingertip pairs linked/);
 });
 
 import { COLLEGE_OBJECT_PROMPTS } from '../js/ai-manager.js';
