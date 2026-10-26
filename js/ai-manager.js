@@ -38,7 +38,7 @@ export class AIManager{
     const w=video.videoWidth,h=video.videoHeight;
     const mapped=(Array.isArray(found)?found:[]).map(item=>{
      const b=item.bbox||[],x=Math.max(0,Math.min(w,Number(b[0])||0)),y=Math.max(0,Math.min(h,Number(b[1])||0)),right=Math.max(x,Math.min(w,x+(Number(b[2])||0))),bottom=Math.max(y,Math.min(h,y+(Number(b[3])||0)));
-     return{class:String(item.class||"object").toLowerCase().replace(/[\\s-]+/g,"_"),score:Number(item.score)||0,bbox:[x,y,right-x,bottom-y]};
+     return{class:String(item.class||"object").toLowerCase().replace(/[\s-]+/g,"_"),score:Number(item.score)||0,bbox:[x,y,right-x,bottom-y]};
     }).filter(p=>p.score>=0.28&&p.bbox[2]>0&&p.bbox[3]>0);
     this.lastObjectInferenceMs=performance.now()-started;this.lastObjectInferenceAt=performance.now();this.lastObjectMode="coco-ssd-lite";
     this.lastObjectResult=mapped;this.lastPeopleCount=mapped.filter(p=>p.class==="person").length;this.lastSummary=mapped.map(p=>p.class).join(", ");return mapped;
@@ -121,6 +121,6 @@ export class AIManager{
     finally{this.loading.hand=null;}
   }
  async ensureMode(mode,facingMode=this.currentFacingMode){this.currentMode=mode;this.currentFacingMode=facingMode;if(mode==="objects")return this.loadObjects();if(mode==="people")return this.loadPeople(facingMode);if(mode==="drawing"||mode==="portal")return this.loadHands();return null}
- markInference(model){this.onModelState(model,"ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"MediaPipe Face Detector analyzing visible faces":"COCO-SSD Lite analyzing live frames")}
+ markInference(model){this.onModelState(model==="hand"?"hand":"object","ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"MediaPipe Face Detector analyzing visible faces":"COCO-SSD Lite analyzing live frames")}
  dispose(){try{this.handTask?.close?.()}catch{}try{this.faceTask?.close?.()}catch{}this.handTask=null;this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;this.handLandmarker=null;this.objectModel=null}
 }
