@@ -75,3 +75,20 @@
   .command-form { display: flex; width: 100%; min-width: 0; gap: 5px; }
   .command-form input { flex: 1 1 0; width: 0; min-width: 0; }
 }
+
+
+/* Targeted phone layout correction: keep preview layers stacked and analysis content below camera. */
+@media (max-width: 600px) {
+  .console-grid { display: flex; flex-direction: column; gap: 16px; }
+  .camera-column, .insight-panel { flex: 0 0 auto; width: 100%; min-width: 0; }
+  .camera-frame { position: relative; width: 100%; height: auto; aspect-ratio: 3 / 4; overflow: hidden; isolation: isolate; }
+  .camera-frame video, .camera-frame canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+  .camera-frame .camera-placeholder, .camera-frame .camera-loading { position: absolute; inset: 0; z-index: 5; }
+  .camera-frame .camera-topline, .camera-frame .camera-bottomline { z-index: 6; }
+  .camera-frame .camera-stop { z-index: 7; }
+  .camera-tools { position: relative; z-index: 8; margin-top: 10px; }
+  .insight-panel { box-sizing: border-box; overflow: hidden; }
+  .result-hero, .result-details, .model-row, .notice-box { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .model-row { grid-template-columns: 16px minmax(0,1fr) auto; }
+  .model-row > span:nth-child(2) { min-width: 0; }
+}
