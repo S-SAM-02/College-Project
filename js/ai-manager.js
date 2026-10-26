@@ -1,5 +1,3 @@
-export const OWL_OBJECT_PROMPTS=["pen","pencil","marker","book","calculator","laptop","keyboard","mouse","mobile phone","headphones","earphones","charger","power bank","bottle","cup","backpack","glasses","scissors","ruler","stapler","keys","watch","plant","flower pot","remote control","camera","microphone","speaker","ID card","water bottle","notebook","tablet","smartphone","wallet","umbrella","mug","water glass","shoe","bag","computer mouse","computer monitor","banana","apple","orange","sports ball","chair","clock","vase","handbag","suitcase"];
-export const COLLEGE_OBJECT_PROMPTS=OWL_OBJECT_PROMPTS;
 const MEDIAPIPE_VERSION="0.10.14";
 const HANDS_CDN=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/vision_bundle.mjs`;
 const HAND_WASM=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
@@ -17,7 +15,6 @@ const ensureScript=(src,ready,label)=>new Promise((resolve,reject)=>{
  script.onerror=()=>{script.remove();reject(new Error(label+" CDN failed to load. Check internet access and retry."));};
  document.head.append(script);
 });
-function injectScript(src,test,label){if(test())return Promise.resolve();const found=[...document.scripts].find(s=>s.src===src);if(found)return new Promise((resolve,reject)=>{found.addEventListener("load",resolve,{once:true});found.addEventListener("error",()=>reject(new Error(label+" failed to load. Check network and retry.")),{once:true})});return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.async=true;s.crossOrigin="anonymous";s.onload=resolve;s.onerror=()=>{s.remove();reject(new Error(label+" failed to load. Check network and retry."))};document.head.append(s)})}
 export class AIManager{
  constructor(onModelState,onNotice){this.onModelState=onModelState;this.onNotice=onNotice;this.objectModel=null;this.handLandmarker=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;this.currentFacingMode="user";this.loading={object:null,hand:null,people:null};this.currentMode="objects";this.lastPeopleCount=0;this.lastSummary="";this.lastObjectMode="";this.lastObjectResult=null;this.lastObjectInferenceAt=0;this.lastFaceTimestamp=0;this.lastHandTimestamp=0;this.lastObjectInferenceMs=0;}
  async loadObjects(){
