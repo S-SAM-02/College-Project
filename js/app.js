@@ -1,5 +1,5 @@
 import{CameraController}from"./camera.js";import{AIManager}from"./ai-manager.js";import{resizeCanvases}from"./image-processing.js";import{HandTracker,drawHandSkeleton}from"./hand-tracking.js";import{AirDrawing}from"./drawing.js";import{HandPortal}from"./portal.js";import{parseCommand}from"./nlp.js";import{PerformanceMeter}from"./performance.js";import{describePeople}from"./person-counter.js";
-const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
+const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Pinch thumb and index finger to draw; close your hand into a fist to clear."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible face detections locally. It does not identify people."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
@@ -91,8 +91,8 @@ function startLoop(){
       .finally(()=>{handInferenceBusy=false});
     }
    }
-   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference){
-    lastInference=mediaTime;
+   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference&&performance.now()-lastVisionInferenceAt>=(mode==="people"?120:180)){
+    lastInference=mediaTime;lastVisionInferenceAt=performance.now();
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message))
    }
   }
@@ -112,7 +112,7 @@ async function runVisionInference(now){
   const detector=await ai.ensureMode(target,preferredFacing);
   const predictions=await detector.detect(video,now);
   if(target!==mode)return;
-  latestObjects=(predictions||[]).filter(p=>p.class!=="face");ai.markInference("object");
+  latestObjects=Array.isArray(predictions)?predictions:[];ai.markInference("object");
   if(target==="objects")updateObjectResult(latestObjects);else if(target==="people")updatePeopleResult();
   const elapsed=Number(ai.lastObjectInferenceMs)||performance.now()-started;
   $("inferenceStatus").textContent="AI "+Math.round(elapsed)+" ms";
@@ -162,6 +162,7 @@ function renderOverlay(now){
  } else if(mode==="drawing"){
   if(latestHands.length)drawHandSkeleton(ctx,latestHands);
  } else if(mode==="portal"){
+  if(latestHands.length)drawHandSkeleton(ctx,latestHands);
   const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height,now);
   $("resultMain").textContent=portalResult.active?"Portal connected":portalResult.hands+" / 2 hands detected";
   $("resultDescription").textContent=portalResult.active?"Five fingertip pairs connect the tracked hands.":"Move both hands fully into the camera frame; show the palms to the camera.";
