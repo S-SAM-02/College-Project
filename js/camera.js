@@ -4,7 +4,7 @@ export class CameraController{
  async start(deviceId="",facingMode="user"){
   if(!navigator.mediaDevices?.getUserMedia)throw new Error("Camera access is unavailable. Open this site over HTTPS or localhost in a supported browser.");
   await this.stop(false);this.facingMode=facingMode;this.onState("requesting","Requesting camera permission…");
-  const common={width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}};
+  const common={width:{ideal:640},height:{ideal:360},frameRate:{ideal:30,max:30}};
   const attempts=deviceId?[{...common,deviceId:{exact:deviceId}},{...common,facingMode},{ }]:[{...common,facingMode},{...common},{ }];
   let lastError;
   for(const videoConstraints of attempts){try{this.stream=await navigator.mediaDevices.getUserMedia({audio:false,video:Object.keys(videoConstraints).length?videoConstraints:true});break}catch(e){lastError=e;if(e.name==="NotAllowedError"||e.name==="PermissionDeniedError")throw e}}

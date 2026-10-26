@@ -70,9 +70,10 @@ test('fist detector recognizes curled fingertips', () => {
 });
 
 test('portal connects all five corresponding fingertip pairs', () => {
+  const calls = { moveTo:0, lineTo:0, stroke:0, fill:0, quadraticCurveTo:0 };
   const ctx = Object.fromEntries([
-    'clearRect','save','restore','beginPath','moveTo','lineTo','closePath','fill','stroke','quadraticCurveTo','arc'
-  ].map(name => [name, () => {}]));
+    'clearRect','save','restore','beginPath','closePath','arc','moveTo','lineTo','fill','stroke','quadraticCurveTo'
+  ].map(name => [name, () => { calls[name]=(calls[name]||0)+1; }]));
   const left = makeLandmarks({
     4:{x:.2,y:.35}, 8:{x:.25,y:.3}, 12:{x:.26,y:.4}, 16:{x:.24,y:.5}, 20:{x:.18,y:.55}
   });
@@ -84,7 +85,11 @@ test('portal connects all five corresponding fingertip pairs', () => {
     {landmarks:left},{landmarks:right}
   ], 640, 480, 1000);
   assert.equal(result.active, true);
-  assert.match(result.gesture, /five fingertip pairs linked/);
+  assert.match(result.gesture, /three straight fingertip links/);
+  assert.equal(calls.stroke, 4, "three links plus one rectangular frame");
+  assert.equal(calls.lineTo, 6, "three straight links plus three rectangle edges");
+  assert.equal(calls.quadraticCurveTo, 0, "portal uses no animated curves");
+  assert.equal(calls.fill, 0, "portal draws no duplicate filled overlay");
 });
 
 test('object detector uses the fast local COCO-SSD loader',()=>{

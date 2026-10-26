@@ -33,7 +33,7 @@ export class HandTracker {
       }
       const id=previous&&bestDistance<Math.min(canvasWidth,canvasHeight)*0.55?previous.id:this.nextHandId++;
       if(previous&&id===previous.id)usedPrevious.add(previous.id);
-      if(!this.smoothers.has(id))this.smoothers.set(id,new Smoother(0.62));
+      if(!this.smoothers.has(id))this.smoothers.set(id,new Smoother(0.82));
       const indexTip=this.smoothers.get(id).update(landmarks[8]);
       return {id,modelSide,side:modelSide==="Unknown"?"Hand "+(index+1):modelSide,landmarks,indexTip,thumbTip:landmarks[4],wrist,raw:normalized};
     });
