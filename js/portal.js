@@ -36,8 +36,7 @@ export class HandPortal {
     this.smooth.y += (center.y - this.smooth.y) * 0.32;
 
     const pulse = 0.5 + 0.5 * Math.sin(time / 180);
-    const spread = distance(leftThumb, rightThumb);
-    const active = spread > Math.max(32, width * 0.035);
+    const active = true;
     this.active = active;
 
     ctx.save();
@@ -99,10 +98,7 @@ export class HandPortal {
     ctx.stroke();
     ctx.restore();
 
-    return {
-      active,
-      gesture: active ? "Portal connected · all five finger pairs linked" : "Move hands apart to form the portal"
-    };
+    return { active: true, gesture: "Portal connected · all five finger pairs linked" };
   }
 
   reset() {
