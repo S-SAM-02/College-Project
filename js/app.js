@@ -161,7 +161,6 @@ function renderOverlay(now){
   }
  } else if(mode==="drawing"){
   if(latestHands.length)drawHandSkeleton(ctx,latestHands);
-}
  } else if(mode==="portal"){
   const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height,now);
   $("resultMain").textContent=portalResult.active?"Portal connected":portalResult.hands+" / 2 hands detected";
@@ -179,8 +178,6 @@ function renderOverlay(now){
   }
  }
  ctx.restore();
- // Boxes/landmarks use a mirrored geometry transform for the front camera.
- // Text uses mirrored box coordinates but is painted untransformed, so glyphs stay readable.
  for(const item of labels){
   const mirroredBoxX=mirrored?overlay.width-item.x-item.boxWidth:item.x;
   const lx=Math.max(0,Math.min(overlay.width-item.w,mirroredBoxX));
