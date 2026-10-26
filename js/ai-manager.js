@@ -126,8 +126,10 @@ export class AIManager {
     })();
     try { return await this.zeroShotLoading; }
     catch (error) {
-      this.onModelState("object", "error", "Open-vocabulary model unavailable: " + (error?.message || "download failed"));
-      throw error;
+      this.onModelState("object", "error", "Open-vocabulary model unavailable; using common-object fallback: " + (error?.message || "download failed"));
+      const fallback = await this.loadObjects();
+      this.zeroShotDetector = fallback;
+      return fallback;
     } finally { this.zeroShotLoading = null; }
   }
 
