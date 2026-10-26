@@ -140,3 +140,21 @@ test('object model and one-hand localization are independent',()=>{
  const landmarks=Array.from({length:21},(_,i)=>({x:70+(i%4)*10,y:55+Math.floor(i/4)*10,z:0}));
  assert.deepEqual(filterObjectsNearHands(predictions,[{landmarks}],640,480).map(p=>p.class),['bottle']);
 });
+
+test('hand tracker rejects malformed landmark coordinates instead of emitting broken points',()=>{
+ const tracker=new HandTracker();
+ const invalid=makeLandmarks({8:{x:NaN,y:0.5}});
+ assert.equal(tracker.process({landmarks:[invalid]},640,480).hands.length,0);
+});
+test('hand tracker tolerates absent handedness metadata',()=>{
+ const tracker=new HandTracker(),raw=makeLandmarks({0:{x:0.5,y:0.25}});
+ const result=tracker.process({landmarks:[raw]},800,400);
+ assert.equal(result.hands.length,1);
+ assert.equal(result.hands[0].side,'Hand 1');
+ assert.equal(result.hands[0].landmarks[0].x,400);
+ assert.equal(result.hands[0].landmarks[0].y,100);
+});
+test('open-vocabulary detector lists college objects beyond COCO categories',()=>{
+ assert.ok(COLLEGE_OBJECT_PROMPTS.length>=20);
+ for(const prompt of ['pen','pencil','calculator','charger','power bank','ID card','headphones'])assert.ok(COLLEGE_OBJECT_PROMPTS.includes(prompt));
+});
