@@ -1,27 +1,28 @@
 # OBJECT MIND — Intelligent Vision Lab
 
-A browser-first computer-vision workspace with a mirrored front-camera preview, local two-hand tracking, air drawing, a two-hand portal, local common-object detection, and visible-person counting.
+A browser-first computer-vision workspace with a mirrored front-camera preview, local two-hand tracking, air drawing, a two-hand portal, local common-object detection, and visible-face counting.
 
 ## How the models work
 
-The app's layout and application logic are maintained in this repository. On first use, the browser downloads pretrained model runtime/weights:
-- **TensorFlow.js + COCO-SSD** for common-object bounding boxes and visible-person detections.
-- **MediaPipe Hand Landmarker** for the 21 hand landmarks needed by air drawing and two-hand gestures.
+The app layout and application logic are maintained in this repository. On first use, the browser downloads pretrained model runtime/weights:
+- **TensorFlow.js + COCO-SSD** for common-object bounding boxes.
+- **MediaPipe Face Detector** for visible-face detections in Person Finder.
+- **MediaPipe Hand Landmarker** for 21 hand landmarks used by air drawing and two-hand gestures.
 
-After download, inference runs on the user's device. No OpenAI key or server API is required for these core modes. An internet connection is required on first load to fetch the public library/model files. COCO-SSD is limited to the common classes in its training set and cannot recognize every arbitrary item; person counts may miss people or double-count in crowds. It does not identify faces.
+After the downloads, inference runs on the user's device. No OpenAI key or server API is required for these core modes. Internet access is required on first use to fetch public library/model files. COCO-SSD recognizes common trained categories, not arbitrary items. Person Finder counts visible faces rather than identifying people; tiny, turned-away or occluded faces may be missed and a face in a photo or poster can sometimes be detected.
 
 ## Features
 
-- **Camera:** browser permission-based camera. The front camera preview and canvas overlays mirror together for familiar selfie movement; the rear camera remains unmirrored.
-- **Air Drawing:** pinch thumb and index together to draw; release to pause. Close your hand into a fist to clear.
-- **Two-Hand Portal:** both hands are tracked locally; bringing the two index fingertips close connects the portal effect.
-- **Object Finder:** local COCO-SSD detection of common objects with bounding boxes and confidence.
-- **Person Finder:** local person-class detections. This is an approximate count and is not face recognition or identity tracking.
-- **Commands:** project-owned text-command parsing and optional browser speech recognition.
+- **Camera:** browser permission-based camera. The front-facing preview and canvas overlays are horizontally mirrored together, while the rear camera remains unmirrored.
+- **Air Drawing:** pinch thumb and index together to draw; release to pause; close your hand into a fist to clear the canvas.
+- **Two-Hand Portal:** local two-hand tracking; bringing both index fingertips close activates the portal effect.
+- **Object Finder:** COCO-SSD object detections with bounding boxes and confidence for the model's supported classes.
+- **Person Finder:** local face detection and face boxes. This is not facial recognition and does not identify anyone.
+- **Commands:** project-owned text command parsing and optional browser speech recognition.
 
 ## Run and deploy
 
-Requires a modern browser with camera support and a secure context (HTTPS or localhost). GitHub Pages can host the complete static app; core detections no longer require the `/api/vision` server endpoint.
+Requires a modern browser with camera support and a secure context (HTTPS or localhost). GitHub Pages can host the complete static app; core detection no longer relies on the `/api/vision` endpoint.
 
 ```sh
 npm run check
@@ -31,6 +32,6 @@ npm test
 ## Troubleshooting
 
 - If the camera is black, allow camera permission in browser site settings and reload.
-- If a model is still loading, keep the page open and online. Press **Retry AI setup** after correcting any network restrictions. Browser or network policies that block jsDelivr or the MediaPipe model host will prevent the first model download.
-- If front-camera movement feels reversed, confirm **Front camera · mirrored** is selected. Preview and overlays are mirrored together.
-- If person counts are low or change between frames, ensure the whole scene is well lit and visible. COCO-SSD detects people independently in each frame; it does not reliably count hundreds of tightly overlapping people.
+- If a model is still loading, keep the page open and online. Press **Retry AI setup** after correcting network restrictions. Blocking jsDelivr or the MediaPipe model host can prevent first use.
+- If front-camera movement feels reversed, ensure **Front camera · mirrored** is selected. Preview and overlays are mirrored together.
+- If object or face detections are inconsistent, improve light, keep objects/faces fully in frame, and avoid motion blur. The available models are general pretrained detectors, not guaranteed exact item or crowd classifiers.
