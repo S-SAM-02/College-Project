@@ -5,8 +5,9 @@ export class AirDrawing {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-    this.smoother = new Smoother(0.86);
+    this.smoother = new Smoother(0.84);
     this.lastPoint = null;
+    this.strokeActive = false;
     this.enabled = true;
     this.wasFist = false;
   }
@@ -16,6 +17,7 @@ export class AirDrawing {
     if (fist && hand) {
       // Fist is a moving local eraser; it must not clear all existing strokes.
       this.lastPoint = null;
+      this.strokeActive = false;
       this.smoother.reset();
       const points = hand.landmarks || [];
       const palmPoints = [0, 5, 9, 13, 17].map(index => points[index]).filter(point =>
@@ -25,7 +27,7 @@ export class AirDrawing {
           ? { x: hand.wrist.x * 0.25 + palmPoints[0].x * 0.75, y: hand.wrist.y * 0.25 + palmPoints[0].y * 0.75 }
           : palmPoints.reduce((sum, point) => ({ x: sum.x + point.x / palmPoints.length, y: sum.y + point.y / palmPoints.length }), { x: 0, y: 0 });
         const ctx = this.ctx;
-        const radius = Math.max(18, Math.min(34, this.canvas.width * 0.03));
+        const radius = Math.max(12, Math.min(24, this.canvas.width * 0.022));
         ctx.save();
         ctx.globalCompositeOperation = "destination-out";
         ctx.shadowBlur = 0;
@@ -42,12 +44,14 @@ export class AirDrawing {
     if (!this.enabled || !hand) {
       // Hide/release the hand cursor without changing any pixels already drawn.
       this.lastPoint = null;
+      this.strokeActive = false;
       this.smoother.reset();
-      return { drawing: false, gesture: hand ? "Drawing paused" : "Drawing preserved · no hand in frame" };
+      return { drawing: false, gesture: hand ? "Drawing paused · existing ink kept" : "Hand left view · existing ink kept" };
     }
 
     if (pinchActive(hand)) {
       const point = this.smoother.update(hand.indexTip);
+      if (!this.strokeActive) { this.lastPoint = null; this.strokeActive = true; }
       if (this.lastPoint) {
         const ctx = this.ctx;
         ctx.save();
@@ -73,15 +77,17 @@ export class AirDrawing {
     }
 
     this.lastPoint = null;
+    this.strokeActive = false;
     this.smoother.reset();
-    return { drawing: false, gesture: "Bring thumb and index closer to draw" };
+    return { drawing: false, gesture: "Pinch thumb and index to start a new stroke · old ink kept" };
   }
 
   clear() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.lastPoint = null;
+    this.strokeActive = false;
     this.smoother.reset();
   }
-  pause() { this.enabled = false; this.lastPoint = null; this.smoother.reset(); }
+  pause() { this.enabled = false; this.lastPoint = null; this.strokeActive = false; this.smoother.reset(); }
   resume() { this.enabled = true; }
 }
