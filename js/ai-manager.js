@@ -1,1 +1,87 @@
-const WASM="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm",MODEL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";export class AIManager{constructor(onModelState,onNotice){this.onModelState=onModelState;this.onNotice=onNotice;this.objectModel=null;this.handLandmarker=null;this.loading={object:null,hand:null};this.visionFileset=null}async loadObjects(){if(this.objectModel)return this.objectModel;if(this.loading.object)return this.loading.object;this.loading.object=(async()=>{this.onModelState("object","loading","Loading COCO-SSD model weights…");try{await waitGlobal("tf",15000);await waitGlobal("cocoSsd",15000);try{await tf.setBackend("webgl")}catch{await tf.setBackend("cpu")}await tf.ready();this.objectModel=await cocoSsd.load({base:"lite_mobilenet_v2"});this.onModelState("object","loaded","Model loaded; waiting for live inference");return this.objectModel}catch(e){this.onModelState("object","error",e.message);throw e}finally{this.loading.object=null}})();return this.loading.object}async loadHands(){if(this.handLandmarker)return this.handLandmarker;if(this.loading.hand)return this.loading.hand;this.loading.hand=(async()=>{this.onModelState("hand","loading","Loading MediaPipe hand landmarks…");try{await waitGlobal("FilesetResolver",20000);await waitGlobal("HandLandmarker",20000);if(!this.visionFileset)this.visionFileset=await FilesetResolver.forVisionTasks(WASM);const options={baseOptions:{modelAssetPath:MODEL,delegate:"GPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.48,minHandPresenceConfidence:.45,minTrackingConfidence:.45};try{this.handLandmarker=await HandLandmarker.createFromOptions(this.visionFileset,options)}catch{this.onNotice("GPU unavailable; retrying hand inference with CPU.");this.handLandmarker=await HandLandmarker.createFromOptions(this.visionFileset,{...options,baseOptions:{modelAssetPath:MODEL,delegate:"CPU"}})}this.onModelState("hand","loaded","Landmark model loaded; waiting for live inference");return this.handLandmarker}catch(e){this.onModelState("hand","error",e.message);throw e}finally{this.loading.hand=null}})();return this.loading.hand}async ensureMode(m){if(m==="objects"||m==="people")return this.loadObjects();if(m==="drawing"||m==="portal")return this.loadHands();return null}markInference(m){this.onModelState(m,"ready","Model initialized and live inference succeeded")}dispose(){try{this.handLandmarker?.close?.()}catch{}this.handLandmarker=null;this.visionFileset=null;this.objectModel=null}}function waitGlobal(n,t){return new Promise((resolve,reject)=>{const s=Date.now(),tick=()=>{if(window[n])return resolve(window[n]);if(Date.now()-s>t)return reject(new Error(n+" did not load. Check internet/CDN access."));setTimeout(tick,100)};tick()})}
+export class AIManager {
+  constructor(onModelState, onNotice) {
+    this.onModelState = onModelState;
+    this.onNotice = onNotice;
+    this.objectModel = null;
+    this.handLandmarker = null;
+    this.loading = { object: null, hand: null };
+    this.currentMode = "objects";
+    this.lastPeopleCount = 0;
+    this.lastSummary = "";
+    this.lastFrameAt = 0;
+  }
+  async analyze(video, mode = this.currentMode) {
+    if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
+    const now = performance.now();
+    if (now - this.lastFrameAt < 700) await new Promise(resolve => setTimeout(resolve, 700 - (now - this.lastFrameAt)));
+    const width = Math.min(640, video.videoWidth);
+    const height = Math.round(video.videoHeight * width / video.videoWidth);
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    canvas.getContext("2d", { alpha: false }).drawImage(video, 0, 0, width, height);
+    const image = canvas.toDataURL("image/jpeg", 0.68);
+    this.lastFrameAt = performance.now();
+    const response = await fetch(new URL("../api/vision", import.meta.url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image, mode })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || (response.status === 404 ? "OpenAI backend route is not deployed. Deploy this project to Vercel and set OPENAI_API_KEY." : "OpenAI vision request failed."));
+    this.lastPeopleCount = Number.isFinite(result.people_count) ? result.people_count : 0;
+    this.lastSummary = typeof result.summary === "string" ? result.summary : "";
+    return result;
+  }
+  async loadObjects() {
+    if (this.objectModel) return this.objectModel;
+    if (this.loading.object) return this.loading.object;
+    this.onModelState("object", "loading", "Connecting to OpenAI vision…");
+    this.loading.object = Promise.resolve({
+      detect: async video => {
+        const result = await this.analyze(video, this.currentMode);
+        const w = video.videoWidth, h = video.videoHeight;
+        return (result.objects || []).map(item => {
+          const [x, y, bw, bh] = item.bbox;
+          return {
+            class: item.label.toLowerCase().trim().replace(/[\\s-]+/g, "_"),
+            score: item.confidence,
+            bbox: [x * w / 1000, y * h / 1000, bw * w / 1000, bh * h / 1000]
+          };
+        });
+      }
+    });
+    this.objectModel = await this.loading.object;
+    this.loading.object = null;
+    this.onModelState("object", "loaded", "OpenAI vision connection ready; waiting for frame analysis");
+    return this.objectModel;
+  }
+  async loadHands() {
+    if (this.handLandmarker) return this.handLandmarker;
+    if (this.loading.hand) return this.loading.hand;
+    this.onModelState("hand", "loading", "Connecting to OpenAI vision for hand estimates…");
+    this.loading.hand = Promise.resolve({
+      detectForVideo: async video => {
+        const result = await this.analyze(video, this.currentMode);
+        const hands = Array.isArray(result.hands) ? result.hands : [];
+        return {
+          landmarks: hands.map(hand => hand.landmarks),
+          handednesses: hands.map(hand => [{ categoryName: hand.side || "Unknown", score: 0.5 }])
+        };
+      }
+    });
+    this.handLandmarker = await this.loading.hand;
+    this.loading.hand = null;
+    this.onModelState("hand", "loaded", "OpenAI vision connection ready; hand landmarks are estimates");
+    return this.handLandmarker;
+  }
+  async ensureMode(mode) {
+    this.currentMode = mode;
+    if (mode === "objects" || mode === "people") return this.loadObjects();
+    if (mode === "drawing" || mode === "portal") return this.loadHands();
+    return null;
+  }
+  markInference(model) {
+    this.onModelState(model, "ready", "OpenAI vision response received for a live camera frame");
+  }
+  dispose() { this.objectModel = null; this.handLandmarker = null; }
+}
