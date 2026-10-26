@@ -20,14 +20,14 @@
   <div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div>
   <header class="topbar">
     <a class="brand" href="./" aria-label="OBJECT MIND home"><span class="brand-mark">O<span>·</span>M</span><span class="brand-copy"><strong>OBJECT MIND</strong><small>INTELLIGENT VISION LAB</small></span></a>
-    <div class="top-meta"><span class="secure-dot"></span><span>ON-DEVICE PROCESSING</span><span class="top-divider"></span><button id="aboutButton" class="text-button" type="button">About the lab <span aria-hidden="true">↗</span></button></div>
+    <div class="top-meta"><span class="secure-dot"></span><span>OPENAI VISION BACKEND</span><span class="top-divider"></span><button id="aboutButton" class="text-button" type="button">About the lab <span aria-hidden="true">↗</span></button></div>
   </header>
 
   <main class="shell">
     <section class="intro">
       <div class="eyebrow"><span class="eyebrow-line"></span> COMPUTER VISION · GESTURE INTELLIGENCE</div>
       <h1>See the world.<br><span>Understand it.</span></h1>
-      <p class="intro-copy">An intelligent vision workspace built around live perception, natural interaction and thoughtful design. Your camera stays in your browser.</p>
+      <p class="intro-copy">An intelligent vision workspace for live object analysis, estimated hand landmarks, and visible-person counting. Camera preview stays local; sampled frames are analyzed by your configured OpenAI backend.</p>
       <div class="intro-foot"><span class="gold-chip">AI / ML</span><span class="gold-chip">DIGITAL IMAGE PROCESSING</span><span class="gold-chip">GESTURE SYSTEMS</span></div>
     </section>
 
@@ -51,7 +51,7 @@
             <canvas id="inkCanvas" aria-hidden="true"></canvas>
             <div id="cameraPlaceholder" class="camera-placeholder">
               <div class="lens-art"><span class="lens-ring ring-one"></span><span class="lens-ring ring-two"></span><span class="lens-core">O</span><span class="lens-spark">✦</span></div>
-              <p class="placeholder-title">Your vision workspace awaits</p><p class="placeholder-copy">Enable your camera to start real-time AI perception.</p>
+              <p class="placeholder-title">Your vision workspace awaits</p><p class="placeholder-copy">Enable your camera to analyze sampled frames with OpenAI vision.</p>
               <button id="startCamera" class="primary-button" type="button"><span>Start camera</span><span aria-hidden="true">↗</span></button>
               <small class="permission-note">Camera access is requested only when you begin.</small>
             </div>
@@ -74,12 +74,12 @@
           </div>
           <div class="panel-divider"></div>
           <div class="model-health-head"><span>AI MODEL HEALTH</span><span id="modelCount">0 / 2 READY</span></div>
-          <div class="model-row"><span class="model-status-icon" id="objectModelDot">○</span><span><strong>Object detection</strong><small id="objectModelStatus">Waiting to initialize</small></span><span class="model-tag" id="objectModelTag">IDLE</span></div>
-          <div class="model-row"><span class="model-status-icon" id="handModelDot">○</span><span><strong>Hand landmarks</strong><small id="handModelStatus">Waiting to initialize</small></span><span class="model-tag" id="handModelTag">IDLE</span></div>
-          <div id="noticeBox" class="notice-box" role="status" aria-live="polite"><span class="notice-icon">i</span><span id="noticeText">Models are downloaded from their official CDN when initialized. Your camera frames are processed locally.</span></div>
+          <div class="model-row"><span class="model-status-icon" id="objectModelDot">○</span><span><strong>Object analysis</strong><small id="objectModelStatus">Waiting for OpenAI backend</small></span><span class="model-tag" id="objectModelTag">IDLE</span></div>
+          <div class="model-row"><span class="model-status-icon" id="handModelDot">○</span><span><strong>Hand landmark estimates</strong><small id="handModelStatus">Waiting for OpenAI backend</small></span><span class="model-tag" id="handModelTag">IDLE</span></div>
+          <div id="noticeBox" class="notice-box" role="status" aria-live="polite"><span class="notice-icon">i</span><span id="noticeText">OpenAI backend required: deploy to Vercel and configure OPENAI_API_KEY. Sampled camera frames are sent for analysis.</span></div>
         </aside>
       </div>
-      <div class="workspace-footer"><span><span class="footer-shield">◇</span> Camera processing remains on this device</span><span>Build 01.00 <span class="footer-sep">/</span> OBJECT MIND</span></div>
+      <div class="workspace-footer"><span><span class="footer-shield">◇</span> Camera preview stays on this device</span><span>Build 01.00 <span class="footer-sep">/</span> OBJECT MIND</span></div>
     </section>
 
     <section class="command-section">
@@ -96,6 +96,6 @@
     <footer class="site-footer"><a class="footer-brand" href="./">OBJECT MIND <span>◆</span></a><span>INTELLIGENT VISION LAB</span><span>© 2026 · Built for exploration.</span></footer>
   </main>
 
-  <dialog id="aboutDialog" class="about-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close" type="submit">×</button></form><div class="section-overline">ABOUT OBJECT MIND</div><h2>Intelligence with a clear point of view.</h2><p>OBJECT MIND is a browser-based computer vision lab combining object detection, hand landmarks, gesture-driven interactions and simple natural-language controls.</p><div class="about-facts"><div><strong>DIP</strong><span>Frame sizing, coordinate mapping and temporal smoothing.</span></div><div><strong>ML / NN</strong><span>Browser inference using COCO-SSD and MediaPipe Hand Landmarker.</span></div><div><strong>NLP</strong><span>Explicit rule-based commands, with optional browser speech recognition.</span></div></div><p class="dialog-note">Models and libraries are downloaded from third-party CDNs when used. Camera content stays on this device; browser/model CDN requests still require an internet connection.</p></dialog>
+  <dialog id="aboutDialog" class="about-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close" type="submit">×</button></form><div class="section-overline">ABOUT OBJECT MIND</div><h2>Intelligence with a clear point of view.</h2><p>OBJECT MIND uses the OpenAI vision API to analyze sampled camera frames for visible objects, approximate hand landmarks, and person counts. The preview stays in your browser, but sampled images are sent to your configured backend for processing.</p><div class="about-facts"><div><strong>DIP</strong><span>Frame sizing, coordinate mapping and temporal smoothing.</span></div><div><strong>OPENAI</strong><span>Vision analysis through a secure server endpoint; no third-party browser model files.</span></div><div><strong>NLP</strong><span>Explicit rule-based commands, with optional browser speech recognition.</span></div></div><p class="dialog-note">This project does not download TensorFlow, COCO-SSD, or MediaPipe model files. It sends compressed camera snapshots to OpenAI through the backend. Configure OPENAI_API_KEY in Vercel environment variables; API usage may incur charges. GPT-generated landmarks and counts are estimates, not guaranteed tracking measurements.</p></dialog>
 </body>
 </html>
