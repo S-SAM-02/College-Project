@@ -134,8 +134,8 @@ test('Object Finder filters detections to objects near tracked hands',()=>{
  const found=filterObjectsNearHands(predictions,hands,640,480);
  assert.deepEqual(found.map(item=>item.class),['bottle']);
 });
-test('Object Finder still returns scene detections when hand tracking is unavailable',()=>{
- assert.deepEqual(filterObjectsNearHands([{class:'bottle',score:.9,bbox:[20,20,80,100]}],[],640,480).map(p=>p.class),['bottle']);
+test('Object Finder returns no objects when hand tracking is unavailable',()=>{
+ assert.deepEqual(filterObjectsNearHands([{class:'bottle',score:.9,bbox:[20,20,80,100]}],[],640,480),[]);
 });
 
 test('object model and one-hand localization are independent',()=>{
@@ -159,9 +159,9 @@ test('hand tracker tolerates absent handedness metadata',()=>{
  assert.equal(result.hands[0].landmarks[0].y,100);
 });
 
-test('Object Finder does not require hand tracking to return visible objects',()=>{
+test('Object Finder never falls back to full-scene detections without a hand',()=>{
  const predictions=[{class:'bottle',score:.8,bbox:[20,20,50,80]},{class:'chair',score:.9,bbox:[300,200,70,70]},{class:'person',score:.99,bbox:[15,20,50,80]}];
- assert.deepEqual(filterObjectsNearHands(predictions,[],640,480).map(p=>p.class),['chair','bottle']);
+ assert.deepEqual(filterObjectsNearHands(predictions,[],640,480),[]);
 });
 
 test('drawing strokes stay on canvas after hand leaves and resume as a separate stroke', () => {
