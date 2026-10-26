@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFr
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Hold thumb and index together to draw one stroke. Release to stop; pinch again to begin a new stroke. Leaving the frame preserves ink. A fist erases only beneath it."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible faces locally; rear-camera distant faces may be harder to detect."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
-function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
+function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.toggle("mirrored-overlay",mirrored);ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
 function onDimensions(w,h,settings){resizeCanvases(video,[overlay,ink]);$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
 function onModelState(model,state,message){
  modelStates[model]=state;
@@ -35,11 +35,40 @@ async function setMode(next){
   }catch(e){setNotice(e.message)}
  }
 }
-async function startCamera(facing=preferredFacing){if(session&&camera.facingMode===facing)return;const previousFacing=preferredFacing;preferredFacing=facing;updateFacingButtons();applyCameraOrientation();try{cameraLoading(true,"Requesting camera permission…");const devices=await camera.start($("cameraSelect").value,facing);populateCameras(devices);updateFacingButtons();applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){preferredFacing=previousFacing;updateFacingButtons();applyCameraOrientation();const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
+async function startCamera(facing=preferredFacing){
+ if(session&&camera.facingMode===facing){return}
+ const previousFacing=preferredFacing;
+ preferredFacing=facing;updateFacingButtons();applyCameraOrientation();
+ try{
+  cancelFrameScheduler();cameraLoading(true,"Requesting camera permission…");feedback("Opening "+(facing==="user"?"front":"rear")+" camera…");
+  const devices=await camera.start($("cameraSelect").value,facing);
+  preferredFacing=facing;populateCameras(devices);updateFacingButtons();applyCameraOrientation();
+  latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;
+  await setupMode();cameraLoading(false);
+  if(session)startLoop();
+ }catch(e){
+  preferredFacing=previousFacing;updateFacingButtons();applyCameraOrientation();
+  const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m);
+ }
+}
 function friendlyCameraError(e){if(["NotAllowedError","PermissionDeniedError"].includes(e.name))return"Camera permission denied. Allow camera access in browser site settings, then retry.";if(["NotFoundError","DevicesNotFoundError"].includes(e.name))return"No camera was found. Connect a camera or choose an available device.";if(["NotReadableError","TrackStartError"].includes(e.name))return"The camera is busy. Close other apps using it and retry.";return e.message||"Camera startup failed. Use HTTPS or localhost and check browser permissions."}
 function populateCameras(devices){const s=$("cameraSelect"),old=s.value;s.replaceChildren();s.add(new Option("Automatic camera",""));devices.forEach((d,i)=>s.add(new Option(d.label||"Camera "+(i+1),d.deviceId)));s.disabled=devices.length===0;if(devices.some(d=>d.deviceId===old))s.value=old}function updateFacingButtons(){$("cameraFacingSelect").value=preferredFacing}
-async function switchCamera(){if(!session)return;try{cameraLoading(true,"Switching camera…");const ds=await camera.start($("cameraSelect").value,preferredFacing);populateCameras(ds);resizeCanvases(video,[overlay,ink]);applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
-async function stopCamera(){cancelAnimationFrame(raf);await camera.stop();latestObjects=[];latestHands=[];portalHandsCache=[];portalLastBothAt=0;handTracker.reset();portal.reset();onCameraState("offline","Camera offline")}
+async function switchCamera(){
+ if(!session)return;
+ const currentFacing=preferredFacing;
+ try{
+  cancelFrameScheduler();cameraLoading(true,"Switching camera…");
+  const ds=await camera.start($("cameraSelect").value,currentFacing);
+  populateCameras(ds);resizeCanvases(video,[overlay,ink]);applyCameraOrientation();
+  latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;
+  await setupMode();cameraLoading(false);if(session)startLoop();
+ }catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}
+}
+async function stopCamera(){
+ cancelFrameScheduler();await camera.stop();latestObjects=[];latestHands=[];portalHandsCache=[];portalLastBothAt=0;
+ handTracker.reset();portal.reset();inferenceBusy=false;handInferenceBusy=false;lastInference=0;lastHandInferenceAt=0;
+ ctx.clearRect(0,0,overlay.width,overlay.height);onCameraState("offline","Camera offline");setNotice("Camera stopped. Your air drawing stays saved in this session.");
+}
 async function setupMode(){
  if(!session)return;
  try{
@@ -165,7 +194,7 @@ function handleHandResult(data,timestamp,arrivedAt){
  $("inferenceStatus").textContent="Hand model updating";
 }
 function updateDrawingResult(fist){const r=drawing.process(latestHands,fist);$("resultMain").textContent=r.drawing?"Drawing in air":fist?"Local eraser active":latestHands.length?"Hand detected":"No hand landmarks";$("resultDescription").textContent=r.drawing?"Pinch held: ink follows the index fingertip. Release or move off-screen to pause; existing ink stays.":fist?"Move your closed hand over only the area you want to erase. Other ink remains.":latestHands.length?"Pinch thumb and index again to start a separate stroke. Existing drawing is preserved.":"Move one hand into view; existing ink stays visible when the hand leaves.";$("metricValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s");$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
-function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"Five straight fingertip lines are held inside one rectangular frame.":"Show both hands fully in the camera view; the portal closes when either hand leaves the frame.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
+function updatePortalResult(now){const r=portal.status(latestHands);$("resultMain").textContent=r.active?"Portal connected":r.hands+" / 2 hands detected";$("resultDescription").textContent=r.active?"A flowing portal is drawn between corresponding fingertips.":"Show both hands fully in the camera view; the portal closes when either hand leaves the frame.";$("metricValue").textContent=latestHands.length+" / 2 hands";$("confidenceValue").textContent="Local landmarks";$("gestureValue").textContent=r.gesture}
 function renderOverlay(now){
  if(!overlay.width||!overlay.height)return;
  ctx.clearRect(0,0,overlay.width,overlay.height);
@@ -186,7 +215,7 @@ function renderOverlay(now){
  } else if(mode==="portal"){
   if(latestHands.length)drawHandSkeleton(ctx,latestHands);
   // Portal status is updated on hand inference callbacks, not again on every preview frame.
-  portal.render(ctx,latestHands,overlay.width,overlay.height);
+  portal.render(ctx,latestHands,overlay.width,overlay.height,now);
  } else if(mode==="people"){
   for(const face of latestObjects){
    if(face.class!=="face")continue;
