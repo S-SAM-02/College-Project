@@ -1,0 +1,9 @@
+{
+  "name": "object-mind-vision-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Privacy-first browser AI vision and gesture lab",
+  "scripts": {"check": "node --check js/app.js && node --check js/camera.js && node --check js/ai-manager.js && node --check js/image-processing.js && node --check js/hand-tracking.js && node --check js/drawing.js && node --check js/portal.js && node --check js/nlp.js && node --check js/performance.js && node --check js/person-counter.js", "test": "node --test"},
+  "engines": {"node": ">=20"}
+}
