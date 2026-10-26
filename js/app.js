@@ -35,15 +35,12 @@ function startLoop(){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
    if(mode==="objects"||mode==="drawing"||mode==="portal"){
     if(!ai.handLandmarker&&!ai.loading.hand&&!handLoadNoticeShown){
-     handLoadNoticeShown=true;setNotice("Loading asynchronous MediaPipe hand landmarks…");
+     handLoadNoticeShown=true;setNotice("Loading hand landmark model…");
      ai.loadHands().then(()=>{ai.onHandResult=handleHandResult}).catch(e=>{onModelState("hand","error",e.message);handLoadNoticeShown=false});
     }
-    if(ai.handLandmarker&&mediaTime!==lastHandInferenceAt){
-     lastHandInferenceAt=mediaTime;
-     try{ai.handLandmarker.detectAsync(video,now)}
-     catch(e){onModelState("hand","error","Hand tracking failed: "+e.message)}
-     const modelError=ai.handLandmarker.getLastError?.();
-     if(modelError)onModelState("hand","error",modelError);
+    if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
+     lastHandInferenceAt=mediaTime;handInferenceBusy=true;
+     ai.handLandmarker.detect(video,now).then(data=>handleHandResult(data,now,performance.now())).catch(e=>onModelState("hand","error",e.message)).finally(()=>{handInferenceBusy=false});
     }
    }
    if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference){
