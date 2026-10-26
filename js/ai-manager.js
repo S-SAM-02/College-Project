@@ -6,8 +6,6 @@ const FACE_MODEL_FRONT="https://storage.googleapis.com/mediapipe-models/face_det
 const FACE_MODEL_REAR="https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/latest/blaze_face_full_range.tflite";
 const TF_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js";
 const COCO_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js";
-const TRANSFORMERS_CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
-const OWL_VIT_MODEL="Xenova/owlvit-base-patch32";
 export const OBJECT_PROMPTS=[
  "person","people","human","man","woman","child","person in background","distant person","group of people",
  "smartphone","mobile phone","cell phone","pen","ballpoint pen","pencil",
@@ -91,9 +89,9 @@ export class AIManager{
     try{detector=await globalThis.cocoSsd.load({base:"lite_mobilenet_v2"});}
     catch(secondError){throw new Error("COCO-SSD model weights could not be loaded. "+(secondError?.message||firstError?.message||"Unknown model error"));}
    }
-   this.cocoModel={detect:async(video,maxNumBoxes=35,minScore=0.12)=>{
+   this.cocoModel={detect:async(video,maxNumBoxes=15,minScore=0.22)=>{
     if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
-    const started=performance.now(),found=await detector.detect(video,Math.min(40,Math.max(20,maxNumBoxes)),minScore),w=video.videoWidth,h=video.videoHeight;
+    const started=performance.now(),found=await detector.detect(video,Math.min(20,Math.max(8,maxNumBoxes)),minScore),w=video.videoWidth,h=video.videoHeight;
     const mapped=(Array.isArray(found)?found:[]).map(item=>{
      const b=item.bbox||[],x=Math.max(0,Math.min(w,Number(b[0])||0)),y=Math.max(0,Math.min(h,Number(b[1])||0));
      const right=Math.max(x,Math.min(w,x+(Number(b[2])||0))),bottom=Math.max(y,Math.min(h,y+(Number(b[3])||0)));
@@ -112,49 +110,12 @@ export class AIManager{
  async loadObjects(){
   if(this.objectModel)return this.objectModel;
   if(this.loading.object)return this.loading.object;
-  this.onModelState("object","loading","Loading open-vocabulary object detector…");
+  this.onModelState("object","loading","Loading lightweight local object detector…");
   this.loading.object=(async()=>{
-   try{
-    const {pipeline}=await import(TRANSFORMERS_CDN);
-    let detector=null,runtime="wasm";
-    if(typeof navigator!=="undefined"&&navigator.gpu){
-     try{detector=await pipeline("zero-shot-object-detection",OWL_VIT_MODEL,{device:"webgpu"});runtime="webgpu";}catch{}
-    }
-    if(!detector)detector=await pipeline("zero-shot-object-detection",OWL_VIT_MODEL);
-    const canvas=document.createElement("canvas");
-    let frameCtx=canvas.getContext("2d",{willReadFrequently:true});
-    const model={detect:async video=>{
-     if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
-     const w=video.videoWidth,h=video.videoHeight,started=performance.now();
-     if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;frameCtx=canvas.getContext("2d",{willReadFrequently:true});}
-     if(!frameCtx)throw new Error("Open-vocabulary detector could not prepare an image frame.");
-     frameCtx.drawImage(video,0,0,w,h);
-     let found;
-     try{found=await detector(canvas,OBJECT_PROMPTS,{top_k:40,threshold:0.075});}
-     catch(firstError){
-      if(runtime!=="webgpu")throw firstError;
-      detector=await pipeline("zero-shot-object-detection",OWL_VIT_MODEL);runtime="wasm";
-      found=await detector(canvas,OBJECT_PROMPTS,{top_k:40,threshold:0.075});
-     }
-     const mapped=mapOpenVocabularyDetections(found,w,h,0.075);
-     this.lastObjectInferenceMs=performance.now()-started;this.lastObjectInferenceAt=performance.now();
-     this.lastObjectMode="owlvit-"+runtime;this.lastObjectResult=mapped;
-     this.lastPeopleCount=mapped.filter(p=>p.class==="person").length;this.lastSummary=mapped.map(p=>p.class).join(", ");
-     return mapped;
-    }};
-    this.objectModel=model;this.lastObjectMode="owlvit-"+runtime;
-    this.onModelState("object","loaded","Open-vocabulary object detector ready");
-    return model;
-   }catch(owlError){
-    // Multi-box COCO-SSD fallback for reliable person and everyday-object boxes.
-    const coco=await this.loadCocoDetector();
-    this.objectModel={detect:async video=>{
-     const result=await coco.detect(video,35,0.12);
-     this.lastObjectMode="coco-ssd-multi-box";return result;
-    }};
-    this.onModelState("object","loaded","Multi-object detector ready (up to 35 boxes)");
-    return this.objectModel;
-   }
+   const coco=await this.loadCocoDetector();
+   this.objectModel={detect:async video=>{const result=await coco.detect(video,15,0.22);this.lastObjectMode="coco-ssd-hand-local";return result;}};
+   this.onModelState("object","loaded","Lightweight local object detector ready");
+   return this.objectModel;
   })();
   try{return await this.loading.object}
   catch(error){const message="Object detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
@@ -269,6 +230,6 @@ export class AIManager{
   finally{this.loading.hand=null}
  }
  async ensureMode(mode,facingMode=this.currentFacingMode){this.currentMode=mode;this.currentFacingMode=facingMode;if(mode==="objects")return this.loadObjects();if(mode==="people")return this.loadPeople(facingMode);if(mode==="drawing"||mode==="portal")return this.loadHands();return null}
- markInference(model){this.onModelState(model==="hand"?"hand":"object","ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"Multi-person detector analyzing live frames":"Open-vocabulary object detector analyzing live frames")}
+ markInference(model){this.onModelState(model==="hand"?"hand":"object","ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"Multi-person detector analyzing live frames":"Local object detector analyzing the hand area")}
  dispose(){try{this.handTask?.close?.()}catch{}try{this.faceTask?.close?.()}catch{}try{this.rearShortFaceTask?.close?.()}catch{}this.rearShortFaceTask=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.peopleDetector=null;this.objectModel=null;this.cocoModel=null;this.faceFacingMode=null;this.loading.people=null;this.loading.peopleFacingMode=null}
 }
