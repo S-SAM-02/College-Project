@@ -169,7 +169,7 @@ export class AIManager {
           const people = predictions.filter(p => p.class === "person" && p.score >= 0.35);
           this.lastPeopleCount = people.length;
           const mapped = predictions.map(p => ({
-            class: String(p.class || "object").toLowerCase().replace(/[\s-]+/g, "_"),
+            class: String(p.class || "object").toLowerCase().replace(/[\\s-]+/g, "_"),
             score: Number(p.score) || 0,
             bbox: Array.isArray(p.bbox) ? [
               Math.max(0, p.bbox[0]), Math.max(0, p.bbox[1]),
