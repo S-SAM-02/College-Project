@@ -93,7 +93,7 @@ function startLoop(){
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message));
    }
   }
-  if(session&&hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(onVideoFrame);
+  if(session&&hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((nextNow,nextMeta)=>{onVideoFrame(nextNow,nextMeta);renderPreview(nextNow)});
   else if(session)setTimeout(()=>{if(session){renderPreview(performance.now());inferenceRaf=requestAnimationFrame(now2=>onVideoFrame(now2,{mediaTime:video.currentTime}))}},0);
  };
  if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback((now,meta)=>{onVideoFrame(now,meta);renderPreview(now)});
