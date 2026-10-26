@@ -18,7 +18,7 @@ test('hand tracker returns no hands for an empty model result', () => {
 
 test('pinch detector rejects a missing or incomplete hand', () => {
   assert.equal(pinchActive(null, 640), false);
-  assert.equal(pinchActive({ raw: makeLandmarks().slice(0, 10) }, 640), false);
+  assert.equal(pinchActive({ raw: makeLandmarks().slice(0, 10) }), false);
 });
 
 test('hand tracker normalizes all 21 landmark coordinates to canvas pixels', () => {
