@@ -132,7 +132,7 @@ export class AIManager {
   async loadObjects() {
     if (this.objectModel) return this.objectModel;
     if (this.loading.object) return this.loading.object;
-    this.onModelState("object", "loading", "Loading local object and person detector…");
+    this.onModelState("object", "loading", "Loading fallback common-object detector…");
     this.loading.object = (async () => {
       await injectScript(TFJS_CDN, () => Boolean(window.tf), "TensorFlow.js runtime");
       await window.tf.ready();
@@ -167,7 +167,7 @@ export class AIManager {
         }
       };
       this.objectModel = model;
-      this.onModelState("object", "loaded", "Local COCO-SSD model loaded; analyzing live frames");
+      this.onModelState("object", "loaded", "Fallback common-object model loaded");
       return model;
     })();
     try { return await this.loading.object; }
@@ -314,5 +314,7 @@ export class AIManager {
     this.faceFacingMode = null;
     this.handLandmarker = null;
     this.objectModel = null;
+    this.zeroShotDetector = null;
+    this.zeroShotLoading = null;
   }
 }
