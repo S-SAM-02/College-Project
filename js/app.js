@@ -119,10 +119,11 @@ function startLoop(){
   if(!session)return;
   if(video.readyState>=2&&video.videoWidth){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
-   if(mode==="drawing"||mode==="portal"){
+   if(mode==="drawing"||mode==="portal"||mode==="objects"){
     ai.onHandResult=handleHandResult;loadHandIfNeeded();
-    if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
-     lastHandInferenceAt=mediaTime;handInferenceBusy=true;
+    const handInterval=mode==="objects"?65:45;
+    if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastInference&&now-lastHandInferenceAt>=handInterval){
+     lastHandInferenceAt=now;handInferenceBusy=true;
      Promise.resolve().then(()=>ai.handLandmarker.detect(video,now))
       .then(data=>{if(session)handleHandResult(data,now,performance.now())})
       .catch(e=>onModelState("hand","error","Hand inference error: "+(e?.message||String(e))))
