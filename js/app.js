@@ -57,26 +57,29 @@ function cancelFrameScheduler(){
 function startLoop(){
  cancelFrameScheduler();renderFpsFrames=0;renderFpsWindowStart=performance.now();
  const hasVideoCallback=typeof video.requestVideoFrameCallback==="function";
- const hasVideoCallback=typeof video.requestVideoFrameCallback==="function";
  const schedulePreview=()=>{if(session)raf=requestAnimationFrame(renderPreview)};
  const renderPreview=now=>{
   if(!session)return;
   renderFpsFrames++;
   if(now-renderFpsWindowStart>=500){$("fpsLabel").textContent=Math.round(renderFpsFrames*1000/(now-renderFpsWindowStart))+" preview FPS";renderFpsFrames=0;renderFpsWindowStart=now}
-  // Draw only with each incoming video frame when supported: no competing full-rate RAF loop.
   if(video.readyState>=2&&video.videoWidth){
    if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);
-   renderOverlay(now)
+   renderOverlay(now);
   }
+  // Browsers with video-frame callbacks render exactly once per incoming camera frame.
   if(!hasVideoCallback)schedulePreview();
  };
  const loadHandIfNeeded=()=>{
-  if(!session||!(mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand)return;
-  if(handLoadNoticeShown)return;
+  if(!session||!(mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand||handLoadNoticeShown)return;
   handLoadNoticeShown=true;
-  if(mode!=="objects")setNotice("Loading hand landmark model…");
-  ai.loadHands().then(()=>{handLoadNoticeShown=false;ai.onHandResult=handleHandResult;setNotice("Hand landmark model ready. Show one full hand to the camera.")})
-   .catch(e=>{handLoadNoticeShown=false;onModelState("hand","error",e.message);setNotice("Hand tracking could not start: "+e.message)});
+  setNotice("Loading hand landmark model…");
+  ai.loadHands().then(()=>{
+   handLoadNoticeShown=false;ai.onHandResult=handleHandResult;
+   setNotice("Hand landmark model ready. Show the full hand(s) to the camera.");
+  }).catch(e=>{
+   handLoadNoticeShown=false;onModelState("hand","error",e.message);
+   setNotice("Hand tracking could not start: "+e.message);
+  });
  };
  const onVideoFrame=(now,meta={})=>{
   if(!session)return;
@@ -89,23 +92,28 @@ function startLoop(){
      lastHandInferenceAt=mediaTime;handInferenceBusy=true;
      Promise.resolve().then(()=>ai.handLandmarker.detect(video,now))
       .then(data=>{if(session)handleHandResult(data,now,performance.now())})
-      .catch(e=>{onModelState("hand","error","Hand inference error: "+(e?.message||String(e)))})
+      .catch(e=>onModelState("hand","error","Hand inference error: "+(e?.message||String(e))))
       .finally(()=>{handInferenceBusy=false});
     }
    }
-   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference&&performance.now()-lastVisionInferenceAt>=(mode==="people"?120:180)){
+   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference&&performance.now()-lastVisionInferenceAt>=(mode==="people"?100:140)){
     lastInference=mediaTime;lastVisionInferenceAt=performance.now();
-    runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message))
+    runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message));
    }
   }
   if(session){
    if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(onVideoFrame);
-   else setTimeout(()=>{if(session)inferenceRaf=requestAnimationFrame(()=>onVideoFrame(performance.now(),{mediaTime:video.currentTime}))},0)
+   else setTimeout(()=>{if(session)inferenceRaf=requestAnimationFrame(()=>onVideoFrame(performance.now(),{mediaTime:video.currentTime}))},0);
   }
  };
- schedulePreview();
- if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(onVideoFrame);
- else inferenceRaf=requestAnimationFrame(now=>onVideoFrame(now,{mediaTime:video.currentTime}))
+ if(hasVideoCallback)videoFrameToken=video.requestVideoFrameCallback(now=>{
+   onVideoFrame(now);
+   renderPreview(now);
+ });
+ else {
+   schedulePreview();
+   inferenceRaf=requestAnimationFrame(now=>onVideoFrame(now,{mediaTime:video.currentTime}));
+ }
 }
 async function runVisionInference(now){
  if(inferenceBusy||!session||video.readyState<2)return;
