@@ -35,15 +35,12 @@ function startLoop(){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
    if(mode==="objects"||mode==="drawing"||mode==="portal"){
     if(!ai.handLandmarker&&!ai.loading.hand&&!handLoadNoticeShown){
-     handLoadNoticeShown=true;setNotice("Loading asynchronous MediaPipe hand landmarks…");
+     handLoadNoticeShown=true;setNotice("Loading hand landmark model…");
      ai.loadHands().then(()=>{ai.onHandResult=handleHandResult}).catch(e=>{onModelState("hand","error",e.message);handLoadNoticeShown=false});
     }
-    if(ai.handLandmarker&&mediaTime!==lastHandInferenceAt){
-     lastHandInferenceAt=mediaTime;
-     try{ai.handLandmarker.detectAsync(video,now)}
-     catch(e){onModelState("hand","error","Hand tracking failed: "+e.message)}
-     const modelError=ai.handLandmarker.getLastError?.();
-     if(modelError)onModelState("hand","error",modelError);
+    if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
+     lastHandInferenceAt=mediaTime;handInferenceBusy=true;
+     ai.handLandmarker.detect(video,now).then(data=>handleHandResult(data,now,performance.now())).catch(e=>onModelState("hand","error",e.message)).finally(()=>{handInferenceBusy=false});
     }
    }
    if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference){
@@ -74,7 +71,19 @@ async function runVisionInference(now){
  }catch(e){setNotice((target==="people"?"Face":"Object")+" model error: "+e.message);onModelState("object","error",e.message)}
  finally{inferenceBusy=false}
 }
-function updateObjectResult(pred){const cs=pred.filter(p=>p.score>=.28&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);if(!cs.length){stableClass=null;stableScore=0;$("resultMain").textContent=latestHands.length?"No held object found":"Show an item in your hand";$("resultDescription").textContent=latestHands.length?"No supported object is detected near the tracked hand. Try a bottle, cup, book, cell phone or laptop; small tools such as pens are outside this model’s class list.":"Hold one item clearly in either hand and keep both the hand and item in frame. Background objects are ignored."; $("metricValue").textContent="0 held";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"Searching hand region":"Waiting for hand";return}const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}$("resultMain").textContent=best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());$("resultDescription").textContent="COCO-SSD Lite detects common trained categories, not every object. Keep the target centered and well lit; pens, small tools and unfamiliar items may not be in its class list.";$("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Live detection"}
+function updateObjectResult(pred){
+ const cs=pred.filter(p=>p.score>=.28&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
+ if(!cs.length){
+  stableClass=null;stableScore=0;
+  $("resultMain").textContent=latestHands.length?"No supported item found near your hand":"No common object detected";
+  $("resultDescription").textContent=latestHands.length?"One hand is enough. Hold a common supported item close to your palm and keep both visible.":"Object recognition runs independently. Optional hand localization improves held-item filtering. Try a bottle, cup, book, cell phone or laptop.";
+  $("metricValue").textContent="0 objects";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"One hand tracked":"Object detection";return
+ }
+ const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
+ $("resultMain").textContent=best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+ $("resultDescription").textContent=latestHands.length?"Detected common object near a tracked hand. The model recognizes trained categories, not every real-world item.":"Detected a common object in the scene. Hold it in one hand to enable hand-area filtering; labels are limited to trained categories.";
+ $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent=latestHands.length?"Single-hand filtering":"Object detection"
+}
 function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No clear faces detected in this frame. Improve lighting and keep faces unobstructed.":"Visible face detections. Very small, turned-away or occluded faces may be missed; photos and posters can sometimes be detected as faces.";$("metricValue").textContent=n;$("confidenceValue").textContent="Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects"))return;
