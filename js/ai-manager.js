@@ -157,24 +157,58 @@ export class AIManager{
   catch(error){const message="Object detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.object=null}
  }
- async loadPeople(){
-  if(this.peopleDetector)return this.peopleDetector;
+ async loadPeople(facingMode=this.currentFacingMode){
+  this.currentFacingMode=facingMode;
+  if(this.peopleDetector&&this.peopleFacingMode===facingMode)return this.peopleDetector;
   if(this.loading.people)return this.loading.people;
-  this.onModelState("object","loading","Loading multi-person detector (up to 30 detections)…");
+  this.onModelState("object","loading","Loading rear/front multi-person detector…");
   this.loading.people=(async()=>{
-   const coco=await this.loadCocoDetector();
-   this.peopleDetector={detect:async(video,timestamp=performance.now())=>{
-    const started=performance.now(),predictions=await coco.detect(video,30,0.20);
-    const people=predictions.filter(item=>item.class==="person"&&item.score>=0.20);
-    this.lastPeopleCount=people.length;this.lastSummary=`${people.length} person detection(s)`;
-    this.lastObjectResult=people;this.lastObjectMode="coco-ssd-multi-person";
-    this.lastObjectInferenceMs=performance.now()-started;return people;
+   // On the rear camera use a full-range face model as a robust backup, because people are often farther away.
+   const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
+   const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
+   const modelPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
+   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.35:.4,minSuppressionThreshold:.25};
+   let detector;
+   try{detector=await FaceDetector.createFromOptions(vision,options);}
+   catch(gpuError){
+    try{detector=await FaceDetector.createFromOptions(vision,{...options,baseOptions:{modelAssetPath:modelPath,delegate:"CPU"}});}
+    catch(cpuError){
+     // If MediaPipe cannot initialize, fall back to person boxes from COCO-SSD.
+     const coco=await this.loadCocoDetector();
+     this.peopleDetector={detect:async(video)=>{
+      const started=performance.now(),predictions=await coco.detect(video,30,.20);
+      const people=predictions.filter(item=>item.class==="person"&&item.score>=.2);
+      this.lastPeopleCount=people.length;this.lastObjectResult=people;this.lastObjectMode="coco-ssd-multi-person";
+      this.lastObjectInferenceMs=performance.now()-started;return people;
+     }};
+     this.peopleFacingMode=facingMode;
+     this.onModelState("object","loaded","COCO-SSD person-count fallback ready");
+     return this.peopleDetector;
+    }
+   }
+   this.faceTask=detector;this.faceFacingMode=facingMode;this.lastFaceTimestamp=0;
+   this.faceDetector={detect:async(video,timestamp=performance.now())=>{
+    if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Waiting for a live camera frame.");
+    const started=performance.now(),ts=Math.max(this.lastFaceTimestamp+1,Math.floor(timestamp));this.lastFaceTimestamp=ts;
+    const result=detector.detectForVideo(video,ts),w=video.videoWidth,h=video.videoHeight;
+    const detections=(result.detections||[]).flatMap(detection=>{
+     const box=detection.boundingBox,score=Number(detection.categories?.[0]?.score);
+     if(!box||!Number.isFinite(score)||score<(facingMode==="environment"?.35:.4))return[];
+     const x=Math.max(0,Math.min(w,box.originX)),y=Math.max(0,Math.min(h,box.originY));
+     const right=Math.max(x,Math.min(w,box.originX+box.width)),bottom=Math.max(y,Math.min(h,box.originY+box.height));
+     if(right<=x||bottom<=y)return[];
+     return[{class:"face",score,bbox:[x,y,right-x,bottom-y]}];
+    });
+    this.lastPeopleCount=detections.length;this.lastObjectResult=detections;this.lastObjectMode="mediapipe-face-"+facingMode;
+    this.lastObjectInferenceMs=performance.now()-started;this.lastSummary=detections.length+" visible face(s) detected";
+    return detections;
    }};
-   this.onModelState("object","loaded","Multi-person COCO-SSD detector ready");
+   this.peopleDetector=this.faceDetector;this.peopleFacingMode=facingMode;
+   this.onModelState("object","loaded",facingMode==="environment"?"Rear-camera full-range face detector ready":"Front-camera face detector ready");
    return this.peopleDetector;
   })();
   try{return await this.loading.people}
-  catch(error){const message="Multi-person detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
+  catch(error){const message="Face detector failed to load. Check network access and retry: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.people=null}
  }
  async loadHands(){
@@ -208,7 +242,7 @@ export class AIManager{
   catch(error){const message="Hand model failed to load: "+(error?.message||"runtime/download error");this.onModelState("hand","error",message);throw new Error(message)}
   finally{this.loading.hand=null}
  }
- async ensureMode(mode,facingMode=this.currentFacingMode){this.currentMode=mode;this.currentFacingMode=facingMode;if(mode==="objects")return this.loadObjects();if(mode==="people")return this.loadPeople();if(mode==="drawing"||mode==="portal")return this.loadHands();return null}
+ async ensureMode(mode,facingMode=this.currentFacingMode){this.currentMode=mode;this.currentFacingMode=facingMode;if(mode==="objects")return this.loadObjects();if(mode==="people")return this.loadPeople(facingMode);if(mode==="drawing"||mode==="portal")return this.loadHands();return null}
  markInference(model){this.onModelState(model==="hand"?"hand":"object","ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"Multi-person detector analyzing live frames":"Open-vocabulary object detector analyzing live frames")}
  dispose(){try{this.handTask?.close?.()}catch{}try{this.faceTask?.close?.()}catch{}this.handTask=null;this.faceTask=null;this.faceDetector=null;this.peopleDetector=null;this.objectModel=null;this.cocoModel=null;this.faceFacingMode=null}
 }
