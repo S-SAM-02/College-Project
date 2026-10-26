@@ -160,6 +160,7 @@ export class AIManager{
  async loadPeople(facingMode=this.currentFacingMode){
   this.currentFacingMode=facingMode;
   if(this.peopleDetector&&this.peopleFacingMode===facingMode)return this.peopleDetector;
+  if(this.peopleFacingMode!==facingMode){try{this.faceTask?.close?.()}catch{}this.faceTask=null;this.faceDetector=null;this.peopleDetector=null;this.faceFacingMode=null;}
   if(this.loading.people)return this.loading.people;
   this.onModelState("object","loading","Loading rear/front multi-person detector…");
   this.loading.people=(async()=>{
