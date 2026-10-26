@@ -22,8 +22,9 @@ function onModelState(model,state,message){
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
 async function setMode(next){
  if(!configs[next])return;
+ const prev=mode;
  mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();portalHandsCache=[];portalLastBothAt=0;handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
- if(next==="drawing"){drawing.resume();drawing.clear();}
+ if(next==="drawing"){drawing.resume();}
  updateModeUI();
  if(session){
   try{
@@ -44,8 +45,8 @@ async function setupMode(){
  if(!session)return;
  try{
   await ai.ensureMode(mode,preferredFacing);
-  if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
-  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?"Camera face detector ready":"Open-vocabulary object detector ready";
+  if(mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
+  $("engineStatus").textContent=mode==="drawing"||mode==="portal"?"MediaPipe hand engine ready":mode==="people"?(preferredFacing==="environment"?"Rear-camera face detector ready":"Front-camera face detector ready"):"Open-vocabulary object detector ready";
   if(mode==="drawing"||mode==="portal")setNotice("Hand model ready. Show the full hand(s) in the camera view.");
   else setNotice("Waiting for the next analysis frame.");
  }catch(e){$("engineStatus").textContent="Initialization failed";setNotice(e.message)}
