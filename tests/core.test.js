@@ -192,3 +192,12 @@ test('fist eraser affects only a local palm circle, never clears the whole canva
  assert.ok(calls.composite.includes('destination-out'));
  assert.match(result.gesture,/erase locally/);
 });
+
+test('air drawing does not clear existing ink when switching into drawing mode', () => {
+  const calls={clearRect:0};
+  const ctx={clearRect(){calls.clearRect++},save(){},restore(){},beginPath(){},arc(){},fill(){},stroke(){},moveTo(){},lineTo(){},set globalCompositeOperation(v){},set shadowBlur(v){},set strokeStyle(v){},set lineWidth(v){},set lineCap(v){},set lineJoin(v){},set shadowColor(v){},set fillStyle(v){}};
+  const canvas={width:320,height:240,getContext(){return ctx}};
+  const drawing=new AirDrawing(canvas);
+  drawing.resume();
+  assert.equal(calls.clearRect,0);
+});
