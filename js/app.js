@@ -7,7 +7,21 @@ function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.
 function onDimensions(w,h,settings){resizeCanvases(video,[overlay,ink]);$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
 function onModelState(model,state,message){modelStates[model]=state;const p=model==="object"?"object":"hand",status=$(p+"ModelStatus"),tag=$(p+"ModelTag"),dot=$(p+"ModelDot");status.textContent=message;tag.textContent=state==="ready"?"READY":state==="loading"?"LOAD":state==="error"?"ERROR":state==="loaded"?"TEST":"IDLE";dot.textContent=state==="ready"?"✓":state==="error"?"!":state==="loading"?"·":"○";dot.parentElement.classList.toggle("ready",state==="ready");dot.parentElement.classList.toggle("error",state==="error");$("modelCount").textContent=Object.values(modelStates).filter(s=>s==="ready").length+" / 2 READY";if(state==="error")setNotice(message);if(state==="ready"||state==="loaded")$("engineStatus").textContent=model==="hand"?"Local hand tracking ready":mode==="people"?"Local face detector ready":"Local object detector ready"}
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
-async function setMode(next){if(!configs[next])return;mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);if(next==="drawing"){drawing.resume();drawing.clear();}updateModeUI();if(session){try{setNotice("Preparing "+configs[mode].title+"…");await ai.ensureMode(mode, preferredFacing);if(mode==="drawing"||mode==="portal"){ai.onHandResult=handleHandResult;drawing.resume();}setNotice(mode==="drawing"||mode==="portal"?"Hand tracking runs locally; show your full hand(s) in frame.":"Waiting for the next camera analysis…")}catch(e){setNotice(e.message)}}}
+async function setMode(next){
+ if(!configs[next])return;
+ mode=next;lastInference=0;latestObjects=[];latestHands=[];stableClass=null;stableScore=0;portal.reset();handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
+ if(next==="drawing"){drawing.resume();drawing.clear();}
+ updateModeUI();
+ if(session){
+  try{
+   setNotice("Preparing "+configs[mode].title+"…");
+   await ai.ensureMode(mode,preferredFacing);
+   if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
+   if(mode==="drawing"||mode==="portal")drawing.resume();
+   setNotice(mode==="drawing"||mode==="portal"?"Hand tracking is starting; keep the full hand in frame.":"Waiting for the next camera analysis…");
+  }catch(e){setNotice(e.message)}
+ }
+}
 async function startCamera(facing=preferredFacing){if(session&&camera.facingMode===facing)return;try{cameraLoading(true,"Requesting camera permission…");const devices=await camera.start($("cameraSelect").value,facing);preferredFacing=facing;populateCameras(devices);updateFacingButtons();applyCameraOrientation();await setupMode();cameraLoading(false)}catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}}
 function friendlyCameraError(e){if(["NotAllowedError","PermissionDeniedError"].includes(e.name))return"Camera permission denied. Allow camera access in browser site settings, then retry.";if(["NotFoundError","DevicesNotFoundError"].includes(e.name))return"No camera was found. Connect a camera or choose an available device.";if(["NotReadableError","TrackStartError"].includes(e.name))return"The camera is busy. Close other apps using it and retry.";return e.message||"Camera startup failed. Use HTTPS or localhost and check browser permissions."}
 function populateCameras(devices){const s=$("cameraSelect"),old=s.value;s.replaceChildren();s.add(new Option("Automatic camera",""));devices.forEach((d,i)=>s.add(new Option(d.label||"Camera "+(i+1),d.deviceId)));s.disabled=devices.length===0;if(devices.some(d=>d.deviceId===old))s.value=old}function updateFacingButtons(){$("cameraFacingSelect").value=preferredFacing}
