@@ -57,16 +57,18 @@ function cancelFrameScheduler(){
 function startLoop(){
  cancelFrameScheduler();renderFpsFrames=0;renderFpsWindowStart=performance.now();
  const hasVideoCallback=typeof video.requestVideoFrameCallback==="function";
+ const hasVideoCallback=typeof video.requestVideoFrameCallback==="function";
  const schedulePreview=()=>{if(session)raf=requestAnimationFrame(renderPreview)};
  const renderPreview=now=>{
   if(!session)return;
   renderFpsFrames++;
   if(now-renderFpsWindowStart>=500){$("fpsLabel").textContent=Math.round(renderFpsFrames*1000/(now-renderFpsWindowStart))+" preview FPS";renderFpsFrames=0;renderFpsWindowStart=now}
+  // Draw only with each incoming video frame when supported: no competing full-rate RAF loop.
   if(video.readyState>=2&&video.videoWidth){
    if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);
    renderOverlay(now)
   }
-  schedulePreview()
+  if(!hasVideoCallback)schedulePreview();
  };
  const loadHandIfNeeded=()=>{
   if(!session||!(mode==="drawing"||mode==="portal")||ai.handLandmarker||ai.loading.hand)return;
