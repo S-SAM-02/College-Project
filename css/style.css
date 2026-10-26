@@ -37,3 +37,41 @@
   .result-description, .notice-box, .model-row small { overflow-wrap: anywhere; }
   .model-row { grid-template-columns: 16px minmax(0,1fr) auto; gap: 6px; }
 }
+
+
+/* Final phone-only fit pass: keep camera, selectors and analysis content within the screen. */
+@media (max-width: 600px) {
+  html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+  .topbar { padding-left: 12px; padding-right: 12px; gap: 8px; }
+  .brand { min-width: 0; flex: 1 1 auto; }
+  .brand-copy { min-width: 0; }
+  .brand-copy strong { font-size: 10px; }
+  .brand-copy small { font-size: 7px; letter-spacing: .8px; }
+  .top-meta { flex: 0 0 auto; }
+  .shell, .workspace, .console-grid, .camera-column, .insight-panel { width: 100%; min-width: 0; max-width: 100%; }
+  .workspace { padding-left: 9px; padding-right: 9px; }
+  .workspace-head { align-items: flex-start; gap: 8px; }
+  .workspace-head > div:first-child { min-width: 0; }
+  .session-state { flex: 0 1 48%; max-width: 48%; white-space: normal; text-align: right; line-height: 1.35; }
+  .mode-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mode-button { min-width: 0; overflow: hidden; }
+  .mode-button > span:last-child { min-width: 0; }
+  .mode-button strong, .mode-button small { overflow-wrap: anywhere; }
+  .camera-frame { width: 100%; min-width: 0; aspect-ratio: 4 / 3; }
+  .camera-frame video, .camera-frame canvas { width: 100%; height: 100%; }
+  .camera-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; }
+  .camera-tool-group { display: grid; min-width: 0; width: 100%; gap: 5px; }
+  .camera-tool-group select, #cameraFacingSelect { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; font-size: 9px; }
+  .subtle-button { grid-column: 1 / -1; justify-self: start; margin-left: 0; }
+  .technical-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .technical-strip > div { min-width: 0; }
+  .technical-strip > div:last-child { grid-column: 1 / -1; }
+  .technical-strip strong { overflow-wrap: anywhere; }
+  .insight-panel { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  .panel-header, .result-hero, .result-details, .model-health-head, .model-row, .notice-box { width: 100%; min-width: 0; }
+  .result-hero { min-height: 0; }
+  .result-main, .result-description, .model-row small, .detail-row strong, .notice-box { overflow-wrap: anywhere; }
+  .model-row { display: grid; grid-template-columns: 16px minmax(0,1fr) auto; gap: 6px; }
+  .command-form { display: flex; width: 100%; min-width: 0; gap: 5px; }
+  .command-form input { flex: 1 1 0; width: 0; min-width: 0; }
+}
