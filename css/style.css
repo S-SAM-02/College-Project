@@ -57,3 +57,35 @@
   .result-hero { min-height: 0; }
   .notice-box { margin-top: 12px; }
 }
+
+
+/* Targeted phone-fit corrections: prevent camera controls and the analysis card from overlapping. */
+@media (max-width: 600px) {
+  .topbar { padding-inline: 12px; gap: 8px; }
+  .brand, .brand-copy { min-width: 0; }
+  .brand-copy strong { font-size: 10px; }
+  .brand-copy small { font-size: 7px; letter-spacing: 1px; }
+  .top-meta { flex-shrink: 0; }
+  .shell, .workspace, .console-grid, .camera-column, .insight-panel { min-width: 0; max-width: 100%; }
+  .workspace { padding-inline: 9px; }
+  .workspace-head { align-items: flex-start; gap: 8px; }
+  .workspace-head > div:first-child { min-width: 0; }
+  .session-state { max-width: 48%; white-space: normal; text-align: right; line-height: 1.35; }
+  .camera-frame { width: 100%; min-width: 0; aspect-ratio: 4 / 3; }
+  .camera-frame video, .camera-frame canvas { width: 100%; height: 100%; }
+  .camera-tools { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; align-items: end; }
+  .camera-tool-group { min-width: 0; width: 100%; }
+  .camera-tool-group select, #cameraFacingSelect { display: block; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; font-size: 9px; }
+  .subtle-button { grid-column: 1 / -1; justify-self: start; margin-left: 0; }
+  .technical-strip { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+  .technical-strip > div { min-width: 0; }
+  .technical-strip > div:last-child { grid-column: 1 / -1; }
+  .technical-strip strong { overflow-wrap: anywhere; }
+  .insight-panel { display: flex; flex-direction: column; gap: 12px; }
+  .panel-header, .result-hero, .result-details, .model-health-head, .model-row, .notice-box { min-width: 0; width: 100%; }
+  .result-hero { min-height: 0; }
+  .model-row { grid-template-columns: 16px minmax(0,1fr) auto; gap: 6px; }
+  .model-row small, .result-description, .notice-box, .detail-row strong { overflow-wrap: anywhere; }
+  .command-form { width: 100%; min-width: 0; }
+  .command-form input { min-width: 0; width: 0; }
+}
