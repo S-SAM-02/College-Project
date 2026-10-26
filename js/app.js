@@ -80,7 +80,7 @@ function startLoop(){
   if(!session)return;
   if(video.readyState>=2&&video.videoWidth){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
-   if(mode==="objects"||mode==="drawing"||mode==="portal"){
+   if(mode==="drawing"||mode==="portal"){
     ai.onHandResult=handleHandResult;
     loadHandIfNeeded();
     if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
@@ -112,7 +112,7 @@ async function runVisionInference(now){
   const detector=await ai.ensureMode(target,preferredFacing);
   const predictions=await detector.detect(video,now);
   if(target!==mode)return;
-  latestObjects=target==="objects"?filterObjectsNearHands(predictions,latestHands,overlay.width,overlay.height,0.28):(predictions||[]);ai.markInference("object");
+  latestObjects=(predictions||[]).filter(p=>p.class!=="face");ai.markInference("object");
   if(target==="objects")updateObjectResult(latestObjects);else if(target==="people")updatePeopleResult();
   const elapsed=Number(ai.lastObjectInferenceMs)||performance.now()-started;
   $("inferenceStatus").textContent="AI "+Math.round(elapsed)+" ms";
@@ -123,14 +123,14 @@ function updateObjectResult(pred){
  const cs=pred.filter(p=>p.score>=.28&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
  if(!cs.length){
   stableClass=null;stableScore=0;
-  $("resultMain").textContent=latestHands.length?"No supported item found near your hand":"No common object detected";
-  $("resultDescription").textContent=latestHands.length?"One hand is enough. Hold a common supported item close to your palm and keep both visible.":"Object recognition runs independently. Optional hand localization improves held-item filtering. Try a bottle, cup, book, cell phone or laptop.";
+  $("resultMain").textContent="No common object detected";
+  $("resultDescription").textContent="Object recognition runs independently of hand tracking. Try a bottle, cup, book, person, chair or laptop in clear view.";
   $("metricValue").textContent="0 objects";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"One hand tracked":"Object detection";return
  }
  const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
  $("resultMain").textContent=best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
- $("resultDescription").textContent=latestHands.length?"Detected common object near a tracked hand. The model recognizes trained categories, not every real-world item.":"Detected a common object in the scene. Hold it in one hand to enable hand-area filtering; labels are limited to trained categories.";
- $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent=latestHands.length?"Single-hand filtering":"Object detection"
+ $("resultDescription").textContent="Detected a common object in the scene. This fast model recognizes a fixed set of common categories.";
+ $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Object detection"
 }
 function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No clear faces detected in this frame. Improve lighting and keep faces unobstructed.":"Visible face detections. Very small, turned-away or occluded faces may be missed; photos and posters can sometimes be detected as faces.";$("metricValue").textContent=n;$("confidenceValue").textContent="Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
