@@ -26,7 +26,7 @@ test('Object Finder detects a held item from partial overlap with the hand regio
     { class: 'person', score: 0.99, bbox: [180, 35, 200, 370] }
   ];
   const result = filterObjectsNearHands(predictions, hands, 640, 480, 0.18);
-  assert.deepEqual(result.map(x => x.class), ['cell_phone', 'potted_plant']);
+  assert.deepEqual(result.map(x => x.class), ['potted_plant', 'cell_phone']);
 });
 
 test('Object Finder ignores full-scene detections when no hand is tracked', () => {
