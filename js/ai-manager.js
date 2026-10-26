@@ -161,8 +161,14 @@ export class AIManager{
   this.currentFacingMode=facingMode;
   if(this.peopleDetector&&this.peopleFacingMode===facingMode)return this.peopleDetector;
   if(this.peopleFacingMode!==facingMode){try{this.faceTask?.close?.()}catch{}try{this.rearShortFaceTask?.close?.()}catch{}this.faceTask=null;this.rearShortFaceTask=null;this.faceDetector=null;this.peopleDetector=null;this.faceFacingMode=null;}
-  if(this.loading.people)return this.loading.people;
+  if(this.loading.people){
+   const pending=this.loading.people;
+   if(this.loading.peopleFacingMode===facingMode)return pending;
+   try{await pending}catch{}
+   if(this.peopleDetector&&this.peopleFacingMode===facingMode)return this.peopleDetector;
+  }
   this.onModelState("object","loading",facingMode==="environment"?"Loading rear-camera face detection…":"Loading front-camera face detection…");
+  this.loading.peopleFacingMode=facingMode;
   this.loading.people=(async()=>{
    const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
    const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
@@ -177,9 +183,9 @@ export class AIManager{
    let rearShortDetector=null;
    if(facingMode==="environment"){
     try{
-     rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:.18,minSuppressionThreshold:.15});
+     rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:.12,minSuppressionThreshold:.12});
     }catch{
-     try{rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"CPU"},runningMode:"VIDEO",minDetectionConfidence:.18,minSuppressionThreshold:.15});}catch{}
+     try{rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"CPU"},runningMode:"VIDEO",minDetectionConfidence:.12,minSuppressionThreshold:.12});}catch{}
     }
     this.rearShortFaceTask=rearShortDetector;
    }
@@ -200,11 +206,13 @@ export class AIManager{
       return[{class:"face",score,bbox:[x,y,right-x,bottom-y]}];
      });
     };
-    let detections=readDetections(detector,ts,facingMode==="environment"?.12:.32);
-    // Rear cameras often see smaller/distant faces. If full-range finds none, try the short-range model too.
-    if(facingMode==="environment"&&detections.length===0&&rearShortDetector){
+    let detections=readDetections(detector,ts,facingMode==="environment"?.10:.28);
+    // Rear views often contain both nearby and distant faces. Run both ranges,
+    // then de-duplicate overlapping boxes so a partial hit from one model
+    // never prevents the second model from finding other people.
+    if(facingMode==="environment"&&rearShortDetector){
      const shortTs=Math.max(this.lastRearShortTimestamp+1,ts+1);this.lastRearShortTimestamp=shortTs;
-     detections=readDetections(rearShortDetector,shortTs,.18);
+     detections.push(...readDetections(rearShortDetector,shortTs,.12));
     }
     // Keep the clearest face box when two model passes return almost the same location.
     detections.sort((a,b)=>b.score-a.score);
@@ -224,7 +232,7 @@ export class AIManager{
   })();
   try{return await this.loading.people}
   catch(error){const message="Face detector failed to load. Check network access and retry: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
-  finally{this.loading.people=null}
+  finally{if(this.loading.peopleFacingMode===facingMode){this.loading.people=null;this.loading.peopleFacingMode=null}}
  }
  async loadHands(){
   if(this.handLandmarker)return this.handLandmarker;
@@ -259,5 +267,5 @@ export class AIManager{
  }
  async ensureMode(mode,facingMode=this.currentFacingMode){this.currentMode=mode;this.currentFacingMode=facingMode;if(mode==="objects")return this.loadObjects();if(mode==="people")return this.loadPeople(facingMode);if(mode==="drawing"||mode==="portal")return this.loadHands();return null}
  markInference(model){this.onModelState(model==="hand"?"hand":"object","ready",model==="hand"?"Hand landmarks updating from fresh video frames":this.currentMode==="people"?"Multi-person detector analyzing live frames":"Open-vocabulary object detector analyzing live frames")}
- dispose(){try{this.handTask?.close?.()}catch{}try{this.faceTask?.close?.()}catch{}try{this.rearShortFaceTask?.close?.()}catch{}this.rearShortFaceTask=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.peopleDetector=null;this.objectModel=null;this.cocoModel=null;this.faceFacingMode=null}
+ dispose(){try{this.handTask?.close?.()}catch{}try{this.faceTask?.close?.()}catch{}try{this.rearShortFaceTask?.close?.()}catch{}this.rearShortFaceTask=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.peopleDetector=null;this.objectModel=null;this.cocoModel=null;this.faceFacingMode=null;this.loading.people=null;this.loading.peopleFacingMode=null}
 }
