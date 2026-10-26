@@ -87,14 +87,12 @@ test('portal connects all five corresponding fingertip pairs', () => {
   assert.match(result.gesture, /five fingertip pairs linked/);
 });
 
-import { COLLEGE_OBJECT_PROMPTS } from '../js/ai-manager.js';
+import { COLLEGE_OBJECT_PROMPTS, OWL_OBJECT_PROMPTS } from '../js/ai-manager.js';
 
-test('real-time object model exposes only its supported common categories', () => {
-  assert.ok(COLLEGE_OBJECT_PROMPTS.length >= 20);
-  for (const item of ['person','laptop','cell phone','keyboard','book','bottle']) {
-    assert.ok(COLLEGE_OBJECT_PROMPTS.includes(item), 'missing common category: ' + item);
-  }
-  assert.equal(new Set(COLLEGE_OBJECT_PROMPTS).size, COLLEGE_OBJECT_PROMPTS.length);
+test('object detector uses open-vocabulary prompts beyond COCO categories',()=>{
+ assert.ok(OWL_OBJECT_PROMPTS.length>=40);
+ for(const prompt of ['pen','pencil','calculator','charger','power bank','ID card','headphones'])assert.ok(OWL_OBJECT_PROMPTS.includes(prompt));
+ assert.equal(new Set(OWL_OBJECT_PROMPTS).size,OWL_OBJECT_PROMPTS.length);
 });
 
 test('portal status reports two valid hand tracks without touching a canvas',()=>{
@@ -153,8 +151,4 @@ test('hand tracker tolerates absent handedness metadata',()=>{
  assert.equal(result.hands[0].side,'Hand 1');
  assert.equal(result.hands[0].landmarks[0].x,400);
  assert.equal(result.hands[0].landmarks[0].y,100);
-});
-test('open-vocabulary detector lists college objects beyond COCO categories',()=>{
- assert.ok(COLLEGE_OBJECT_PROMPTS.length>=20);
- for(const prompt of ['pen','pencil','calculator','charger','power bank','ID card','headphones'])assert.ok(COLLEGE_OBJECT_PROMPTS.includes(prompt));
 });
