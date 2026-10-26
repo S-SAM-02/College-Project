@@ -98,7 +98,7 @@ export class AIManager {
           try {
             output = await detector(canvas, candidates, { threshold: 0.045, top_k: 30 });
           } catch (error) {
-            this.onModelState("object", "error", "Open-vocabulary inference failed; switching to common-object fallback: " + (error?.message || "inference error"));
+            this.onModelState("object", "loading", "Open-vocabulary inference failed; switching to compact common-object fallback: " + (error?.message || "inference error"));
             const fallback = await this.loadObjects();
             this.zeroShotDetector = fallback;
             this.lastObjectMode = "coco";
@@ -132,7 +132,8 @@ export class AIManager {
           return mapped;
         }
       };
-      this.onModelState("object", "loaded", "Open-vocabulary model loaded; recognizes prompted common items");
+      this.lastObjectMode = "zero-shot";
+      this.onModelState("object", "loaded", "Open-vocabulary model loaded; candidate-label detector ready");
       return this.zeroShotDetector;
     })();
     try { return await this.zeroShotLoading; }
@@ -317,7 +318,7 @@ export class AIManager {
   }
 
   markInference(model) {
-    this.onModelState(model === "hand" ? "hand" : "object", "ready", model === "hand" ? "Local hand landmarks updating from live frames" : this.currentMode === "people" ? "Local face detector is analyzing the camera" : "Local COCO-SSD detector is analyzing the camera");
+    this.onModelState(model === "hand" ? "hand" : "object", "ready", model === "hand" ? "Local hand landmarks updating from live frames" : this.currentMode === "people" ? "Local face detector is analyzing the camera" : (this.lastObjectMode === "coco" ? "Compact common-object fallback is analyzing the camera" : "Open-vocabulary object detector is analyzing the camera"));
   }
 
   dispose() {
