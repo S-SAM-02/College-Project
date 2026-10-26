@@ -3,8 +3,14 @@ const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFr
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Hold thumb and index together to draw one stroke. Release to stop; pinch again to begin a new stroke. Leaving the frame preserves ink. A fist erases only beneath it."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible faces locally; rear-camera distant faces may be harder to detect."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
-function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.toggle("mirrored-overlay",mirrored);ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored=String(mirrored);ink.dataset.mirrored=String(mirrored)}
-function onDimensions(w,h,settings){resizeCanvases(video,[overlay,ink]);$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
+function applyCameraOrientation(){const mirrored=preferredFacing==="user";video.classList.toggle("mirrored-preview",mirrored);overlay.classList.remove("mirrored-overlay");ink.classList.toggle("mirrored-overlay",mirrored);overlay.dataset.mirrored="false";ink.dataset.mirrored=String(mirrored)}
+function syncVisionCanvases(){
+ if(!video.videoWidth||!video.videoHeight)return;
+ const w=video.videoWidth,h=video.videoHeight;
+ if(overlay.width!==w||overlay.height!==h){overlay.width=w;overlay.height=h;}
+ drawing.resize(w,h);
+}
+function onDimensions(w,h,settings){syncVisionCanvases();$("resolutionLabel").textContent=(settings.width||w)+" × "+(settings.height||h);applyCameraOrientation()}
 function onModelState(model,state,message){
  modelStates[model]=state;
  const prefix=model==="object"?"object":"hand";
@@ -59,7 +65,7 @@ async function switchCamera(){
  try{
   cancelFrameScheduler();cameraLoading(true,"Switching camera…");
   const ds=await camera.start($("cameraSelect").value,currentFacing);
-  populateCameras(ds);resizeCanvases(video,[overlay,ink]);applyCameraOrientation();
+  populateCameras(ds);syncVisionCanvases();applyCameraOrientation();
   latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;
   await setupMode();cameraLoading(false);if(session)startLoop();
  }catch(e){const m=friendlyCameraError(e);onCameraState("error",m);setNotice(m);feedback(m)}
@@ -94,7 +100,7 @@ function startLoop(){
    renderFpsFrames=0;renderFpsWindowStart=now;
   }
   if(video.readyState>=2&&video.videoWidth){
-   if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight)resizeCanvases(video,[overlay,ink]);
+   if(overlay.width!==video.videoWidth||overlay.height!==video.videoHeight||ink.width!==video.videoWidth||ink.height!==video.videoHeight)syncVisionCanvases();
    renderOverlay(now);
   }
  };
@@ -123,8 +129,9 @@ function startLoop(){
       .finally(()=>{handInferenceBusy=false});
     }
    }
+   const inferenceInterval=(mode==="people"&&preferredFacing==="environment")?170:100;
    if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference
-      &&performance.now()-lastVisionInferenceAt>=100){
+      &&performance.now()-lastVisionInferenceAt>=inferenceInterval){
     lastInference=mediaTime;lastVisionInferenceAt=performance.now();
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message));
    }
@@ -165,7 +172,7 @@ function updateObjectResult(pred){
  $("resultDescription").textContent="Detected a common object in the scene. This fast model recognizes a fixed set of common categories.";
  $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Object detection"
 }
-function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?(preferredFacing==="environment"?"No faces detected yet. Rear camera now retries with both full-range and short-range face models; move closer and improve lighting if needed.":"No clear faces detected in this frame. Improve lighting and keep faces unobstructed."):"Visible face detections. Small, turned-away or occluded faces may still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent=preferredFacing==="environment"?"Rear-camera full-range model":"Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
+function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?(preferredFacing==="environment"?"No face detected yet. Keep the rear camera steady, move closer, and improve lighting; detections combine wide-range and short-range passes.":"No clear faces detected in this frame. Improve lighting and keep faces unobstructed."):"Visible face detections. Small, turned-away or occluded faces may still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent=preferredFacing==="environment"?"Rear-camera full-range model":"Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects"))return;
  const tracked=handTracker.process(data,overlay.width,overlay.height);
