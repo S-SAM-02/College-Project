@@ -12,3 +12,28 @@
 .camera-frame canvas {
   transform-origin: center;
 }
+
+/* Mobile-only fit fixes: keep live preview and controls inside viewport; preserve desktop layout. */
+@media (max-width: 600px) {
+  .shell, .workspace, .console-grid, .camera-column, .insight-panel { min-width: 0; max-width: 100%; }
+  .workspace { padding-left: 10px; padding-right: 10px; }
+  .workspace-head { align-items: flex-start; gap: 8px; }
+  .workspace-head > div:first-child { min-width: 0; }
+  .session-state { max-width: 48%; white-space: normal; text-align: right; line-height: 1.35; }
+  .mode-switcher { min-width: 0; }
+  .mode-button { min-width: 0; overflow: hidden; }
+  .mode-button > span:last-child { min-width: 0; }
+  .mode-button strong, .mode-button small { overflow-wrap: anywhere; }
+  .camera-frame { width: 100%; aspect-ratio: 4 / 3; min-height: 0; }
+  .camera-tools { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; align-items: end; }
+  .camera-tool-group { min-width: 0; width: 100%; display: grid; gap: 5px; }
+  .camera-tool-group select, #cameraFacingSelect { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .subtle-button { grid-column: 1 / -1; justify-self: start; margin-left: 0; }
+  .technical-strip { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .technical-strip > div:last-child { grid-column: 1 / -1; }
+  .insight-panel { display: flex; }
+  .result-hero { min-height: 0; }
+  .result-main { overflow-wrap: anywhere; }
+  .result-description, .notice-box, .model-row small { overflow-wrap: anywhere; }
+  .model-row { grid-template-columns: 16px minmax(0,1fr) auto; gap: 6px; }
+}

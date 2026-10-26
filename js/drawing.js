@@ -7,6 +7,7 @@ export class AirDrawing {
     this.ctx = canvas.getContext("2d");
     this.smoother = new Smoother(0.62);
     this.lastPoint = null;
+    this.strokeActive = false;
     this.enabled = true;
     this.wasFist = false;
   }
@@ -22,12 +23,14 @@ export class AirDrawing {
 
     if (!this.enabled || !hand) {
       this.lastPoint = null;
+      this.strokeActive = false;
       this.smoother.reset();
-      return { drawing: false, gesture: hand ? "Drawing paused" : "No hand landmarks" };
+      return { drawing: false, gesture: hand ? "Drawing paused · existing ink kept" : "Hand left view · existing ink kept" };
     }
 
     if (pinchActive(hand)) {
       const point = this.smoother.update(hand.indexTip);
+      if (!this.strokeActive) { this.lastPoint = null; this.strokeActive = true; }
       if (this.lastPoint) {
         const ctx = this.ctx;
         ctx.save();
@@ -53,15 +56,17 @@ export class AirDrawing {
     }
 
     this.lastPoint = null;
+    this.strokeActive = false;
     this.smoother.reset();
-    return { drawing: false, gesture: "Bring thumb and index closer to draw" };
+    return { drawing: false, gesture: "Pinch thumb and index to start a new stroke · old ink kept" };
   }
 
   clear() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.lastPoint = null;
+    this.strokeActive = false;
     this.smoother.reset();
   }
-  pause() { this.enabled = false; this.lastPoint = null; this.smoother.reset(); }
+  pause() { this.enabled = false; this.lastPoint = null; this.strokeActive = false; this.smoother.reset(); }
   resume() { this.enabled = true; }
 }
