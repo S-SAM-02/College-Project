@@ -113,7 +113,7 @@ export class AIManager{
   this.onModelState("object","loading","Loading lightweight local object detector…");
   this.loading.object=(async()=>{
    const coco=await this.loadCocoDetector();
-   this.objectModel={detect:async video=>{const result=await coco.detect(video,15,0.22);this.lastObjectMode="coco-ssd-hand-local";return result;}};
+   this.objectModel={detect:async video=>{const result=await coco.detect(video,15,0.16);this.lastObjectMode="coco-ssd-hand-local";return result;}};
    this.onModelState("object","loaded","Lightweight local object detector ready");
    return this.objectModel;
   })();
