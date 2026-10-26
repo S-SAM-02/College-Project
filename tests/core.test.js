@@ -137,6 +137,6 @@ test('Object Finder does not show background detections without a tracked hand',
 test('object model and one-hand localization are independent',()=>{
  const predictions=[{class:'bottle',score:.8,bbox:[20,20,50,80]},{class:'chair',score:.9,bbox:[300,200,70,70]},{class:'person',score:.99,bbox:[15,20,50,80]}];
  assert.deepEqual(predictions.filter(p=>p.class!=='person'&&p.class!=='face').map(p=>p.class),['bottle','chair']);
- const landmarks=Array.from({length:21},(_,i)=>({x:200+(i%4)*5,y:120+Math.floor(i/4)*5,z:0}));
+ const landmarks=Array.from({length:21},(_,i)=>({x:70+(i%4)*10,y:55+Math.floor(i/4)*10,z:0}));
  assert.deepEqual(filterObjectsNearHands(predictions,[{landmarks}],640,480).map(p=>p.class),['bottle']);
 });
