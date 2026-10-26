@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#faf9f6">
-  <meta name="description" content="OBJECT MIND — a browser-based vision workspace powered by the OpenAI vision API.">
+  <meta name="description" content="OBJECT MIND — a browser-based vision workspace with OpenAI object analysis and local hand tracking.">
   <title>OBJECT MIND — Intelligent Vision Lab</title>
   <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
@@ -16,80 +16,48 @@
     <a class="brand" href="./" aria-label="OBJECT MIND home"><span class="brand-mark">O<span>·</span>M</span><span class="brand-copy"><strong>OBJECT MIND</strong><small>INTELLIGENT VISION LAB</small></span></a>
     <div class="top-meta"><span class="secure-dot"></span><span>OPENAI VISION BACKEND</span><span class="top-divider"></span><button id="aboutButton" class="text-button" type="button">About the lab <span aria-hidden="true">↗</span></button></div>
   </header>
-
   <main class="shell">
     <section class="intro">
       <div class="eyebrow"><span class="eyebrow-line"></span> COMPUTER VISION · GESTURE INTELLIGENCE</div>
       <h1>See the world.<br><span>Understand it.</span></h1>
-      <p class="intro-copy">An intelligent vision workspace for live object analysis, estimated hand landmarks, and visible-person counting. Camera preview stays local; sampled frames are analyzed by your configured OpenAI backend.</p>
+      <p class="intro-copy">An intelligent vision workspace for live object analysis, responsive hand gestures and visible-person counting. The camera preview and hand landmarks stay on this device; sampled frames for object and people analysis are sent to your configured OpenAI backend.</p>
       <div class="intro-foot"><span class="gold-chip">AI / ML</span><span class="gold-chip">DIGITAL IMAGE PROCESSING</span><span class="gold-chip">GESTURE SYSTEMS</span></div>
     </section>
-
     <section class="workspace" aria-label="Vision workspace">
-      <div class="workspace-head">
-        <div><div class="section-overline">01 / INTERACTIVE WORKSPACE</div><h2>Vision console</h2></div>
-        <div class="session-state"><span id="sessionDot" class="state-dot"></span><span id="sessionStatus" aria-live="polite">Camera offline</span></div>
-      </div>
+      <div class="workspace-head"><div><div class="section-overline">01 / INTERACTIVE WORKSPACE</div><h2>Vision console</h2></div><div class="session-state"><span id="sessionDot" class="state-dot"></span><span id="sessionStatus" aria-live="polite">Camera offline</span></div></div>
       <nav class="mode-switcher" aria-label="Choose vision mode">
         <button class="mode-button active" data-mode="objects" type="button"><span class="mode-index">01</span><span class="mode-icon">◈</span><span><strong>Object Finder</strong><small>Understand objects</small></span></button>
         <button class="mode-button" data-mode="drawing" type="button"><span class="mode-index">02</span><span class="mode-icon">✳</span><span><strong>Air Drawing</strong><small>Sketch with gestures</small></span></button>
         <button class="mode-button" data-mode="portal" type="button"><span class="mode-index">03</span><span class="mode-icon">◎</span><span><strong>Two-Hand Portal</strong><small>Connect both hands</small></span></button>
         <button class="mode-button" data-mode="people" type="button"><span class="mode-index">04</span><span class="mode-icon">⌁</span><span><strong>Person Finder</strong><small>Count visible people</small></span></button>
       </nav>
-
       <div class="console-grid">
         <section class="camera-column" aria-label="Live camera">
           <div class="camera-frame" id="cameraFrame">
-            <video id="cameraVideo" autoplay playsinline muted aria-label="Live camera preview"></video>
-            <canvas id="overlayCanvas" aria-hidden="true"></canvas>
-            <canvas id="inkCanvas" aria-hidden="true"></canvas>
-            <div id="cameraPlaceholder" class="camera-placeholder">
-              <div class="lens-art"><span class="lens-ring ring-one"></span><span class="lens-ring ring-two"></span><span class="lens-core">O</span><span class="lens-spark">✦</span></div>
-              <p class="placeholder-title">Your vision workspace awaits</p><p class="placeholder-copy">Enable your camera to analyze sampled frames with OpenAI vision.</p>
-              <button id="startCamera" class="primary-button" type="button"><span>Start camera</span><span aria-hidden="true">↗</span></button>
-              <small class="permission-note">Camera access is requested only when you begin.</small>
-            </div>
+            <video id="cameraVideo" autoplay playsinline muted aria-label="Live camera preview"></video><canvas id="overlayCanvas" aria-hidden="true"></canvas><canvas id="inkCanvas" aria-hidden="true"></canvas>
+            <div id="cameraPlaceholder" class="camera-placeholder"><div class="lens-art"><span class="lens-ring ring-one"></span><span class="lens-ring ring-two"></span><span class="lens-core">O</span><span class="lens-spark">✦</span></div><p class="placeholder-title">Your vision workspace awaits</p><p class="placeholder-copy">Enable your camera to analyze sampled frames with OpenAI vision and track hands locally.</p><button id="startCamera" class="primary-button" type="button"><span>Start camera</span><span aria-hidden="true">↗</span></button><small class="permission-note">Camera access is requested only when you begin.</small></div>
             <div id="cameraLoading" class="camera-loading" hidden><span class="spinner"></span><span id="loadingLabel">Requesting camera access…</span></div>
-            <div class="camera-topline"><span class="live-label"><span class="live-pulse"></span> LIVE VIEW</span><span id="resolutionLabel">— × —</span></div>
-            <div class="camera-bottomline"><span id="visionLabel">OBJECT FINDER</span><span id="fpsLabel">— AI FPS</span></div>
-            <button id="stopCamera" class="camera-stop" type="button" hidden aria-label="Stop camera">Stop session <span>×</span></button>
+            <div class="camera-topline"><span class="live-label"><span class="live-pulse"></span> LIVE VIEW</span><span id="resolutionLabel">— × —</span></div><div class="camera-bottomline"><span id="visionLabel">OBJECT FINDER</span><span id="fpsLabel">— AI FPS</span></div><button id="stopCamera" class="camera-stop" type="button" hidden aria-label="Stop camera">Stop session <span>×</span></button>
           </div>
-          <div class="camera-tools"><div class="camera-tool-group"><span class="tool-caption">CAMERA INPUT</span><select id="cameraSelect" aria-label="Select camera" disabled><option value="">Default camera</option></select></div><div class="camera-tool-group"><label class="tool-caption" for="cameraFacingSelect">CAMERA FACING</label><select id="cameraFacingSelect" aria-label="Choose camera facing"><option value="user" selected>Front camera</option><option value="environment">Rear camera</option></select></div><button id="retryModels" class="subtle-button" type="button">↻ Retry AI setup</button></div>
-          <div class="technical-strip"><div><span class="technical-label">MODEL ENGINE</span><strong id="engineStatus">Not initialized</strong></div><div><span class="technical-label">INFERENCE</span><strong id="inferenceStatus">Waiting</strong></div><div><span class="technical-label">PIPELINE</span><strong id="pipelineStatus">OpenAI Vision</strong></div></div>
+          <div class="camera-tools"><div class="camera-tool-group"><span class="tool-caption">CAMERA INPUT</span><select id="cameraSelect" aria-label="Select camera" disabled><option value="">Default camera</option></select></div><div class="camera-tool-group"><label class="tool-caption" for="cameraFacingSelect">CAMERA FACING</label><select id="cameraFacingSelect" aria-label="Choose camera facing"><option value="user" selected>Front camera · mirrored</option><option value="environment">Rear camera · natural</option></select></div><button id="retryModels" class="subtle-button" type="button">↻ Retry AI setup</button></div>
+          <div class="technical-strip"><div><span class="technical-label">MODEL ENGINE</span><strong id="engineStatus">Not initialized</strong></div><div><span class="technical-label">INFERENCE</span><strong id="inferenceStatus">Waiting</strong></div><div><span class="technical-label">PIPELINE</span><strong id="pipelineStatus">OpenAI Vision + Local Hands</strong></div></div>
         </section>
-
         <aside class="insight-panel" aria-label="Detection results">
           <div class="panel-header"><div><div class="section-overline">LIVE ANALYSIS</div><h3 id="resultTitle">Object intelligence</h3></div><span class="panel-emblem">✦</span></div>
-          <div id="resultHero" class="result-hero"><div class="result-symbol">◈</div><div class="result-kicker">AWAITING INPUT</div><div class="result-main" id="resultMain">Ready when<br>you are.</div><p id="resultDescription" class="result-description">Start the camera to let the vision models analyse the scene.</p></div>
-          <div class="result-details">
-            <div class="detail-row"><span id="metricLabel">DETECTION</span><strong id="metricValue">—</strong></div>
-            <div class="detail-row"><span id="confidenceLabel">CONFIDENCE</span><strong id="confidenceValue">—</strong></div>
-            <div class="detail-row"><span id="gestureLabel">GESTURE STATE</span><strong id="gestureValue">Waiting</strong></div>
-          </div>
-          <div class="panel-divider"></div>
-          <div class="model-health-head"><span>AI MODEL HEALTH</span><span id="modelCount">0 / 2 READY</span></div>
+          <div id="resultHero" class="result-hero"><div class="result-symbol">◈</div><div class="result-kicker">AWAITING INPUT</div><div class="result-main" id="resultMain">Ready when<br>you are.</div><p id="resultDescription" class="result-description">Start the camera to identify visible everyday objects.</p></div>
+          <div class="result-details"><div class="detail-row"><span id="metricLabel">DETECTION</span><strong id="metricValue">—</strong></div><div class="detail-row"><span id="confidenceLabel">CONFIDENCE</span><strong id="confidenceValue">—</strong></div><div class="detail-row"><span id="gestureLabel">GESTURE STATE</span><strong id="gestureValue">Waiting</strong></div></div>
+          <div class="panel-divider"></div><div class="model-health-head"><span>AI MODEL HEALTH</span><span id="modelCount">0 / 2 READY</span></div>
           <div class="model-row"><span class="model-status-icon" id="objectModelDot">○</span><span><strong>Object analysis</strong><small id="objectModelStatus">Waiting for OpenAI backend</small></span><span class="model-tag" id="objectModelTag">IDLE</span></div>
-          <div class="model-row"><span class="model-status-icon" id="handModelDot">○</span><span><strong>Hand landmark estimates</strong><small id="handModelStatus">Waiting for OpenAI backend</small></span><span class="model-tag" id="handModelTag">IDLE</span></div>
-          <div id="noticeBox" class="notice-box" role="status" aria-live="polite"><span class="notice-icon">i</span><span id="noticeText">OpenAI backend required: deploy to Vercel and configure OPENAI_API_KEY. Sampled camera frames are sent for analysis.</span></div>
+          <div class="model-row"><span class="model-status-icon" id="handModelDot">○</span><span><strong>Hand landmark tracking</strong><small id="handModelStatus">Ready when hand mode is selected</small></span><span class="model-tag" id="handModelTag">IDLE</span></div>
+          <div id="noticeBox" class="notice-box" role="status" aria-live="polite"><span class="notice-icon">i</span><span id="noticeText">Object and people analysis require the OpenAI API backend. Hand landmarks run locally. On GitHub Pages, /api/vision is unavailable.</span></div>
         </aside>
       </div>
-      <div class="workspace-footer"><span><span class="footer-shield">◇</span> Camera preview stays on this device</span><span>Build 01.00 <span class="footer-sep">/</span> OBJECT MIND</span></div>
+      <div class="workspace-footer"><span><span class="footer-shield">◇</span> Camera preview and hand tracking stay on this device</span><span>Build 01.01 <span class="footer-sep">/</span> OBJECT MIND</span></div>
     </section>
-
-    <section class="command-section">
-      <div class="command-intro"><div class="section-overline">02 / NATURAL LANGUAGE INTERFACE</div><h2>Give the vision a direction.</h2><p>Use a simple text command to control the workspace. Voice input is available where your browser supports it.</p></div>
-      <form id="commandForm" class="command-form"><label for="commandInput" class="sr-only">Enter a command</label><span class="command-prefix">⌘</span><input id="commandInput" autocomplete="off" placeholder="Try “start hand drawing” or “show the person count”…"><button class="voice-button" id="voiceButton" type="button" aria-label="Start voice command" title="Voice input">♩</button><button class="command-submit" type="submit" aria-label="Run command">Run <span>↗</span></button></form><div id="commandFeedback" class="command-feedback" aria-live="polite">Supported commands: open a mode, stop drawing, reset drawing, start/stop camera.</div>
-    </section>
-
-    <section class="principles">
-      <div class="principle"><span class="principle-number">01</span><div><h3>Perception, not illusion</h3><p>Live detections come from actual model inference. Unsupported objects remain unlabelled.</p></div></div>
-      <div class="principle"><span class="principle-number">02</span><div><h3>Transparent data flow</h3><p>No database is used; sampled camera frames are sent to OpenAI for analysis.</p></div></div>
-      <div class="principle"><span class="principle-number">03</span><div><h3>Measured performance</h3><p>Processing indicators reflect measured timing, not a decorative FPS value.</p></div></div>
-    </section>
-
+    <section class="command-section"><div class="command-intro"><div class="section-overline">02 / NATURAL LANGUAGE INTERFACE</div><h2>Give the vision a direction.</h2><p>Use a simple text command to control the workspace. Voice input is available where your browser supports it.</p></div><form id="commandForm" class="command-form"><label for="commandInput" class="sr-only">Enter a command</label><span class="command-prefix">⌘</span><input id="commandInput" autocomplete="off" placeholder="Try “start hand drawing” or “show the person count”…"><button class="voice-button" id="voiceButton" type="button" aria-label="Start voice command" title="Voice input">♩</button><button class="command-submit" type="submit" aria-label="Run command">Run <span>↗</span></button></form><div id="commandFeedback" class="command-feedback" aria-live="polite">Supported commands: open a mode, stop drawing, reset drawing, start/stop camera.</div></section>
+    <section class="principles"><div class="principle"><span class="principle-number">01</span><div><h3>Perception, not illusion</h3><p>Live detections are generated from actual model inference. Labels and estimates can still be imperfect.</p></div></div><div class="principle"><span class="principle-number">02</span><div><h3>Transparent data flow</h3><p>Hand landmarks are processed locally; sampled object/person-analysis frames are sent to OpenAI.</p></div></div><div class="principle"><span class="principle-number">03</span><div><h3>Measured performance</h3><p>The AI rate label reports approximate analysis cadence, not camera preview frame rate.</p></div></div></section>
     <footer class="site-footer"><a class="footer-brand" href="./">OBJECT MIND <span>◆</span></a><span>INTELLIGENT VISION LAB</span><span>© 2026 · Built for exploration.</span></footer>
   </main>
-
-  <dialog id="aboutDialog" class="about-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close" type="submit">×</button></form><div class="section-overline">ABOUT OBJECT MIND</div><h2>Intelligence with a clear point of view.</h2><p>OBJECT MIND uses the OpenAI vision API to analyze sampled camera frames for visible objects, approximate hand landmarks, and person counts. The preview stays in your browser, but sampled images are sent to your configured backend for processing.</p><div class="about-facts"><div><strong>DIP</strong><span>Frame sizing, coordinate mapping and temporal smoothing.</span></div><div><strong>OPENAI</strong><span>Vision analysis through a secure server endpoint; no third-party browser model files.</span></div><div><strong>NLP</strong><span>Explicit rule-based commands, with optional browser speech recognition.</span></div></div><p class="dialog-note">This project does not download TensorFlow, COCO-SSD, or MediaPipe model files. It sends compressed camera snapshots to OpenAI through the backend. Configure OPENAI_API_KEY in Vercel environment variables; API usage may incur charges. GPT-generated landmarks and counts are estimates, not guaranteed tracking measurements.</p></dialog>
+  <dialog id="aboutDialog" class="about-dialog"><form method="dialog"><button class="dialog-close" aria-label="Close" type="submit">×</button></form><div class="section-overline">ABOUT OBJECT MIND</div><h2>Intelligence with a clear point of view.</h2><p>OBJECT MIND uses local MediaPipe hand-landmark tracking for responsive pinch, fist, and two-hand gestures. OpenAI vision analyzes sampled camera frames for objects and estimates visible-person counts. The live preview itself remains in the browser.</p><div class="about-facts"><div><strong>LOCAL</strong><span>Hand keypoints and gesture interpretation run on the current device; the hand mode does not upload its frames.</span></div><div><strong>OPENAI</strong><span>Object and people analysis use a secure server endpoint. Sampled images are transmitted for analysis.</span></div><div><strong>NLP</strong><span>Explicit rule-based commands and optional browser speech recognition.</span></div></div><p class="dialog-note">Object/person modes require a Vercel deployment with OPENAI_API_KEY configured as an environment variable. OpenAI API usage may incur charges. Hand tracking downloads a MediaPipe JavaScript runtime and hand model from their public hosts the first time hand mode is used. Face recognition/identity tracking is not performed; people counts can be inaccurate in crowded or occluded scenes.</p></dialog>
 </body>
 </html>
