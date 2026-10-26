@@ -185,12 +185,8 @@ function renderOverlay(now){
   if(latestHands.length)drawHandSkeleton(ctx,latestHands);
  } else if(mode==="portal"){
   if(latestHands.length)drawHandSkeleton(ctx,latestHands);
-  const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height);
-  $("resultMain").textContent=portalResult.active?"Portal connected":portalResult.hands+" / 2 hands detected";
-  $("resultDescription").textContent=portalResult.active?"One rectangle with three straight fingertip connections.":"Show both hands fully in the camera frame; the portal closes when either hand leaves.";
-  $("metricValue").textContent=latestHands.length+" / 2 hands";
-  $("confidenceValue").textContent="Local landmarks";
-  $("gestureValue").textContent=portalResult.gesture;
+  // Portal status is updated on hand inference callbacks, not again on every preview frame.
+  portal.render(ctx,latestHands,overlay.width,overlay.height);
  } else if(mode==="people"){
   for(const face of latestObjects){
    if(face.class!=="face")continue;
