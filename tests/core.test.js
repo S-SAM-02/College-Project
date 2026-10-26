@@ -86,7 +86,7 @@ test('portal connects all five corresponding fingertip pairs', () => {
     {landmarks:left},{landmarks:right}
   ], 640, 480, 1000);
   assert.equal(result.active, true);
-  assert.match(result.gesture, /flowing fingertip links/);
+  assert.match(result.gesture, /thumb-index frame/);
   assert.equal(calls.stroke, 4, "three links plus one rectangular frame");
   assert.equal(calls.lineTo, 3, "the curved links use quadratic control points; the frame has three line segments");
   assert.equal(calls.quadraticCurveTo, 3, "three fingertip connections are drawn as flowing curves");
@@ -209,4 +209,12 @@ test('pinch detector does not start drawing while thumb and index are apart',()=
   4:{x:.35,y:.42},8:{x:.58,y:.42}
  });
  assert.equal(pinchActive({raw}),false);
+});
+
+
+test('portal frame configuration uses thumb-index fingertips, not little fingertips', async()=>{
+ const fs=await import('node:fs/promises');
+ const portalSource=await fs.readFile(new URL('../js/portal.js', import.meta.url),'utf8');
+ assert.match(portalSource,/const FRAME_FINGERS = \[4, 8\]/);
+ assert.doesNotMatch(portalSource,/const FRAME_FINGERS = \[4, 20\]/);
 });
