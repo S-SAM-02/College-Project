@@ -87,12 +87,14 @@ test('portal connects all five corresponding fingertip pairs', () => {
   assert.match(result.gesture, /five fingertip pairs linked/);
 });
 
-import { COLLEGE_OBJECT_PROMPTS, OWL_OBJECT_PROMPTS } from '../js/ai-manager.js';
+import { AIManager } from '../js/ai-manager.js';
 
-test('object detector uses open-vocabulary prompts beyond COCO categories',()=>{
- assert.ok(OWL_OBJECT_PROMPTS.length>=40);
- for(const prompt of ['pen','pencil','calculator','charger','power bank','ID card','headphones'])assert.ok(OWL_OBJECT_PROMPTS.includes(prompt));
- assert.equal(new Set(OWL_OBJECT_PROMPTS).size,OWL_OBJECT_PROMPTS.length);
+test('object detector uses the fast local COCO-SSD loader',()=>{
+ const manager = new AIManager(()=>{},()=>{});
+ assert.equal(typeof manager.loadObjects,'function');
+ assert.equal(typeof manager.ensureMode,'function');
+ assert.equal(manager.objectModel,null);
+ manager.dispose();
 });
 
 test('portal status reports two valid hand tracks without touching a canvas',()=>{
