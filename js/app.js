@@ -18,10 +18,6 @@ function cancelFrameScheduler(){
  if(videoFrameToken!==null&&video.cancelVideoFrameCallback){try{video.cancelVideoFrameCallback(videoFrameToken)}catch{}videoFrameToken=null}
  cancelAnimationFrame(raf)
 }
-function cancelFrameScheduler(){
- if(videoFrameToken!==null&&video.cancelVideoFrameCallback){try{video.cancelVideoFrameCallback(videoFrameToken)}catch{}videoFrameToken=null}
- cancelAnimationFrame(raf)
-}
 function startLoop(){
  cancelFrameScheduler();renderFpsFrames=0;renderFpsWindowStart=performance.now();
  const hasVideoCallback=typeof video.requestVideoFrameCallback==="function";
