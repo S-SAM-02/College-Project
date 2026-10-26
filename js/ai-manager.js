@@ -35,6 +35,7 @@ export class AIManager {
     this.zeroShotDetector = null;
     this.zeroShotLoading = null;
     this.zeroShotLastAt = 0;
+    this.zeroShotRequest = null;
     this.handLandmarker = null;
     this.handTask = null;
     this.faceTask = null;
@@ -91,7 +92,7 @@ export class AIManager {
             "flower pot", "remote control", "camera", "tripod", "microphone", "speaker", "ID card",
             "shoe", "cap", "ball", "person", "face", "hand", "phone case", "lunch box", "umbrella"
           ];
-          const output = await detector(canvas, candidates, { threshold: 0.055, top_k: 15 });
+          const output = await detector(canvas, candidates, { threshold: 0.045, top_k: 30 });
           const items = (Array.isArray(output) ? output : []).map(d => {
             const box = d.box || {};
             const x1 = Math.max(0, Math.min(w, Number(box.xmin) * w / targetW));
@@ -109,7 +110,7 @@ export class AIManager {
             const prior = bestByLabel.get(item.class);
             if (!prior || item.score > prior.score) bestByLabel.set(item.class, item);
           }
-          const mapped = [...bestByLabel.values()].sort((a, b) => b.score - a.score).slice(0, 15);
+          const mapped = [...bestByLabel.values()].sort((a, b) => b.score - a.score).slice(0, 30);
           this.lastObjectResult = { at: now, predictions: mapped };
           this.lastObjectInferenceAt = now;
           this.lastObjectMode = "zero-shot";
