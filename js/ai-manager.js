@@ -32,6 +32,7 @@ export class AIManager {
     this.objectModel = null;
     this.handLandmarker = null;
     this.handTask = null;
+    this.faceTask = null;
     this.faceDetector = null;
     this.loading = { object: null, hand: null, people: null };
     this.currentMode = "objects";
@@ -111,6 +112,7 @@ export class AIManager {
           ...options, baseOptions: { modelAssetPath: FACE_MODEL, delegate: "CPU" }
         });
       }
+      this.faceTask = detector;
       this.faceDetector = {
         detect: async (video, timestamp = performance.now()) => {
           if (!video?.videoWidth || !video?.videoHeight) throw new Error("Waiting for a live camera frame.");
@@ -120,7 +122,7 @@ export class AIManager {
           const w = video.videoWidth, h = video.videoHeight;
           const detections = (result.detections || []).flatMap((detection) => {
             const box = detection.boundingBox;
-            const score = Number(detection.categories?.[0]?.score ?? detection.categories?.[0]?.score);
+            const score = Number(detection.categories?.[0]?.score);
             if (!box || !Number.isFinite(score) || score < 0.48) return [];
             const x = Math.max(0, Math.min(w, box.originX));
             const y = Math.max(0, Math.min(h, box.originY));
@@ -202,13 +204,14 @@ export class AIManager {
   }
 
   markInference(model) {
-    this.onModelState(model === "hand" ? "hand" : "object", "ready", model === "hand" ? "Local hand landmarks updating from live frames" : "Local COCO-SSD detector is analyzing the camera");
+    this.onModelState(model === "hand" ? "hand" : "object", "ready", model === "hand" ? "Local hand landmarks updating from live frames" : this.currentMode === "people" ? "Local face detector is analyzing the camera" : "Local COCO-SSD detector is analyzing the camera");
   }
 
   dispose() {
     try { this.handTask?.close?.(); } catch {}
-    try { this.faceDetector?.close?.(); } catch {}
+    try { this.faceTask?.close?.(); } catch {}
     this.handTask = null;
+    this.faceTask = null;
     this.faceDetector = null;
     this.handLandmarker = null;
     this.objectModel = null;
