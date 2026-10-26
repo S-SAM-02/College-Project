@@ -92,3 +92,45 @@
   .model-row { grid-template-columns: 16px minmax(0,1fr) auto; }
   .model-row > span:nth-child(2) { min-width: 0; }
 }
+
+/* Final vision-lab interaction pass: aligned preview layers and clearer responsive layout. */
+.camera-frame { aspect-ratio: 16 / 10; min-height: 300px; }
+.camera-frame video, .camera-frame canvas { width: 100%; height: 100%; }
+.camera-frame video { object-fit: contain; }
+.camera-frame canvas { object-fit: fill; }
+.camera-frame video.mirrored-preview,
+.camera-frame canvas.mirrored-overlay { transform: scaleX(-1); }
+@media (max-width: 760px) {
+  .topbar { min-height: 68px; height: auto; padding: 12px 14px; flex-wrap: wrap; }
+  .top-meta { gap: 8px; }
+  .top-meta > span:first-child, .top-meta .top-divider { display: none; }
+  .shell { padding-left: 12px; padding-right: 12px; }
+  .intro { padding: 36px 0 28px; }
+  h1 { letter-spacing: -2px; font-size: clamp(38px, 11vw, 56px); }
+  .workspace { padding: 16px 12px 0; border-radius: 15px; }
+  .workspace-head { flex-wrap: wrap; }
+  .mode-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .console-grid { display: flex; flex-direction: column; gap: 16px; }
+  .camera-column, .insight-panel { width: 100%; min-width: 0; }
+  .camera-frame { aspect-ratio: 4 / 3; min-height: 0; }
+  .camera-placeholder { padding: 18px 12px; }
+  .lens-art { width: 65px; height: 65px; margin-bottom: 10px; }
+  .placeholder-title { font-size: 13px; }
+  .placeholder-copy { font-size: 10px; }
+  .camera-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .camera-tool-group { min-width: 0; display: grid; gap: 5px; }
+  .camera-tool-group select, #cameraFacingSelect { min-width: 0; width: 100%; max-width: 100%; }
+  .subtle-button { grid-column: 1 / -1; justify-self: start; }
+  .technical-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .technical-strip > div:last-child { grid-column: 1 / -1; }
+  .insight-panel { overflow: hidden; }
+  .result-main, .result-description, .notice-box, .model-row small { overflow-wrap: anywhere; }
+  .command-form { display: flex; min-width: 0; }
+  .command-form input { flex: 1 1 0; min-width: 0; width: 0; }
+}
+@media (max-width: 380px) {
+  .brand-copy small { letter-spacing: .35px; }
+  .brand-copy strong { letter-spacing: 1px; }
+  .mode-button { padding: 10px 7px; gap: 6px; }
+  .mode-button strong { white-space: normal; }
+}
