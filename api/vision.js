@@ -9,56 +9,63 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Use POST to analyze a camera frame." });
   }
   if (!process.env.OPENAI_API_KEY) {
-    return res.status(503).json({ error: "OpenAI backend is not configured. Add OPENAI_API_KEY to your deployment environment." });
+    return res.status(503).json({ error: "OpenAI backend is not configured. Add OPENAI_API_KEY to your Vercel project, then redeploy." });
   }
-  const { image, mode = "objects" } = req.body || {};
+  let body = req.body;
+  if (typeof body === "string") {
+    try { body = JSON.parse(body); } catch { body = null; }
+  }
+  const { image, mode = "objects" } = body || {};
   if (typeof image !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(image) || image.length > MAX_IMAGE_CHARS) {
-    return res.status(400).json({ error: "A valid, compressed camera image is required." });
+    return res.status(400).json({ error: "Invalid or oversized camera image. Retry with the camera running." });
   }
   const safeMode = ["objects", "people", "drawing", "portal"].includes(mode) ? mode : "objects";
-  const prompt = `Analyze this single camera frame for the OBJECT MIND vision interface. Return only valid JSON. Do not invent things hidden or too unclear to see. Coordinates are normalized to 0..1000 relative to the full image, origin at top-left. For each visible item return bbox [left, top, width, height], all normalized 0..1000. Keep boxes inside the image. Return at most 25 distinct visible object instances. Use concise everyday object labels (phone, laptop, book, pen, pencil, bottle, cup, mug, chair, table, keyboard, mouse, monitor, backpack, bag, notebook, paper, ruler, scissors, calculator, charger, headphones, glasses, keys, remote, plant, person, etc.) and confidence from 0 to 1. Do not count the same object twice. people_count is the estimated number of visible people. For hand tracking, only report hands clearly visible in the image. For each hand, provide side ("Left", "Right", or "Unknown") and exactly 21 landmarks in this order: wrist; thumb CMC, MCP, IP, tip; index MCP, PIP, DIP, tip; middle MCP, PIP, DIP, tip; ring MCP, PIP, DIP, tip; pinky MCP, PIP, DIP, tip. Every landmark is {x,y,z} normalized 0..1, x/y relative to the image. Estimate joints only when visible; if the hand is too occluded or unclear, omit it rather than fabricate landmarks. These are visual estimates, not precision sensor measurements. Current mode: ${safeMode}. Prioritize landmark estimates for drawing/portal modes, and object labels/boxes for objects/people modes. JSON shape: {"objects":[{"label":"phone","confidence":0.9,"bbox":[100,100,200,250]}],"people_count":1,"hands":[{"side":"Right","landmarks":[{"x":0.5,"y":0.5,"z":0}]}],"summary":"brief observation"}.`;
+  const prompt = safeMode === "people"
+    ? `Count distinct visible people in this image, including partial people where clearly visible. Count people, not faces, posters, or pictures of people. Do not guess a person from a portrait in the background. For a crowd, estimate each distinct visible person and avoid merging people unless they overlap so much they cannot be separated. Return JSON only with people_count (integer), objects (array with label/confidence/bbox), hands (empty array), and summary. Bounding boxes use [left,top,width,height] normalized 0..1000 from the top-left. Return visible real-world objects only; ignore drawings/posters/pictures as people. Current task: count people.`
+    : safeMode === "objects"
+    ? `Inspect the full image and detect visible physical objects, especially everyday items including phone, laptop, book, pen, pencil, bottle, cup, chair, table, keyboard, mouse, monitor, bag, notebook, paper, calculator, charger, headphones, glasses, keys, remote, and plant. Do not limit labels to a fixed vocabulary. Include up to 25 distinct object instances, not parts of a person or background decoration. Return JSON only with objects [{label,confidence,bbox}], people_count (integer), hands (empty array), summary. bbox=[left,top,width,height], all normalized 0..1000 relative to image dimensions from top-left. Use conservative confidence 0..1 and keep boxes inside image. People count is a separate estimate of real people physically present, not posters or photographs.`
+    : `Estimate visible hands only for visual reference. Return JSON with objects [], people_count integer, hands array, summary. For each clearly visible hand return side Left/Right/Unknown and exactly 21 landmarks in order: wrist; thumb CMC,MCP,IP,tip; index MCP,PIP,DIP,tip; middle MCP,PIP,DIP,tip; ring MCP,PIP,DIP,tip; pinky MCP,PIP,DIP,tip. Each landmark uses x,y,z in 0..1 relative to the full image, origin top-left. If you cannot estimate a complete, coherent hand, return no hand. These are approximate visual points, not reliable motion tracking. Current task: ${safeMode}.`;
   try {
-    const upstream = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        store: false,
-        input: [{
-          role: "user",
-          content: [
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25_000);
+    let upstream;
+    try {
+      upstream = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: MODEL,
+          store: false,
+          input: [{ role: "user", content: [
             { type: "input_text", text: prompt },
             { type: "input_image", image_url: image, detail: "high" }
-          ]
-        }],
-        text: { format: { type: "json_object" } },
-        max_output_tokens: 3500
-      })
-    });
-    const payload = await upstream.json();
+          ] }],
+          text: { format: { type: "json_object" } },
+          max_output_tokens: safeMode === "people" ? 1800 : 2800
+        })
+      });
+    } finally { clearTimeout(timeout); }
+    const payload = await upstream.json().catch(() => ({}));
     if (!upstream.ok) {
-      const message = payload?.error?.message || "OpenAI vision request failed.";
-      return res.status(upstream.status === 429 ? 429 : 502).json({ error: message.slice(0, 240) });
+      const message = payload?.error?.message || `OpenAI request failed (HTTP ${upstream.status}). Check API billing, project permissions, and model access.`;
+      const status = upstream.status === 429 ? 429 : upstream.status === 401 || upstream.status === 403 ? 502 : 502;
+      return res.status(status).json({ error: message.slice(0, 240) });
     }
-    const outputText = (payload.output || [])
-      .filter(item => item.type === "message")
-      .flatMap(item => item.content || [])
-      .filter(item => item.type === "output_text")
-      .map(item => item.text)
-      .join("\n");
+    const outputText = (payload.output || []).filter(item => item.type === "message")
+      .flatMap(item => item.content || []).filter(item => item.type === "output_text")
+      .map(item => item.text).join("\n");
     let result;
     try { result = JSON.parse(outputText); }
-    catch { return res.status(502).json({ error: "The vision service returned an unreadable result. Retry the frame." }); }
+    catch { return res.status(502).json({ error: "OpenAI returned an unreadable result. Check model access and retry." }); }
+
     const objects = (Array.isArray(result.objects) ? result.objects : []).slice(0, 25).flatMap(item => {
       const bbox = Array.isArray(item.bbox) ? item.bbox.map(Number) : [];
       const confidence = Number(item.confidence);
       const label = typeof item.label === "string" ? item.label.trim().slice(0, 60) : "";
       if (!label || bbox.length !== 4 || !bbox.every(Number.isFinite) || !Number.isFinite(confidence)) return [];
       const [x, y, w, h] = bbox.map(v => Math.max(0, Math.min(1000, v)));
-      if (w < 1 || h < 1) return [];
+      if (w < 1 || h < 1 || x + w > 1100 || y + h > 1100) return [];
       return [{ label, confidence: Math.max(0, Math.min(1, confidence)), bbox: [x, y, w, h] }];
     });
     const hands = (Array.isArray(result.hands) ? result.hands : []).slice(0, 2).flatMap(hand => {
@@ -67,13 +74,17 @@ export default async function handler(req, res) {
       if (landmarks.some(p => !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1)) return [];
       return [{ side: ["Left", "Right"].includes(hand.side) ? hand.side : "Unknown", landmarks }];
     });
+    const people = Number(result.people_count);
     return res.status(200).json({
       objects,
-      people_count: Math.max(0, Math.min(30, Math.round(Number(result.people_count) || 0))),
+      people_count: Number.isFinite(people) ? Math.max(0, Math.min(1000, Math.round(people))) : 0,
       hands,
       summary: typeof result.summary === "string" ? result.summary.slice(0, 240) : ""
     });
   } catch (error) {
-    return res.status(502).json({ error: "Could not reach OpenAI vision. Check deployment network access and retry." });
+    const message = error?.name === "AbortError"
+      ? "OpenAI vision timed out. Retry, or check whether your API project is responding."
+      : "Could not reach OpenAI vision. Check the Vercel deployment logs and API connectivity.";
+    return res.status(502).json({ error: message });
   }
 }
