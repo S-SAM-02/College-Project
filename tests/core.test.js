@@ -178,3 +178,17 @@ test('drawing strokes stay on canvas after hand leaves and resume as a separate 
  assert.equal(calls.segments.filter(s=>s[0]==="M").length,0,"each isolated pinch starts with a dot rather than connecting to old ink");
  assert.ok(calls.arcs>=2,"each new stroke begins at the new index fingertip");
 });
+
+test('fist eraser affects only a local palm circle, never clears the whole canvas',()=>{
+ const calls={clearRect:0,arc:[],composite:[]};
+ const ctx={save(){},restore(){},beginPath(){},clearRect(){calls.clearRect++},arc(x,y,r){calls.arc.push({x,y,r})},fill(){},set globalCompositeOperation(v){calls.composite.push(v)},set shadowBlur(v){}};
+ const canvas={width:640,height:360,getContext(){return ctx}};
+ const drawing=new AirDrawing(canvas);
+ const landmarks=Array.from({length:21},(_,i)=>({x:110+(i%5)*5,y:90+Math.floor(i/5)*5}));
+ const result=drawing.process([{landmarks}],true);
+ assert.equal(calls.clearRect,0);
+ assert.equal(calls.arc.length,1);
+ assert.ok(calls.arc[0].r<30);
+ assert.ok(calls.composite.includes('destination-out'));
+ assert.match(result.gesture,/erase locally/);
+});
