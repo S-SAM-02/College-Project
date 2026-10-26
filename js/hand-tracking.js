@@ -53,7 +53,8 @@ export function pinchActive(hand) {
   const palmWidth=distance(lm[5],lm[17]),palmLength=distance(lm[0],lm[9]);
   const scale=Math.max(palmWidth,palmLength*0.72,0.0001);
   const ratio=distance(lm[4],lm[8])/scale;
-  return Number.isFinite(ratio)&&ratio<0.9;
+  // Require a deliberate pinch; an open hand should not create accidental ink.
+  return Number.isFinite(ratio)&&ratio<0.42;
 }
 
 export function isFist(lm) {
