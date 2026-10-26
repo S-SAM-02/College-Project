@@ -100,7 +100,7 @@ export class AIManager {
           const landmarks = (result.landmarks || []).map(hand => hand.map(p => ({ x: p.x, y: p.y, z: p.z || 0 })));
           const handednesses = (result.handednesses || []).map(pair => {
             const category = pair?.[0];
-            const rawSide = category?.categoryName || "Unknown";\n            const side = rawSide === "Left" ? "Right" : rawSide === "Right" ? "Left" : rawSide;\n            return [{ categoryName: side, score: category?.score || 0 }];
+            return [{ categoryName: category?.categoryName || "Unknown", score: category?.score || 0 }];
           });
           return { landmarks, handednesses };
         }
