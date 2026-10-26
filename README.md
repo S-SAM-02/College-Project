@@ -1,40 +1,33 @@
 # OBJECT MIND — Intelligent Vision Lab
 
-Premium white-and-gold browser computer-vision lab for object detection, hand landmarks, pinch-to-draw, a fingertip-connected portal effect, visible-person counting and natural-language controls.
+Premium browser vision and gesture workspace with live object detection, hand landmarks, air drawing, two-hand fingertip portal, visible-person counting and text/optional voice commands.
 
-## Publish
-Enable **Settings → Pages → Deploy from a branch → main → /(root)**. This repository is configured for static hosting, but publishing must be enabled in GitHub settings. Visit the HTTPS Pages URL and allow camera access.
+## Publish on GitHub Pages
+Open repository **Settings → Pages**, select **Deploy from a branch**, choose `main` and `/(root)`. This project is static, but Pages publishing is a repository setting and must be enabled separately. Access the resulting HTTPS URL and allow camera access.
 
 ## Features
-- **Object Finder:** real TensorFlow.js COCO-SSD detections, confidence labels and bounding boxes for supported classes.
-- **Air Drawing:** MediaPipe Hand Landmarker, smoothed index landmark, pinch-to-draw and fist-to-clear.
-- **Two-Hand Portal:** live tracked index fingertips, curved tether and activation hysteresis.
-- **Person Finder:** counts current-frame COCO-SSD person-class detections; no face recognition or persistent unique-person tracking.
-- **NLP:** rule-based mode/action commands; optional browser speech recognition.
-- **DIP:** camera-aligned canvas sizing, coordinate mapping and landmark smoothing.
-- **Measured metrics:** real render-loop FPS and recent inference latency.
-- **Privacy:** app code does not upload or save camera frames.
-
-## Tech and networking
-TensorFlow.js 4.22.0, COCO-SSD 2.2.3, MediaPipe Tasks Vision 0.10.22, ES modules, Canvas and getUserMedia. Browser libraries and model weights load from jsDelivr and Google Cloud Storage when needed. Internet is required for model initialization. Camera video is processed inside the browser by application code; third-party CDN requests still expose ordinary network metadata.
+- Object Finder: TensorFlow.js 4.22.0 and COCO-SSD 2.2.3 (lite MobileNet V2), supported-class labels, confidence and live bounding boxes.
+- Air Drawing and Portal: MediaPipe Tasks Vision 0.10.22 Hand Landmarker. Pinch-to-draw, fist-to-clear and fingertip-connected canvas portal effect.
+- Person Finder: current-frame COCO-SSD person-class count, without facial identification.
+- DIP: coordinate-aware canvas sizing and temporal smoothing.
+- NLP: explicit rule-based commands plus optional browser Web Speech API.
+- Metrics: measured frame-loop FPS and inference duration; model becomes READY only after live inference succeeds.
+- Privacy: application camera frames are processed locally and are not uploaded or saved by this code.
 
 ## Run locally
-Use Node.js 20+ and serve from a secure origin, for example `npx serve .`. Use HTTPS or localhost; a `file://` page is not recommended.
+Requires Node.js 20+. Serve this folder, for example with `npx serve .`, and open the localhost URL. Camera access requires HTTPS or localhost. Internet access is required to fetch browser libraries and model weights from jsDelivr and Google Cloud Storage. CDN requests expose ordinary network metadata; application code does not upload video frames.
 
-## Use
-1. Select a mode and press **Start camera**.
-2. Allow camera permission; wait for the selected model to complete valid inference.
-3. Object Finder recognises only categories supported by COCO-SSD. A box means a model detection, not a verified grasp/held-object association.
-4. Air Drawing: pinch thumb and index finger to draw; make a confirmed fist to clear.
-5. Two-Hand Portal: bring both index fingertips closer; move apart to release.
-6. Person Finder counts frame-based person detections. It can miss partial, small or occluded people and frame detections are not guaranteed unique people over time.
-7. Commands include `open object finder`, `start hand drawing`, `activate portal`, `show person count`, `stop drawing`, `reset drawing`, `start camera`, and `stop camera`.
+## Usage
+1. Choose a mode and click **Start camera**. Approve camera access.
+2. Wait for a successful live inference and a READY model indicator.
+3. Object Finder recognises only COCO-SSD's known classes; a box is not proof that an object is being held.
+4. Air Drawing: pinch thumb and index fingertips to draw; a confirmed fist clears the canvas.
+5. Two-Hand Portal: bring both index fingertips closer, then separate them to release.
+6. Person Finder counts frame-based full-person detections. Partial/occluded people may be missed; detections across frames are not persistent unique-person identities.
+7. Commands: `open object finder`, `start hand drawing`, `activate portal`, `show person count`, `stop drawing`, `reset drawing`, `start camera`, `stop camera`.
 
-## Camera orientation and errors
-Video uses native orientation by default; mirroring is optional. Camera access requires HTTPS or localhost. Switching cameras stops the old stream first; leaving/stopping releases tracks. The interface distinguishes camera permission errors and model failures. Browser/device performance varies.
+## Camera and limitations
+Native orientation is the default; mirroring is optional. Camera switching stops previous tracks. Stop the session or leave the page to release camera resources. COCO-SSD supports a finite list of object labels and does not generate exhaustive product descriptions. Object-to-hand association is not a verified grasp classifier. Person Finder is full-person detection, not face counting. Browser, GPU, network and lighting affect performance. The portal is a canvas effect, not a real 3D portal.
 
-## Quality checks
-Run `npm run check` and `npm test`. GitHub Actions runs syntax checks, unit tests and entry-file checks on pushes/PRs.
-
-## Test report
-Unit tests cover coordinate scaling, box overlap, distances, smoothing, NLP mapping, count formatting and person filtering. CI is configured but must run on GitHub after commits. Physical-camera, cross-browser and hosted-page verification still require an actual browser/device; they are not claimed as completed here.
+## Quality checks and test report
+Run `npm run check` and `npm test`. GitHub Actions checks JS syntax, unit tests and the main files on push/pull request. Tests cover coordinate scaling, box overlap, distances, smoothing, command parsing, count formatting and person filtering. A physical-camera run, hosted-browser interaction and cross-device test still require a real device and are not claimed as completed.
