@@ -68,12 +68,17 @@ export function isFist(lm) {
 }
 
 export function drawHandSkeleton(ctx,hands) {
-  ctx.save();ctx.lineWidth=3;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#168BFF";ctx.fillStyle="#EAF5FF";ctx.shadowColor="#168BFF88";ctx.shadowBlur=6;
+  ctx.save();ctx.lineWidth=3;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#0645ff";ctx.fillStyle="#0645ff";ctx.shadowColor="#168BFF88";ctx.shadowBlur=5;
   for(const hand of Array.isArray(hands)?hands:[]){
     const points=hand?.landmarks;
     if(!Array.isArray(points)||points.length<LANDMARK_COUNT||points.some(p=>!Number.isFinite(p?.x)||!Number.isFinite(p?.y)))continue;
     for(const [a,b] of SKELETON_LINKS){const p=points[a],q=points[b];ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}
-    for(const i of [0,4,8,12,16,20]){const p=points[i];ctx.beginPath();ctx.arc(p.x,p.y,i===8?5:3.5,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    // Match the reference overlay: visible green nodes at all 21 landmarks, blue joints and links.
+    for(let i=0;i<LANDMARK_COUNT;i++){
+      const p=points[i],radius=[4,8,12,16,20].includes(i)?5:3.8;
+      ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fillStyle="#00ef45";ctx.fill();ctx.lineWidth=1.8;ctx.strokeStyle="#073fff";ctx.stroke();
+      ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1.4,radius*.42),0,Math.PI*2);ctx.fillStyle="#073fff";ctx.fill();
+    }
   }
   ctx.restore();
 }

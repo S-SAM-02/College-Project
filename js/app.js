@@ -1,5 +1,5 @@
-import{CameraController}from"./camera.js";import{AIManager}from"./ai-manager.js";import{resizeCanvases}from"./image-processing.js";import{HandTracker,drawHandSkeleton}from"./hand-tracking.js";import{AirDrawing}from"./drawing.js";import{HandPortal}from"./portal.js";import{parseCommand}from"./nlp.js";import{PerformanceMeter}from"./performance.js";import{describePeople}from"./person-counter.js";import{filterObjectsNearHands}from"./object-in-hand.js";
-const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
+import{CameraController}from"./camera.js";import{AIManager}from"./ai-manager.js";import{resizeCanvases}from"./image-processing.js";import{HandTracker,drawHandSkeleton}from"./hand-tracking.js";import{AirDrawing}from"./drawing.js";import{HandPortal}from"./portal.js";import{parseCommand}from"./nlp.js";import{PerformanceMeter}from"./performance.js";import{describePeople}from"./person-counter.js";
+const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Pinch thumb and index finger to draw; close your hand into a fist to clear."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible face detections locally. It does not identify people."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
@@ -16,7 +16,7 @@ function onModelState(model,state,message){
  if(state==="error")setNotice(message);
  if(state==="ready"||state==="loaded"){
   if(model==="hand")$("engineStatus").textContent="MediaPipe hand tracking ready";
-  else $("engineStatus").textContent=mode==="people"?"Local face detector ready":"Open-vocabulary object detector ready";
+  else $("engineStatus").textContent=mode==="people"?"Local face detector ready":"COCO-SSD Lite object detector ready";
  }
 }
 function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
@@ -80,7 +80,7 @@ function startLoop(){
   if(!session)return;
   if(video.readyState>=2&&video.videoWidth){
    const mediaTime=Number.isFinite(meta.mediaTime)?meta.mediaTime:video.currentTime;
-   if(mode==="objects"||mode==="drawing"||mode==="portal"){
+   if(mode==="drawing"||mode==="portal"){
     ai.onHandResult=handleHandResult;
     loadHandIfNeeded();
     if(ai.handLandmarker&&!handInferenceBusy&&mediaTime!==lastHandInferenceAt){
@@ -91,8 +91,8 @@ function startLoop(){
       .finally(()=>{handInferenceBusy=false});
     }
    }
-   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference){
-    lastInference=mediaTime;
+   if((mode==="objects"||mode==="people")&&!inferenceBusy&&mediaTime!==lastInference&&performance.now()-lastVisionInferenceAt>=(mode==="people"?120:180)){
+    lastInference=mediaTime;lastVisionInferenceAt=performance.now();
     runVisionInference(now).catch(e=>setNotice("Vision inference failed: "+e.message))
    }
   }
@@ -112,7 +112,7 @@ async function runVisionInference(now){
   const detector=await ai.ensureMode(target,preferredFacing);
   const predictions=await detector.detect(video,now);
   if(target!==mode)return;
-  latestObjects=target==="objects"?filterObjectsNearHands(predictions,latestHands,overlay.width,overlay.height,0.28):(predictions||[]);ai.markInference("object");
+  latestObjects=Array.isArray(predictions)?predictions:[];ai.markInference("object");
   if(target==="objects")updateObjectResult(latestObjects);else if(target==="people")updatePeopleResult();
   const elapsed=Number(ai.lastObjectInferenceMs)||performance.now()-started;
   $("inferenceStatus").textContent="AI "+Math.round(elapsed)+" ms";
@@ -123,14 +123,14 @@ function updateObjectResult(pred){
  const cs=pred.filter(p=>p.score>=.28&&p.class!=="person"&&p.class!=="face").sort((a,b)=>b.score-a.score);
  if(!cs.length){
   stableClass=null;stableScore=0;
-  $("resultMain").textContent=latestHands.length?"No supported item found near your hand":"No common object detected";
-  $("resultDescription").textContent=latestHands.length?"One hand is enough. Hold a common supported item close to your palm and keep both visible.":"Object recognition runs independently. Optional hand localization improves held-item filtering. Try a bottle, cup, book, cell phone or laptop.";
+  $("resultMain").textContent="No common object detected";
+  $("resultDescription").textContent="Object recognition runs independently of hand tracking. Try a bottle, cup, book, person, chair or laptop in clear view.";
   $("metricValue").textContent="0 objects";$("confidenceValue").textContent="—";$("gestureValue").textContent=latestHands.length?"One hand tracked":"Object detection";return
  }
  const best=cs[0];if(stableClass===best.class)stableScore=stableScore*.65+best.score*.35;else{stableClass=best.class;stableScore=best.score}
  $("resultMain").textContent=best.class.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
- $("resultDescription").textContent=latestHands.length?"Detected common object near a tracked hand. The model recognizes trained categories, not every real-world item.":"Detected a common object in the scene. Hold it in one hand to enable hand-area filtering; labels are limited to trained categories.";
- $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent=latestHands.length?"Single-hand filtering":"Object detection"
+ $("resultDescription").textContent="Detected a common object in the scene. This fast model recognizes a fixed set of common categories.";
+ $("metricValue").textContent=cs.length+" object"+(cs.length===1?"":"s");$("confidenceValue").textContent=Math.round(stableScore*100)+"%";$("gestureValue").textContent="Object detection"
 }
 function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?"No clear faces detected in this frame. Improve lighting and keep faces unobstructed.":"Visible face detections. Very small, turned-away or occluded faces may be missed; photos and posters can sometimes be detected as faces.";$("metricValue").textContent=n;$("confidenceValue").textContent="Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
@@ -159,9 +159,10 @@ function renderOverlay(now){
    const text=b.class.replaceAll("_"," ")+" · "+Math.round(b.score*100)+"%";
    labels.push({x,y,text,w:ctx.measureText(text).width+14,h:24,boxWidth:w});
   }
- } else if(mode==="drawing"&&latestHands.length){
-  drawHandSkeleton(ctx,latestHands);
+ } else if(mode==="drawing"){
+  if(latestHands.length)drawHandSkeleton(ctx,latestHands);
  } else if(mode==="portal"){
+  if(latestHands.length)drawHandSkeleton(ctx,latestHands);
   const portalResult=portal.render(ctx,latestHands,overlay.width,overlay.height,now);
   $("resultMain").textContent=portalResult.active?"Portal connected":portalResult.hands+" / 2 hands detected";
   $("resultDescription").textContent=portalResult.active?"Five fingertip pairs connect the tracked hands.":"Move both hands fully into the camera frame; show the palms to the camera.";
@@ -178,8 +179,6 @@ function renderOverlay(now){
   }
  }
  ctx.restore();
- // Boxes/landmarks use a mirrored geometry transform for the front camera.
- // Text uses mirrored box coordinates but is painted untransformed, so glyphs stay readable.
  for(const item of labels){
   const mirroredBoxX=mirrored?overlay.width-item.x-item.boxWidth:item.x;
   const lx=Math.max(0,Math.min(overlay.width-item.w,mirroredBoxX));

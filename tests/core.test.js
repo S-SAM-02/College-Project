@@ -87,12 +87,12 @@ test('portal connects all five corresponding fingertip pairs', () => {
   assert.match(result.gesture, /five fingertip pairs linked/);
 });
 
-import { COLLEGE_OBJECT_PROMPTS, OWL_OBJECT_PROMPTS } from '../js/ai-manager.js';
-
-test('object detector uses open-vocabulary prompts beyond COCO categories',()=>{
- assert.ok(OWL_OBJECT_PROMPTS.length>=40);
- for(const prompt of ['pen','pencil','calculator','charger','power bank','ID card','headphones'])assert.ok(OWL_OBJECT_PROMPTS.includes(prompt));
- assert.equal(new Set(OWL_OBJECT_PROMPTS).size,OWL_OBJECT_PROMPTS.length);
+test('object detector uses the fast local COCO-SSD loader',()=>{
+ const manager = new AIManager(()=>{},()=>{});
+ assert.equal(typeof manager.loadObjects,'function');
+ assert.equal(typeof manager.ensureMode,'function');
+ assert.equal(manager.objectModel,null);
+ manager.dispose();
 });
 
 test('portal status reports two valid hand tracks without touching a canvas',()=>{
@@ -128,8 +128,8 @@ test('Object Finder filters detections to objects near tracked hands',()=>{
  const found=filterObjectsNearHands(predictions,hands,640,480);
  assert.deepEqual(found.map(item=>item.class),['bottle']);
 });
-test('Object Finder does not show background detections without a tracked hand',()=>{
- assert.deepEqual(filterObjectsNearHands([{class:'bottle',score:.9,bbox:[20,20,80,100]}],[],640,480),[]);
+test('Object Finder still returns scene detections when hand tracking is unavailable',()=>{
+ assert.deepEqual(filterObjectsNearHands([{class:'bottle',score:.9,bbox:[20,20,80,100]}],[],640,480).map(p=>p.class),['bottle']);
 });
 
 test('object model and one-hand localization are independent',()=>{
@@ -151,4 +151,9 @@ test('hand tracker tolerates absent handedness metadata',()=>{
  assert.equal(result.hands[0].side,'Hand 1');
  assert.equal(result.hands[0].landmarks[0].x,400);
  assert.equal(result.hands[0].landmarks[0].y,100);
+});
+
+test('Object Finder does not require hand tracking to return visible objects',()=>{
+ const predictions=[{class:'bottle',score:.8,bbox:[20,20,50,80]},{class:'chair',score:.9,bbox:[300,200,70,70]},{class:'person',score:.99,bbox:[15,20,50,80]}];
+ assert.deepEqual(filterObjectsNearHands(predictions,[],640,480).map(p=>p.class),['chair','bottle']);
 });
