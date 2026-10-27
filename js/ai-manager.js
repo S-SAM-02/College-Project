@@ -6,7 +6,7 @@ const FACE_MODEL_FRONT="https://storage.googleapis.com/mediapipe-models/face_det
 const FACE_MODEL_REAR="https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/latest/blaze_face_full_range.tflite";
 const TF_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js";
 const COCO_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js";
-const TRANSFORMERS_MODULE="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+const TRANSFORMERS_MODULE="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 const OPEN_VOCABULARY_MODEL="onnx-community/grounding-dino-tiny-ONNX";
 export const OBJECT_PROMPTS=[
  "student ID card","identity card","ID badge","credit card","debit card","plastic card",
@@ -181,9 +181,7 @@ export class AIManager{
    const context=canvas.getContext("2d",{alpha:false,desynchronized:true});
    if(!context)throw new Error("Could not prepare the image for expanded object recognition.");
    context.drawImage(video,0,0,inferenceWidth,inferenceHeight);
-   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.84));
-   if(!blob)throw new Error("Could not encode a camera frame.");
-   const image=await this.openVocabularyRawImage.fromBlob(blob);
+   const image=this.openVocabularyRawImage.fromCanvas(canvas);
    const found=await detector(image,OBJECT_PROMPTS,{threshold:0.20});
    const mapped=mapOpenVocabularyDetections(found,inferenceWidth,inferenceHeight,0.16).map(item=>({
     ...item,
