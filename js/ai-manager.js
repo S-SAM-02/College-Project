@@ -189,7 +189,6 @@ export class AIManager{
    const context=canvas.getContext("2d",{alpha:false,desynchronized:true});
    if(!context)throw new Error("Could not prepare the image for expanded object recognition.");
    context.drawImage(video,0,0,inferenceWidth,inferenceHeight);
-   const image=this.openVocabularyRawImage.fromCanvas(canvas);
    // Run the detector on the tracked-hand crop, not the entire room. This greatly
    // reduces background labels and gives small items held near the fingers more pixels.
    const hands=Array.isArray(this.latestHandResult?.landmarks)?this.latestHandResult.landmarks:[];
