@@ -155,7 +155,12 @@ async function runVisionInference(now){
   if(target!==mode)return;
   const rawPredictions=Array.isArray(predictions)?predictions:[];
   if(target==="objects"){
-   const filtered=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.18):[];
+   const localFiltered=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.10):[];
+   // Grounding DINO runs independently at a throttled rate and supplements COCO-SSD
+   // with labels that its fixed training classes do not include (for example ID cards and pens).
+   const expandedRaw=latestHands.length?ai.requestOpenVocabularyDetections(video):[];
+   const expandedFiltered=latestHands.length?filterObjectsNearHands(expandedRaw,latestHands,video.videoWidth,video.videoHeight,.10):[];
+   const filtered=mergeObjectDetections(localFiltered,expandedFiltered);
    latestObjects=mergeStableHeldObjects(latestObjects,filtered);
    updateObjectResult(latestObjects);
   }else{latestObjects=stabilizePeopleDetections(rawPredictions);updatePeopleResult();}
@@ -164,6 +169,23 @@ async function runVisionInference(now){
   $("inferenceStatus").textContent="AI "+Math.round(elapsed)+" ms";
  }catch(e){setNotice((target==="people"?"Face":"Object")+" model error: "+e.message);onModelState("object","error",e.message)}
  finally{inferenceBusy=false}
+}
+function mergeObjectDetections(local,expanded){
+ const valid=item=>item&&Array.isArray(item.bbox)&&item.bbox.length>=4&&item.bbox.slice(0,4).every(Number.isFinite)&&item.bbox[2]>0&&item.bbox[3]>0;
+ const iou=(a,b)=>{const [ax,ay,aw,ah]=a.bbox,[bx,by,bw,bh]=b.bbox;const ix=Math.max(0,Math.min(ax+aw,bx+bw)-Math.max(ax,bx));const iy=Math.max(0,Math.min(ay+ah,by+bh)-Math.max(ay,by));const inter=ix*iy;return inter/Math.max(1,aw*ah+bw*bh-inter)};
+ const specific=new Set(["id_card","card","pen","pencil","bottle","mouse","laptop","keyboard","calculator","cable","mobile_phone","earphones","headphones","wallet","glasses"]);
+ const kept=[];
+ for(const item of (Array.isArray(expanded)?expanded:[]).filter(valid)){
+  const match=kept.findIndex(old=>iou(old,item)>.38);
+  if(match<0)kept.push(item);
+  else if(specific.has(item.class)||item.score>kept[match].score)kept[match]=item;
+ }
+ for(const item of (Array.isArray(local)?local:[]).filter(valid)){
+  const match=kept.findIndex(old=>iou(old,item)>.38);
+  if(match<0)kept.push(item);
+  else if(!specific.has(kept[match].class)&&item.score>kept[match].score)kept[match]=item;
+ }
+ return kept.sort((a,b)=>(b.score+(specific.has(b.class)?.12:0))-(a.score+(specific.has(a.class)?.12:0))).slice(0,8);
 }
 function mergeStableHeldObjects(previous,current){
  const now=performance.now();
