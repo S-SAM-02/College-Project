@@ -25,18 +25,18 @@ function onModelState(model,state,message){
   else $("engineStatus").textContent=mode==="people"?"Face detector ready":"Open-vocabulary object detector ready";
  }
 }
-function updateModeUI(){document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
+function updateModeUI(){ink.hidden=mode!=="drawing";document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
 async function setMode(next){
  if(!configs[next])return;
  mode=next;lastInference=0;lastHandMediaTime=-1;lastHandInferenceAt=0;lastVisionInferenceAt=0;latestObjects=[];latestHands=[];peopleDetectionHistory=[];stableClass=null;stableScore=0;portal.reset();portalHandsCache=[];portalLastBothAt=0;handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
- if(next==="drawing"){drawing.resume();}
+ if(next==="drawing"){drawing.resume();}else{drawing.pause();}
  updateModeUI();
  if(session){
   try{
    setNotice("Preparing "+configs[mode].title+"…");
    await ai.ensureMode(mode,preferredFacing);
    if(mode==="objects"||mode==="drawing"||mode==="portal")ai.onHandResult=handleHandResult;
-   if(mode==="drawing"||mode==="portal")drawing.resume();
+   if(mode==="drawing")drawing.resume();else drawing.pause();
    setNotice(mode==="drawing"||mode==="portal"?"Hand tracking is starting; keep the full hand in frame.":"Waiting for the next camera analysis…");
   }catch(e){setNotice(e.message)}
  }
