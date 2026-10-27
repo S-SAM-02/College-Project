@@ -1,5 +1,6 @@
 import{CameraController}from"./camera.js";import{AIManager}from"./ai-manager.js";import{resizeCanvases}from"./image-processing.js";import{HandTracker,drawHandSkeleton}from"./hand-tracking.js";import{AirDrawing}from"./drawing.js";import{HandPortal}from"./portal.js";import{parseCommand}from"./nlp.js";import{PerformanceMeter}from"./performance.js";import{describePeople}from"./person-counter.js";import{filterObjectsNearHands}from"./object-in-hand.js";
-const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastHandMediaTime=-1,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],peopleDetectionHistory=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0,portalHandsCache=[],portalLastBothAt=0,lastOverlayRenderAt=0;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
+const $=id=>document.getElementById(id),video=$("cameraVideo"),frame=$("cameraFrame"),overlay=$("overlayCanvas"),ink=$("inkCanvas"),ctx=overlay.getContext("2d");let preferredFacing="user",mode="objects",session=false,inferenceBusy=false,handInferenceBusy=false,raf=0,inferenceRaf=0,lastInference=0,lastHandInferenceAt=0,lastHandMediaTime=-1,lastVisionInferenceAt=0,handLoadNoticeShown=false,latestObjects=[],latestHands=[],peopleDetectionHistory=[],stableClass=null,stableScore=0,faceCountNote=false,videoFrameToken=null,renderFpsFrames=0,renderFpsWindowStart=performance.now(),latestHandCallbackAt=0,portalHandsCache=[],portalLastBothAt=0,lastOverlayRenderAt=0;
+let manualObjects=[],manualObjectResultAt=0,currencyOcrWorker=null,currencyOcrLoading=null;const camera=new CameraController(video,onCameraState,onDimensions),handTracker=new HandTracker(),drawing=new AirDrawing(ink),portal=new HandPortal(),modelStates={object:"idle",hand:"idle"};const ai=new AIManager(onModelState,setNotice),meter=new PerformanceMeter(({inferenceMs})=>{$("inferenceStatus").textContent=inferenceMs>0?"AI "+Math.round(inferenceMs)+" ms":"Waiting"});
 const configs={objects:{title:"Object intelligence",label:"OBJECT FINDER",metric:"DETECTIONS",confidence:"CONFIDENCE",gesture:"TRACKING",main:"Ready when<br>you are.",description:"Start the camera to identify visible everyday objects."},drawing:{title:"Air drawing",label:"AIR DRAWING",metric:"HAND TRACK",confidence:"MODEL",gesture:"GESTURE STATE",main:"Make an idea<br>visible.",description:"Hold thumb and index together to draw one stroke. Release to stop; pinch again to begin a new stroke. Leaving the frame preserves ink. A fist erases only beneath it."},portal:{title:"Two-hand portal",label:"TWO-HAND PORTAL",metric:"HANDS TRACKED",confidence:"MODEL",gesture:"CONNECTION",main:"Bring two points<br>together.",description:"Show both hands to link thumb-to-thumb, index-to-index and the other finger pairs inside the portal frame."},people:{title:"Person finder",label:"PERSON FINDER",metric:"FACES VISIBLE",confidence:"MODEL",gesture:"DETECTION",main:"The scene, in<br>clear numbers.",description:"Counts visible faces locally; rear-camera distant faces may be harder to detect."}};
 function setNotice(m){$("noticeText").textContent=m}function feedback(m){$("commandFeedback").textContent=m}function cameraLoading(on,text="Preparing camera…"){$("cameraLoading").hidden=!on;$("loadingLabel").textContent=text}
 function onCameraState(state,message){const s=$("sessionStatus"),wrap=s.parentElement;s.textContent=message;wrap.classList.toggle("ready",state==="running");wrap.classList.toggle("error",state==="error");if(state==="running"){session=true;frame.classList.add("running");$("stopCamera").hidden=false;$("cameraSelect").disabled=false;$("engineStatus").textContent="Camera ready";cameraLoading(false);startLoop()}else if(state==="offline"){session=false;frame.classList.remove("running");$("stopCamera").hidden=true;$("cameraSelect").disabled=true;$("resolutionLabel").textContent="— × —";$("engineStatus").textContent="Not initialized";$("inferenceStatus").textContent="Waiting";$("fpsLabel").textContent="— render FPS";cancelFrameScheduler();ctx.clearRect(0,0,overlay.width,overlay.height);meter.reset()}else if(state==="requesting")cameraLoading(true,message);else if(state==="error"){session=false;frame.classList.remove("running");cameraLoading(false);$("stopCamera").hidden=true}}
@@ -47,7 +48,7 @@ async function startCamera(facing=preferredFacing){
  preferredFacing=facing;updateFacingButtons();applyCameraOrientation();
  try{
   cancelFrameScheduler();cameraLoading(true,"Requesting camera permission…");feedback("Opening "+(facing==="user"?"front":"rear")+" camera…");
-  const devices=await camera.start($("cameraSelect").value,facing);
+  const devices=await camera.start($("cameraSelect").value,facing,$("cameraQuality")?.value||"balanced");
   preferredFacing=facing;populateCameras(devices);updateFacingButtons();applyCameraOrientation();
   latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;lastHandMediaTime=-1;lastVisionInferenceAt=0;
   await setupMode();cameraLoading(false);
@@ -64,7 +65,7 @@ async function switchCamera(){
  const currentFacing=preferredFacing;
  try{
   cancelFrameScheduler();cameraLoading(true,"Switching camera…");
-  const ds=await camera.start($("cameraSelect").value,currentFacing);
+  const ds=await camera.start($("cameraSelect").value,currentFacing,$("cameraQuality")?.value||"balanced");
   populateCameras(ds);syncVisionCanvases();applyCameraOrientation();
   latestObjects=[];latestHands=[];handTracker.reset();portal.reset();portalHandsCache=[];portalLastBothAt=0;lastInference=0;lastHandInferenceAt=0;
   await setupMode();cameraLoading(false);if(session)startLoop();
@@ -156,12 +157,10 @@ async function runVisionInference(now){
   const rawPredictions=Array.isArray(predictions)?predictions:[];
   if(target==="objects"){
    const localFiltered=latestHands.length?filterObjectsNearHands(rawPredictions,latestHands,video.videoWidth,video.videoHeight,.10):[];
-   // Grounding DINO runs independently at a throttled rate and supplements COCO-SSD
-   // with labels that its fixed training classes do not include (for example ID cards and pens).
-   const expandedRaw=latestHands.length?ai.requestOpenVocabularyDetections(video):[];
-   const expandedFiltered=latestHands.length?filterObjectsNearHands(expandedRaw,latestHands,video.videoWidth,video.videoHeight,.10):[];
-   const filtered=mergeObjectDetections(localFiltered,expandedFiltered);
-   latestObjects=mergeStableHeldObjects(latestObjects,filtered);
+   // Keep real-time scanning lightweight. The expanded model runs only when the user asks for a focused search.
+   const manual=performance.now()-manualObjectResultAt<2600?manualObjects:[];
+   if(!manual.length&&performance.now()-manualObjectResultAt>=2600)manualObjects=[];
+   latestObjects=mergeStableHeldObjects(latestObjects,mergeObjectDetections(localFiltered,manual));
    updateObjectResult(latestObjects);
   }else{latestObjects=stabilizePeopleDetections(rawPredictions);updatePeopleResult();}
   ai.markInference("object");
