@@ -167,3 +167,20 @@
  .mode-button strong, .mode-button small { white-space: normal; }
  .camera-topline, .camera-bottomline { left: 7px; right: 7px; }
 }
+
+
+/* Air Drawing ink must never overlay any other vision mode. */
+#inkCanvas[hidden],
+.camera-frame #inkCanvas[hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+.camera-frame #inkCanvas {
+  transition: none !important;
+}
+.camera-frame:not(.air-drawing-active) #inkCanvas {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
