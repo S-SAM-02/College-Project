@@ -84,9 +84,9 @@ export class AIManager{
    await ensureScript(COCO_SCRIPT,()=>Boolean(globalThis.cocoSsd),"COCO-SSD");
    if(globalThis.tf?.ready)await globalThis.tf.ready();
    let detector;
-   try{detector=await globalThis.cocoSsd.load({base:"mobilenet_v2"});}
+   try{detector=await globalThis.cocoSsd.load({base:"lite_mobilenet_v2"});}
    catch(firstError){
-    try{detector=await globalThis.cocoSsd.load({base:"lite_mobilenet_v2"});}
+    try{detector=await globalThis.cocoSsd.load({base:"mobilenet_v2"});}
     catch(secondError){throw new Error("COCO-SSD model weights could not be loaded. "+(secondError?.message||firstError?.message||"Unknown model error"));}
    }
    this.cocoModel={detect:async(video,maxNumBoxes=12,minScore=0.16)=>{
@@ -146,7 +146,7 @@ export class AIManager{
    const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
    const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
    const modelPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
-   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.12:.32,minSuppressionThreshold:facingMode==="environment"?.12:.25};
+   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.07:.20,minSuppressionThreshold:facingMode==="environment"?.08:.15};
    let detector;
    try{detector=await FaceDetector.createFromOptions(vision,options);}
    catch(gpuError){
@@ -156,9 +156,9 @@ export class AIManager{
    let rearShortDetector=null;
    if(facingMode==="environment"){
     try{
-     rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:.12,minSuppressionThreshold:.12});
+     rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:.055,minSuppressionThreshold:.08});
     }catch{
-     try{rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"CPU"},runningMode:"VIDEO",minDetectionConfidence:.12,minSuppressionThreshold:.12});}catch{}
+     try{rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"CPU"},runningMode:"VIDEO",minDetectionConfidence:.055,minSuppressionThreshold:.08});}catch{}
     }
     this.rearShortFaceTask=rearShortDetector;
    }
@@ -179,13 +179,13 @@ export class AIManager{
       return[{class:"face",score,bbox:[x,y,right-x,bottom-y]}];
      });
     };
-    let detections=readDetections(detector,ts,facingMode==="environment"?.10:.28);
+    let detections=readDetections(detector,ts,facingMode==="environment"?.065:.18);
     // Rear views often contain both nearby and distant faces. Run both ranges,
     // then de-duplicate overlapping boxes so a partial hit from one model
     // never prevents the second model from finding other people.
     if(facingMode==="environment"&&rearShortDetector){
      const shortTs=Math.max(this.lastRearShortTimestamp+1,ts+1);this.lastRearShortTimestamp=shortTs;
-     detections.push(...readDetections(rearShortDetector,shortTs,.12));
+     detections.push(...readDetections(rearShortDetector,shortTs,.055));
     }
     // Keep the clearest face box when two model passes return almost the same location.
     detections.sort((a,b)=>b.score-a.score);
