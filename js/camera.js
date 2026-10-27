@@ -1,13 +1,18 @@
 export class CameraController{
  constructor(video,onState,onDimensions){this.video=video;this.onState=onState;this.onDimensions=onDimensions;this.stream=null;this.devices=[];this.facingMode="user"}
  async enumerate(){if(!navigator.mediaDevices?.enumerateDevices)return[];this.devices=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput");return this.devices}
- async start(deviceId="",facingMode="user"){
+ async start(deviceId="",facingMode="user",quality="balanced"){
   if(!navigator.mediaDevices?.getUserMedia)throw new Error("Camera access is unavailable. Open this site over HTTPS or localhost in a supported browser.");
   await this.stop(false);this.facingMode=facingMode;this.onState("requesting","Requesting camera permission…");
-  const common={width:{ideal:960},height:{ideal:540},frameRate:{ideal:30,max:30}};
+  // Prefer the selected camera quality, retaining lighter fallbacks for older webcams.
+  const presets={balanced:{width:960,height:540,fps:30},detail:{width:1280,height:720,fps:30},maximum:{width:1920,height:1080,fps:24}};
+  const selected=presets[quality]||presets.balanced;
+  const common={width:{ideal:selected.width},height:{ideal:selected.height},frameRate:{ideal:selected.fps,max:selected.fps}};
+  const fallback={width:{ideal:960},height:{ideal:540},frameRate:{ideal:24,max:30}};
+  const light={width:{ideal:640},height:{ideal:480},frameRate:{ideal:24,max:30}};
   const attempts=deviceId
-   ?[{...common,deviceId:{exact:deviceId}},{...common,facingMode},{width:{ideal:640},height:{ideal:480},facingMode},{video:true}]
-   :[{...common,facingMode},{width:{ideal:640},height:{ideal:480},facingMode},{...common},{video:true}];
+   ?[{...common,deviceId:{exact:deviceId}},{...fallback,deviceId:{exact:deviceId}},{...common,facingMode},{...fallback,facingMode},{...light,facingMode},{video:true}]
+   :[{...common,facingMode},{...fallback,facingMode},{...light,facingMode},{...common},{video:true}];
   let lastError;
   for(const constraint of attempts){
    try{
