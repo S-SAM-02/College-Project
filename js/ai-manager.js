@@ -93,14 +93,14 @@ export class AIManager{
     if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
     // Downscale the inference input to reduce latency on laptop CPUs while preserving original coordinates.
     const started=performance.now(),sourceWidth=video.videoWidth,sourceHeight=video.videoHeight;
-    const inferenceWidth=Math.min(640,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
+    const inferenceWidth=Math.min(480,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
     let input=video;
     if(scale<0.999){
      if(!this.objectInputCanvas){this.objectInputCanvas=document.createElement("canvas");this.objectInputContext=this.objectInputCanvas.getContext("2d",{alpha:false,desynchronized:true});}
      const canvas=this.objectInputCanvas;canvas.width=inferenceWidth;canvas.height=inferenceHeight;
      this.objectInputContext.drawImage(video,0,0,inferenceWidth,inferenceHeight);input=canvas;
     }
-    const found=await detector.detect(input,Math.min(12,Math.max(6,maxNumBoxes)),minScore),w=sourceWidth,h=sourceHeight;
+    const found=await detector.detect(input,Math.min(20,Math.max(6,maxNumBoxes)),minScore),w=sourceWidth,h=sourceHeight;
     const mapped=(Array.isArray(found)?found:[]).map(item=>{
      const b=item.bbox||[],x=Math.max(0,Math.min(w,Number(b[0])||0)),y=Math.max(0,Math.min(h,Number(b[1])||0));
      const right=Math.max(x,Math.min(w,x+(Number(b[2])||0))),bottom=Math.max(y,Math.min(h,y+(Number(b[3])||0)));
@@ -129,6 +129,13 @@ export class AIManager{
   try{return await this.loading.object}
   catch(error){const message="Object detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.object=null}
+ }
+ async detectCrowdPeople(video){
+  // Reuse the already-loaded lightweight COCO-SSD model to find whole people
+  // when the face detector misses small or distant faces in a group scene.
+  const detector=await this.loadCocoDetector();
+  const predictions=await detector.detect(video,20,0.22);
+  return predictions.filter(p=>p.class==="person"&&p.score>=0.22);
  }
  async loadPeople(facingMode=this.currentFacingMode){
   this.currentFacingMode=facingMode;
@@ -187,16 +194,32 @@ export class AIManager{
      const shortTs=Math.max(this.lastRearShortTimestamp+1,ts+1);this.lastRearShortTimestamp=shortTs;
      detections.push(...readDetections(rearShortDetector,shortTs,.055));
     }
-    // Keep the clearest face box when two model passes return almost the same location.
+    // When face detection misses much of a group, augment the count using
+    // the lightweight person detector. Prefer faces when it finds a useful set.
+    let crowdPeople=[];
+    if(detections.length<4){
+     try{crowdPeople=await this.detectCrowdPeople(video)}catch{}
+    }
     detections.sort((a,b)=>b.score-a.score);
     const unique=[];
     for(const item of detections){
      const [x,y,wBox,hBox]=item.bbox;
-     if(unique.some(other=>{const [ox,oy,ow,oh]=other.bbox;const ix=Math.max(0,Math.min(x+wBox,ox+ow)-Math.max(x,ox));const iy=Math.max(0,Math.min(y+hBox,oy+oh)-Math.max(y,oy));const inter=ix*iy;return inter/(wBox*hBox+ow*oh-inter)>.55;}))continue;
+     if(unique.some(other=>{const [ox,oy,ow,oh]=other.bbox;const ix=Math.max(0,Math.min(x+wBox,ox+ow)-Math.max(x,ox));const iy=Math.max(0,Math.min(y+hBox,oy+oh)-Math.max(y,oy));const inter=ix*iy;return inter/Math.max(1,wBox*hBox+ow*oh-inter)>.55;}))continue;
      unique.push(item);
     }
-    this.lastPeopleCount=unique.length;this.lastObjectResult=unique;this.lastObjectMode="mediapipe-face-"+facingMode;
-    this.lastObjectInferenceMs=performance.now()-started;this.lastSummary=unique.length+" visible face(s) detected";
+    // Face boxes nested in upper body boxes refer to the same person. Only add
+    // unmatched person boxes so the combined count does not double-count clear faces.
+    const personBoxes=crowdPeople.filter(person=>{
+     const [px,py,pw,ph]=person.bbox;
+     const fx=px+pw/2,fy=py+ph*.3;
+     return !unique.some(face=>{
+      const [x,y,wBox,hBox]=face.bbox;
+      return fx>=x-wBox*.15&&fx<=x+wBox*1.15&&fy>=y-hBox*.2&&fy<=y+hBox*1.5;
+     });
+    });
+    const peopleCount=unique.length+personBoxes.length;
+    this.lastPeopleCount=Math.min(20,peopleCount);this.lastObjectResult=unique;this.lastObjectMode="mediapipe-face-"+facingMode;
+    this.lastObjectInferenceMs=performance.now()-started;this.lastSummary=this.lastPeopleCount+" visible people detected";
     return unique;
    }};
    this.peopleDetector=this.faceDetector;this.peopleFacingMode=facingMode;
