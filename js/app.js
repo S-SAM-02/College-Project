@@ -465,7 +465,7 @@ function parseAssistiveRequest(text){
  if(/\b(full ?screen|maximize camera)\b/.test(query))return{action:"fullscreen"};
  if(/\b(describe|what do you see|what is around|describe the scene|describe what you see)\b/.test(query))return{action:"describe"};
  if(/\b(find|look for|search for|identify|what am i holding|what is in my hand|tell me what i am holding)\b/.test(query)){
-  const known=["id card","identity card","student card","card","pen","pencil","bottle","water bottle","mouse","computer mouse","laptop","phone","mobile phone"];
+  const known=["id card","identity card","student card","card","pen","pencil","bottle","water bottle","mouse","computer mouse","laptop","phone","mobile phone","keys","keyring","wallet","purse","glasses","eyeglasses","headphones","earphones","remote control","remote","calculator","notebook","book","charger","USB cable","cable","cup","scissors","bag","backpack"];
   return{action:"find",item:known.sort((a,b)=>b.length-a.length).find(item=>query.includes(item))||$("targetItem")?.value||""};
  }
  if(/\b(speak|read|say)\s+(the\s+)?(latest\s+)?(result|answer|detection)\b/.test(query))return{action:"speak"};
