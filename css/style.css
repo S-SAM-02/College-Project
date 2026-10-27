@@ -184,3 +184,29 @@
   visibility: hidden !important;
   opacity: 0 !important;
 }
+
+
+/* Accessible camera assistant: focused, responsive controls with readable focus states. */
+.assistive-tools{display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:2px 0 10px;border-bottom:1px solid var(--line)}
+.assistive-item-select{display:grid;gap:5px;min-width:175px;flex:1 1 185px}
+.assistive-item-select select,.camera-tool-group select{min-height:38px}
+.assistive-item-select select{border:1px solid var(--line);border-radius:6px;background:#fff;padding:9px 10px;color:var(--ink);font-size:11px;max-width:100%;width:100%}
+.assistive-button,.assistive-primary{min-height:38px;border:1px solid #ded2b9;border-radius:6px;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.1px;background:#fff;color:#574522;transition:background .18s,border-color .18s,transform .18s}
+.assistive-button:hover,.assistive-primary:hover{background:#fcf8ef;border-color:var(--gold);transform:translateY(-1px)}
+.assistive-primary{background:#f4ead0;border-color:#d9bd7e;color:#573f15}
+.assistive-status{margin:10px 1px 4px;padding:10px 12px;border:1px solid #e9e0cf;border-radius:7px;background:#fbf9f4;color:#5f584a;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+.camera-fullscreen{position:absolute;right:12px;top:48px;z-index:7;background:#fffffff2;border:1px solid var(--line);padding:7px 10px;border-radius:4px;font-size:9px;color:var(--ink);box-shadow:0 2px 8px #0000000a}
+.camera-fullscreen:hover{border-color:var(--gold);background:#fffaf0}
+.camera-stop{top:84px}
+.camera-frame:fullscreen{width:100vw;height:100vh;min-height:0;max-height:100vh;aspect-ratio:auto;border-radius:0;background:#111;display:block}
+.camera-frame:fullscreen video,.camera-frame:fullscreen canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111}
+.camera-frame:fullscreen .camera-topline,.camera-frame:fullscreen .camera-bottomline{z-index:8}
+.camera-frame:fullscreen .camera-fullscreen,.camera-frame:fullscreen .camera-stop{z-index:9}
+@media(max-width:760px){
+ .assistive-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .assistive-item-select{grid-column:1/-1;min-width:0;width:100%}
+ .assistive-button,.assistive-primary{min-width:0;width:100%;padding:9px 7px;font-size:9px;white-space:normal}
+ .assistive-status{font-size:10px}
+ .camera-fullscreen{top:48px;right:8px;padding:7px 8px;font-size:8px}
+ .camera-stop{top:84px;right:8px}
+}
