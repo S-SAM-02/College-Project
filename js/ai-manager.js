@@ -6,15 +6,14 @@ const FACE_MODEL_FRONT="https://storage.googleapis.com/mediapipe-models/face_det
 const FACE_MODEL_REAR="https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/latest/blaze_face_full_range.tflite";
 const TF_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js";
 const COCO_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js";
+const TRANSFORMERS_MODULE="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+const OPEN_VOCABULARY_MODEL="onnx-community/grounding-dino-tiny-ONNX";
 export const OBJECT_PROMPTS=[
- "person","people","human","man","woman","child","person in background","distant person","group of people",
- "smartphone","mobile phone","cell phone","pen","ballpoint pen","pencil",
- "identity card","ID card","student ID badge","plastic card","USB cable",
- "wire","electrical cable","charging cable","charger cable","flowerpot",
- "flower pot","plant pot","potted plant","calculator","notebook","book",
- "water bottle","cup","laptop","keyboard","computer mouse","headphones",
- "earphones","power bank","remote control","keys","wallet","glasses","watch",
- "backpack","bag","scissors","phone charger","flower","plant","chair"
+ "student ID card","identity card","ID badge","credit card","debit card","plastic card",
+ "ballpoint pen","pen","pencil","marker","water bottle","bottle","drinking bottle",
+ "computer mouse","wireless mouse","laptop computer","laptop","computer keyboard","computer monitor",
+ "smartphone","mobile phone","phone charger","USB cable","charger","notebook","book",
+ "calculator","wallet","keys","glasses","headphones","earphones","cup","chair","backpack"
 ];
 const ensureScript=(src,ready,label)=>new Promise((resolve,reject)=>{
  if(ready())return resolve();
@@ -27,17 +26,25 @@ const ensureScript=(src,ready,label)=>new Promise((resolve,reject)=>{
 });
 
 export function normalizeObjectLabel(label){
- const value=String(label||"object").toLowerCase().replace(/[_-]+/g," ").trim();
- if(["smartphone","mobile phone","cell phone","cellphone"].some(s=>value.includes(s)))return "mobile_phone";
- if(["identity card","id card","student id","id badge","identification card","plastic id"].some(s=>value.includes(s)))return "id_card";
- if(["usb cable","electrical cable","charging cable","charger cable","wire"].some(s=>value.includes(s)))return "cable";
- if(["flowerpot","flower pot","plant pot","potted plant"].some(s=>value.includes(s)))return "flowerpot";
- if(["ballpoint pen","ink pen","pen"].some(s=>value.includes(s)))return "pen";
- if(value.includes("pencil"))return "pencil";
- if(value.includes("earphone"))return "earphones";
- if(value.includes("headphone"))return "headphones";
- if(value.includes("power bank"))return "power_bank";
- return value.replace(/\s+/g,"_");
+ const value=String(label||"object").toLowerCase().replace(/[_-]+/g," ").replace(/^[\s.,:;]+|[\s.,:;]+$/g,"").trim();
+ if(/\b(student|identity|identification|id)\b.*\b(card|badge)\b/.test(value)||/\b(card|badge)\b.*\b(student|identity|identification|id)\b/.test(value))return "id_card";
+ if(/\b(credit|debit|plastic|access) card\b/.test(value))return "card";
+ if(/\b(card)\b/.test(value))return "card";
+ if(/\b(smartphone|mobile phone|cell phone|cellphone|phone)\b/.test(value))return "mobile_phone";
+ if(/\b(usb|electrical|charging|charger) cable\b|\bwire\b/.test(value))return "cable";
+ if(/\b(flowerpot|flower pot|plant pot|potted plant)\b/.test(value))return "flowerpot";
+ if(/\b(ballpoint pen|ink pen|fountain pen|pen)\b/.test(value))return "pen";
+ if(/\bpencil\b/.test(value))return "pencil";
+ if(/\bearphone\b/.test(value))return "earphones";
+ if(/\bheadphone\b/.test(value))return "headphones";
+ if(/\bpower bank\b/.test(value))return "power_bank";
+ if(/\b(water bottle|drinking bottle|bottle)\b/.test(value))return "bottle";
+ if(/\b(computer mouse|wireless mouse|mouse)\b/.test(value))return "mouse";
+ if(/\b(laptop computer|laptop)\b/.test(value))return "laptop";
+ if(/\b(keyboard)\b/.test(value))return "keyboard";
+ if(/\b(calculator)\b/.test(value))return "calculator";
+ if(/\b(id card|student id)\b/.test(value))return "id_card";
+ return value.replace(/^(a|an|the)\s+/,"").replace(/\s+/g,"_");
 }
 
 function boxIoU(a,b){
@@ -72,9 +79,9 @@ export class AIManager{
   this.onModelState=onModelState;this.onNotice=onNotice;
   this.objectModel=null;this.cocoModel=null;this.peopleDetector=null;
   this.handLandmarker=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;
-  this.currentFacingMode="user";this.loading={object:null,coco:null,hand:null,people:null};this.currentMode="objects";
+  this.currentFacingMode="user";this.loading={object:null,coco:null,hand:null,people:null,openVocabulary:null};this.currentMode="objects";
   this.lastPeopleCount=0;this.lastSummary="";this.lastObjectMode="";this.lastObjectResult=null;this.lastObjectInferenceAt=0;this.lastCrowdFallbackAt=0;this.lastCrowdFallbackPeople=[];
-  this.lastFaceTimestamp=0;this.lastHandTimestamp=0;this.lastObjectInferenceMs=0;
+  this.lastFaceTimestamp=0;this.lastHandTimestamp=0;this.lastObjectInferenceMs=0;this.openVocabularyDetector=null;this.openVocabularyBusy=false;this.openVocabularyFailed=false;this.lastOpenVocabularyRequestAt=0;this.lastOpenVocabularyResultAt=0;this.lastOpenVocabularyResult=[];this.openVocabularyCanvas=null;
  }
  async loadCocoDetector(){
   if(this.cocoModel)return this.cocoModel;
@@ -122,13 +129,74 @@ export class AIManager{
   this.onModelState("object","loading","Loading lightweight local object detector…");
   this.loading.object=(async()=>{
    const coco=await this.loadCocoDetector();
-   this.objectModel={detect:async video=>{const result=await coco.detect(video,15,0.13);this.lastObjectMode="coco-ssd-hand-local";return result;}};
+   this.objectModel={detect:async video=>{const result=await coco.detect(video,20,0.10);this.lastObjectMode="coco-ssd-hand-local";return result;}};
    this.onModelState("object","loaded","Lightweight local object detector ready");
    return this.objectModel;
   })();
   try{return await this.loading.object}
   catch(error){const message="Object detector failed to load: "+(error?.message||"model unavailable");this.onModelState("object","error",message);throw new Error(message)}
   finally{this.loading.object=null}
+ }
+ async loadOpenVocabularyDetector(){
+  if(this.openVocabularyDetector)return this.openVocabularyDetector;
+  if(this.loading.openVocabulary)return this.loading.openVocabulary;
+  this.loading.openVocabulary=(async()=>{
+   if(this.onNotice)this.onNotice("Loading expanded object recognition for ID cards, pens and other items. First download may be large; the fast local detector remains available.");
+   const {pipeline,RawImage,env}=await import(TRANSFORMERS_MODULE);
+   if(env){env.allowLocalModels=false;env.useBrowserCache=true;}
+   let detector;
+   try{
+    detector=await pipeline("zero-shot-object-detection",OPEN_VOCABULARY_MODEL,{device:"webgpu",dtype:"q4f16"});
+   }catch(webgpuError){
+    try{
+     detector=await pipeline("zero-shot-object-detection",OPEN_VOCABULARY_MODEL,{device:"wasm",dtype:"uint8"});
+    }catch(wasmError){
+     throw new Error("Expanded object model could not start on WebGPU or CPU. "+(wasmError?.message||webgpuError?.message||"Model initialization failed."));
+    }
+   }
+   this.openVocabularyRawImage=RawImage;
+   this.openVocabularyDetector=detector;
+   if(this.currentMode==="objects"&&this.onNotice)this.onNotice("Expanded object recognition is ready. Hold the item near your hand for clearer labels.");
+   return detector;
+  })();
+  try{return await this.loading.openVocabulary;}
+  catch(error){
+   this.openVocabularyFailed=true;
+   if(this.currentMode==="objects"&&this.onNotice)this.onNotice("Expanded object recognition unavailable; the standard detector is still active. "+(error?.message||"Check the connection."));
+   throw error;
+  }finally{this.loading.openVocabulary=null;}
+ }
+ requestOpenVocabularyDetections(video){
+  const now=performance.now();
+  if(!video?.videoWidth||!video?.videoHeight||video.readyState<2||this.openVocabularyFailed)return this.lastOpenVocabularyResult;
+  const recent=now-this.lastOpenVocabularyResultAt<900?this.lastOpenVocabularyResult:[];
+  if(this.openVocabularyBusy||now-this.lastOpenVocabularyRequestAt<1300)return recent;
+  this.lastOpenVocabularyRequestAt=now;this.openVocabularyBusy=true;
+  Promise.resolve().then(async()=>{
+   const detector=await this.loadOpenVocabularyDetector();
+   const sourceWidth=video.videoWidth,sourceHeight=video.videoHeight;
+   const inferenceWidth=Math.min(640,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
+   if(!this.openVocabularyCanvas)this.openVocabularyCanvas=document.createElement("canvas");
+   const canvas=this.openVocabularyCanvas;canvas.width=inferenceWidth;canvas.height=inferenceHeight;
+   const context=canvas.getContext("2d",{alpha:false,desynchronized:true});
+   if(!context)throw new Error("Could not prepare the image for expanded object recognition.");
+   context.drawImage(video,0,0,inferenceWidth,inferenceHeight);
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.84));
+   if(!blob)throw new Error("Could not encode a camera frame.");
+   const image=await this.openVocabularyRawImage.fromBlob(blob);
+   const found=await detector(image,OBJECT_PROMPTS,{threshold:0.20});
+   const mapped=mapOpenVocabularyDetections(found,inferenceWidth,inferenceHeight,0.16).map(item=>({
+    ...item,
+    bbox:item.bbox.map((v,index)=>index%2===0?v/scale:v/scale),
+    source:"open-vocabulary"
+   }));
+   this.lastOpenVocabularyResult=mapped;
+   this.lastOpenVocabularyResultAt=performance.now();
+  }).catch(error=>{
+   this.openVocabularyFailed=true;
+   if(this.currentMode==="objects"&&this.onNotice)this.onNotice("Expanded item model could not run; standard object detection remains active. "+(error?.message||"Model error"));
+  }).finally(()=>{this.openVocabularyBusy=false;});
+  return recent;
  }
  async detectCrowdPeople(video){
   // Reuse cached crowd detections between face frames; running a second model
