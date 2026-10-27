@@ -465,8 +465,13 @@ function parseAssistiveRequest(text){
  if(/\b(full ?screen|maximize camera)\b/.test(query))return{action:"fullscreen"};
  if(/\b(describe|what do you see|what is around|describe the scene|describe what you see)\b/.test(query))return{action:"describe"};
  if(/\b(find|look for|search for|identify|what am i holding|what is in my hand|tell me what i am holding)\b/.test(query)){
-  const known=["id card","identity card","student card","card","pen","pencil","bottle","water bottle","mouse","computer mouse","laptop","phone","mobile phone","keys","keyring","wallet","purse","glasses","eyeglasses","headphones","earphones","remote control","remote","calculator","notebook","book","charger","USB cable","cable","cup","scissors","bag","backpack"];
-  return{action:"find",item:known.sort((a,b)=>b.length-a.length).find(item=>query.includes(item))||$("targetItem")?.value||""};
+  const known=["identity card","student ID card","id card","student card","card","water bottle","bottle","computer mouse","mouse","pen","pencil","laptop","mobile phone","phone","keyring","keys","wallet","purse","eyeglasses","glasses","headphones","earphones","remote control","remote","calculator","notebook","book","USB cable","charger","cable","cup","scissors","backpack","bag"];
+  const matched=known.sort((a,b)=>b.length-a.length).find(item=>query.includes(item));
+  if(matched)return{action:"find",item:matched};
+  if(/\b(what am i holding|what is in my hand|tell me what i am holding)\b/.test(query))return{action:"find",item:$("targetItem")?.value||""};
+  const custom=query.replace(/\b(please|can you|could you|i want you to|find|look for|search for|identify|what is|what's|tell me|in my hand|in the camera|in this picture|for me)\b/g," ")
+   .replace(/\b(my|the|a|an|me)\b/g," ").replace(/\s+/g," ").trim();
+  return{action:"find",item:custom.length>0&&custom.length<=45?custom:($("targetItem")?.value||"")};
  }
  if(/\b(speak|read|say)\s+(the\s+)?(latest\s+)?(result|answer|detection)\b/.test(query))return{action:"speak"};
  return null;
