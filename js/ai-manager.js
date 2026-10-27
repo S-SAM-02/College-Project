@@ -190,10 +190,32 @@ export class AIManager{
    if(!context)throw new Error("Could not prepare the image for expanded object recognition.");
    context.drawImage(video,0,0,inferenceWidth,inferenceHeight);
    const image=this.openVocabularyRawImage.fromCanvas(canvas);
-   const found=await detector(image,OBJECT_PROMPTS,{threshold:0.20});
-   const mapped=mapOpenVocabularyDetections(found,inferenceWidth,inferenceHeight,0.16).map(item=>({
+   // Run the detector on the tracked-hand crop, not the entire room. This greatly
+   // reduces background labels and gives small items held near the fingers more pixels.
+   const hands=Array.isArray(this.latestHandResult?.landmarks)?this.latestHandResult.landmarks:[];
+   let crop={x:0,y:0,width:inferenceWidth,height:inferenceHeight};
+   if(hands.length){
+    const points=hands.flat().filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+    if(points.length>=21){
+     const xs=points.map(p=>p.x*inferenceWidth),ys=points.map(p=>p.y*inferenceHeight);
+     const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+     const padX=Math.max(90,(maxX-minX)*2.2,inferenceWidth*.12);
+     const padY=Math.max(90,(maxY-minY)*2.0,inferenceHeight*.12);
+     const x=Math.max(0,Math.floor(minX-padX)),y=Math.max(0,Math.floor(minY-padY));
+     const right=Math.min(inferenceWidth,Math.ceil(maxX+padX)),bottom=Math.min(inferenceHeight,Math.ceil(maxY+padY));
+     if(right-x>=80&&bottom-y>=80)crop={x,y,width:right-x,height:bottom-y};
+    }
+   }
+   if(!this.openVocabularyCropCanvas)this.openVocabularyCropCanvas=document.createElement("canvas");
+   const cropCanvas=this.openVocabularyCropCanvas;cropCanvas.width=crop.width;cropCanvas.height=crop.height;
+   const cropContext=cropCanvas.getContext("2d",{alpha:false,desynchronized:true});
+   if(!cropContext)throw new Error("Could not prepare the hand area for object recognition.");
+   cropContext.drawImage(canvas,crop.x,crop.y,crop.width,crop.height,0,0,crop.width,crop.height);
+   const image=this.openVocabularyRawImage.fromCanvas(cropCanvas);
+   const found=await detector(image,OBJECT_PROMPTS,{threshold:0.22});
+   const mapped=mapOpenVocabularyDetections(found,crop.width,crop.height,0.18).map(item=>({
     ...item,
-    bbox:item.bbox.map((v,index)=>index%2===0?v/scale:v/scale),
+    bbox:[(item.bbox[0]+crop.x)/scale,(item.bbox[1]+crop.y)/scale,item.bbox[2]/scale,item.bbox[3]/scale],
     source:"open-vocabulary"
    }));
    this.lastOpenVocabularyResult=mapped;
