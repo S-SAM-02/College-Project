@@ -130,7 +130,7 @@ function startLoop(){
       .finally(()=>{handInferenceBusy=false});
     }
    }
-   const inferenceInterval=mode==="objects"?320:((mode==="people"&&preferredFacing==="environment")?200:140);
+   const inferenceInterval=mode==="objects"?220:((mode==="people"&&preferredFacing==="environment")?180:125);
    if((mode==="objects"||mode==="people")&&!inferenceBusy&&!handInferenceBusy&&mediaTime!==lastInference
       &&performance.now()-lastVisionInferenceAt>=inferenceInterval){
     lastInference=mediaTime;lastVisionInferenceAt=performance.now();
@@ -197,7 +197,7 @@ function updateObjectResult(pred){
  $("confidenceValue").textContent=Math.round(best.score*100)+"% best";
  $("gestureValue").textContent=latestHands.length+" hand"+(latestHands.length===1?"":"s")+" tracked";
 }
-function updatePeopleResult(){const n=ai.lastPeopleCount;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?(preferredFacing==="environment"?"No face detected yet. Keep the rear camera steady, move closer, and improve lighting; detections combine wide-range and short-range passes.":"No clear faces detected in this frame. Improve lighting and keep faces unobstructed."):"Visible face detections. Small, turned-away or occluded faces may still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent=preferredFacing==="environment"?"Rear-camera full-range model":"Local face model";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder counts detected faces, not identities. It does not recognize who someone is, and it may miss small or occluded faces.");faceCountNote=true}}
+function updatePeopleResult(){const n=Number.isFinite(ai.lastPeopleCount)?ai.lastPeopleCount:0;$("resultMain").textContent=n;$("resultDescription").textContent=n===0?(preferredFacing==="environment"?"No faces detected yet. Move the camera to include the whole group, keep it steady, and use good lighting.":"No clear faces detected in this frame. Improve lighting and keep faces unobstructed."):n===1?"1 visible face detected. Include the full group and keep distant faces unobstructed.":n+" visible faces detected in the current camera view. Small, turned-away or overlapping faces may still be missed.";$("metricValue").textContent=n;$("confidenceValue").textContent=preferredFacing==="environment"?"Crowd-aware rear-camera scan":"Live face scan";$("gestureValue").textContent="Faces detected";if(!faceCountNote){setNotice("Person Finder estimates visible faces in the live camera view. Crowded or distant faces can be missed depending on resolution, lighting and occlusion.");faceCountNote=true}}
 function handleHandResult(data,timestamp,arrivedAt){
  if(!session||!(mode==="drawing"||mode==="portal"||mode==="objects"))return;
  const tracked=handTracker.process(data,overlay.width,overlay.height);
