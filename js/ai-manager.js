@@ -64,16 +64,19 @@ export function mapOpenVocabularyDetections(found,width,height,minScore=0.075){
   const x=Math.max(0,Math.min(w,Number(values[0]))),y=Math.max(0,Math.min(h,Number(values[1])));
   const right=Math.max(x,Math.min(w,Number(values[2]))),bottom=Math.max(y,Math.min(h,Number(values[3])));
   if(right<=x||bottom<=y)return[];
-  return[{class:normalizeObjectLabel(item.label),score,bbox:[x,y,right-x,bottom-y]}];
+  const normalized=normalizeObjectLabel(item.label);
+  const explicitConfidence=Number(item.score)||0;
+  // Open-vocabulary detections are useful only when the model gives a meaningful score.
+  return[{class:normalized,score:explicitConfidence,bbox:[x,y,right-x,bottom-y],source:"open-vocabulary"}];
  }).sort((a,b)=>b.score-a.score);
  const unique=[];
  for(const item of mapped){
-  if(unique.some(existing=>boxIoU(existing.bbox,item.bbox)>.62))continue;
-  unique.push(item);
+  const overlap=unique.findIndex(existing=>boxIoU(existing.bbox,item.bbox)>.62);
+  if(overlap<0)unique.push(item);
+  else if(item.score>unique[overlap].score)unique[overlap]=item;
  }
  return unique.slice(0,40);
 }
-
 export class AIManager{
  constructor(onModelState,onNotice){
   this.onModelState=onModelState;this.onNotice=onNotice;
