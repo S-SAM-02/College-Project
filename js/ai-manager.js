@@ -12,13 +12,29 @@ export const OBJECT_PROMPTS=[
  "student identity card held in a hand.",
  "ID card held in a hand.",
  "plastic card held in a hand.",
+ "credit card held in a hand.",
  "ballpoint pen held in a hand.",
  "pencil held in a hand.",
+ "marker pen held in a hand.",
  "water bottle held in a hand.",
  "drinking bottle held in a hand.",
  "computer mouse held in a hand.",
  "laptop computer.",
- "mobile phone held in a hand."
+ "mobile phone held in a hand.",
+ "keys held in a hand.",
+ "wallet held in a hand.",
+ "eyeglasses held in a hand.",
+ "headphones held in a hand.",
+ "earphones held in a hand.",
+ "remote control held in a hand.",
+ "calculator held in a hand.",
+ "notebook held in a hand.",
+ "book held in a hand.",
+ "charger held in a hand.",
+ "USB cable held in a hand.",
+ "cup held in a hand.",
+ "scissors held in a hand.",
+ "small bag held in a hand."
 ];
 const ensureScript=(src,ready,label)=>new Promise((resolve,reject)=>{
  if(ready())return resolve();
@@ -218,12 +234,23 @@ export class AIManager{
  }
  promptForRequestedItem(query){
   if(/\b(id|identity|student)\s*(card|badge)\b|\bcard\b/.test(query))return "a student identity card or plastic ID card.";
-  if(/\b(pen|ballpoint)\b/.test(query))return "a pen held in a hand.";
+  if(/\b(pen|ballpoint|marker)\b/.test(query))return "a pen or marker held in a hand.";
   if(/\bpencil\b/.test(query))return "a pencil held in a hand.";
   if(/\b(bottle|water bottle)\b/.test(query))return "a water bottle held in a hand.";
   if(/\b(mouse|computer mouse)\b/.test(query))return "a computer mouse.";
   if(/\blaptop\b/.test(query))return "a laptop computer.";
   if(/\b(phone|mobile)\b/.test(query))return "a mobile phone held in a hand.";
+  if(/\b(keys?|keyring)\b/.test(query))return "a set of keys held in a hand.";
+  if(/\b(wallet|purse)\b/.test(query))return "a wallet or purse held in a hand.";
+  if(/\b(glasses|eyeglasses|spectacles)\b/.test(query))return "a pair of eyeglasses held in a hand.";
+  if(/\b(headphones?|earphones?)\b/.test(query))return "headphones or earphones held in a hand.";
+  if(/\b(remote|remote control)\b/.test(query))return "a remote control held in a hand.";
+  if(/\b(calculator)\b/.test(query))return "a calculator held in a hand.";
+  if(/\b(notebook|book)\b/.test(query))return "a notebook or book held in a hand.";
+  if(/\b(charger|USB cable|cable)\b/.test(query))return "a charger or USB cable held in a hand.";
+  if(/\b(cup)\b/.test(query))return "a cup held in a hand.";
+  if(/\b(scissors)\b/.test(query))return "a pair of scissors held in a hand.";
+  if(/\b(bag|backpack)\b/.test(query))return "a bag held in a hand.";
   return "a "+query.replace(/\s+/g," ")+" held in a hand.";
  }
  requestOpenVocabularyDetections(video){
