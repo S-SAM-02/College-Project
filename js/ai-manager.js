@@ -9,11 +9,16 @@ const COCO_SCRIPT="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.
 const TRANSFORMERS_MODULE="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 const OPEN_VOCABULARY_MODEL="onnx-community/grounding-dino-tiny-ONNX";
 export const OBJECT_PROMPTS=[
- "student ID card","identity card","ID badge","credit card","debit card","plastic card",
- "ballpoint pen","pen","pencil","marker","water bottle","bottle","drinking bottle",
- "computer mouse","wireless mouse","laptop computer","laptop","computer keyboard","computer monitor",
- "smartphone","mobile phone","phone charger","USB cable","charger","notebook","book",
- "calculator","wallet","keys","glasses","headphones","earphones","cup","chair","backpack"
+ "student identity card held in a hand.",
+ "ID card held in a hand.",
+ "plastic card held in a hand.",
+ "ballpoint pen held in a hand.",
+ "pencil held in a hand.",
+ "water bottle held in a hand.",
+ "drinking bottle held in a hand.",
+ "computer mouse held in a hand.",
+ "laptop computer.",
+ "mobile phone held in a hand."
 ];
 const ensureScript=(src,ready,label)=>new Promise((resolve,reject)=>{
  if(ready())return resolve();
