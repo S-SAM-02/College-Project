@@ -174,6 +174,58 @@ export class AIManager{
    throw error;
   }finally{this.loading.openVocabulary=null;}
  }
+ async detectObjectsOnDemand(video,requestedItem=""){
+  if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Start the camera and wait for a clear frame.");
+  const detector=await this.loadOpenVocabularyDetector();
+  const sourceWidth=video.videoWidth,sourceHeight=video.videoHeight;
+  const inferenceWidth=Math.min(720,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
+  if(!this.openVocabularyCanvas)this.openVocabularyCanvas=document.createElement("canvas");
+  const canvas=this.openVocabularyCanvas;canvas.width=inferenceWidth;canvas.height=inferenceHeight;
+  const context=canvas.getContext("2d",{alpha:false,desynchronized:true});
+  if(!context)throw new Error("Could not prepare the camera image.");
+  context.drawImage(video,0,0,inferenceWidth,inferenceHeight);
+  // Object-finding searches around hands when possible, avoiding unrelated background labels.
+  const hands=Array.isArray(this.latestHandResult?.landmarks)?this.latestHandResult.landmarks:[];
+  const points=hands.flat().filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+  let crop={x:Math.round(inferenceWidth*.12),y:Math.round(inferenceHeight*.08),width:Math.round(inferenceWidth*.76),height:Math.round(inferenceHeight*.84)};
+  if(points.length>=21){
+   const xs=points.map(p=>p.x*inferenceWidth),ys=points.map(p=>p.y*inferenceHeight);
+   const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+   const padX=Math.max(105,(maxX-minX)*2.15,inferenceWidth*.12);
+   const padY=Math.max(105,(maxY-minY)*2.0,inferenceHeight*.12);
+   const x=Math.max(0,Math.floor(minX-padX)),y=Math.max(0,Math.floor(minY-padY));
+   const right=Math.min(inferenceWidth,Math.ceil(maxX+padX)),bottom=Math.min(inferenceHeight,Math.ceil(maxY+padY));
+   if(right-x>=80&&bottom-y>=80)crop={x,y,width:right-x,height:bottom-y};
+  }
+  if(!this.openVocabularyCropCanvas)this.openVocabularyCropCanvas=document.createElement("canvas");
+  const cropCanvas=this.openVocabularyCropCanvas;cropCanvas.width=crop.width;cropCanvas.height=crop.height;
+  const cropContext=cropCanvas.getContext("2d",{alpha:false,desynchronized:true});
+  if(!cropContext)throw new Error("Could not prepare the target area.");
+  cropContext.drawImage(canvas,crop.x,crop.y,crop.width,crop.height,0,0,crop.width,crop.height);
+  const image=this.openVocabularyRawImage.fromCanvas(cropCanvas);
+  const query=String(requestedItem||"").trim().toLowerCase();
+  const prompts=query
+   ?[this.promptForRequestedItem(query)]
+   :OBJECT_PROMPTS;
+  const found=await detector(image,prompts,{threshold:0.20});
+  const mapped=mapOpenVocabularyDetections(found,crop.width,crop.height,0.16).map(item=>({
+   ...item,
+   bbox:[(item.bbox[0]+crop.x)/scale,(item.bbox[1]+crop.y)/scale,item.bbox[2]/scale,item.bbox[3]/scale],
+   source:"on-demand-grounding-dino"
+  }));
+  const ranked=mapped.sort((a,b)=>b.score-a.score);
+  return ranked.slice(0,query?3:8);
+ }
+ promptForRequestedItem(query){
+  if(/\b(id|identity|student)\s*(card|badge)\b|\bcard\b/.test(query))return "a student identity card or plastic ID card.";
+  if(/\b(pen|ballpoint)\b/.test(query))return "a pen held in a hand.";
+  if(/\bpencil\b/.test(query))return "a pencil held in a hand.";
+  if(/\b(bottle|water bottle)\b/.test(query))return "a water bottle held in a hand.";
+  if(/\b(mouse|computer mouse)\b/.test(query))return "a computer mouse.";
+  if(/\blaptop\b/.test(query))return "a laptop computer.";
+  if(/\b(phone|mobile)\b/.test(query))return "a mobile phone held in a hand.";
+  return "a "+query.replace(/\s+/g," ")+" held in a hand.";
+ }
  requestOpenVocabularyDetections(video){
   const now=performance.now();
   if(!video?.videoWidth||!video?.videoHeight||video.readyState<2||this.openVocabularyFailed)return this.lastOpenVocabularyResult;
