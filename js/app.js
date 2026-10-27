@@ -303,6 +303,174 @@ function renderOverlay(now){
  }
 }
 function clearDrawing(){drawing.clear();feedback("Drawing canvas cleared.")}
+function assistiveStatus(message){const node=$("assistiveStatus");if(node)node.textContent=message;}
+function speakText(message){
+ const text=String(message||"").trim();if(!text)return;
+ if(!("speechSynthesis" in window)||typeof SpeechSynthesisUtterance==="undefined"){assistiveStatus(text+" (Text-to-speech is not supported in this browser.)");return;}
+ window.speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(text);
+ utterance.lang=/^en-IN/i.test(navigator.language||"")?"en-IN":(navigator.language||"en-US");
+ utterance.rate=.94;utterance.pitch=1;utterance.volume=1;
+ utterance.onstart=()=>assistiveStatus("Speaking: "+text);
+ utterance.onerror=()=>assistiveStatus("Voice playback stopped or is unavailable.");
+ utterance.onend=()=>assistiveStatus(text);
+ window.speechSynthesis.speak(utterance);
+}
+function readableLabel(item){return String(item?.class||item?.label||"object").replaceAll("_"," ").replace(/\b\w/g,ch=>ch.toUpperCase());}
+function itemPosition(item){
+ const center=(Number(item?.bbox?.[0])||0)+(Number(item?.bbox?.[2])||0)/2;
+ const x=video.videoWidth?center/video.videoWidth:.5;
+ return x<.34?"left":x>.66?"right":"center";
+}
+function requireLiveCamera(){
+ if(session&&video.readyState>=2&&video.videoWidth)return true;
+ const text="Start the camera first, then hold the item clearly in view.";
+ assistiveStatus(text);setNotice(text);speakText(text);return false;
+}
+async function captureFreshHands(){
+ await ai.loadHands();ai.onHandResult=handleHandResult;
+ if(ai.handLandmarker&&session){
+  const timestamp=performance.now(),data=await ai.handLandmarker.detect(video,timestamp);
+  handleHandResult(data,timestamp,performance.now());
+ }
+}
+async function identifyHeldItem(requestedItem=$("targetItem")?.value||""){
+ if(!requireLiveCamera())return;
+ if(mode!=="objects")await setMode("objects");
+ assistiveStatus("Preparing a focused scan near your hand…");
+ try{
+  await captureFreshHands();
+  assistiveStatus("Running the free on-device item model. The first download may take a moment.");
+  setNotice("Running a focused item search. The live loop stays lightweight while the expanded model loads.");
+  const found=await ai.detectObjectsOnDemand(video,requestedItem);
+  if(!found.length){
+   const message=requestedItem
+    ?"I could not confidently find a "+requestedItem+" in the current camera view. Bring it closer, keep it steady, show the full item and improve lighting."
+    :"I could not confidently identify an item near your hand. Hold the item in the center of the camera and try again.";
+   assistiveStatus(message);setNotice(message);speakText(message);return;
+  }
+  const best=found[0];
+  manualObjects=found.map(item=>({...item,lastSeen:performance.now()}));manualObjectResultAt=performance.now();
+  latestObjects=mergeStableHeldObjects([],manualObjects);updateObjectResult(latestObjects);
+  const label=readableLabel(best),position=itemPosition(best),confidence=Math.round((Number(best.score)||0)*100);
+  const certainty=confidence>=55?"I think this is likely a ":"I may be seeing a ";
+  const message=certainty+label.toLowerCase()+", near the "+position+" side of the camera view. The model score is about "+confidence+" percent. This is an AI estimate, so please verify before relying on it.";
+  assistiveStatus(message);setNotice("Focused search finished. Model scores are estimates, not calibrated reliability.");speakText(message);
+ }catch(error){
+  const message="I could not complete the item search. "+(error?.message||"Check the connection and try again.");
+  assistiveStatus(message);setNotice(message);speakText(message);
+ }
+}
+async function describeVisibleItems(){
+ if(!requireLiveCamera())return;
+ if(mode!=="objects")await setMode("objects");
+ assistiveStatus("Checking the area around your hand for supported items…");
+ try{
+  await captureFreshHands();
+  const found=await ai.detectObjectsOnDemand(video,""),unique=[];
+  for(const item of found){
+   const label=readableLabel(item);
+   if(item.score>=.18&&!unique.some(x=>x.label===label))unique.push({label,score:item.score,item});
+  }
+  if(!unique.length){
+   const message="I could not confidently identify supported items in the target area. Move one item closer to the center and hold it steady.";
+   assistiveStatus(message);speakText(message);return;
+  }
+  manualObjects=unique.map(x=>({...x.item,lastSeen:performance.now()}));manualObjectResultAt=performance.now();
+  latestObjects=mergeStableHeldObjects([],manualObjects);updateObjectResult(latestObjects);
+  const labels=unique.slice(0,4).map(x=>x.label.toLowerCase());
+  const summary=labels.length===1?labels[0]:labels.slice(0,-1).join(", ")+" and "+labels[labels.length-1];
+  const message="In the area I checked, I may see "+summary+". These are visual estimates, not a complete description of everything in the room.";
+  assistiveStatus(message);speakText(message);
+ }catch(error){
+  const message="I could not describe the visible items. "+(error?.message||"Try again after the model loads.");
+  assistiveStatus(message);setNotice(message);speakText(message);
+ }
+}
+function loadCurrencyOcr(){
+ if(currencyOcrWorker)return Promise.resolve(currencyOcrWorker);
+ if(currencyOcrLoading)return currencyOcrLoading;
+ currencyOcrLoading=new Promise((resolve,reject)=>{
+  const finish=()=>{
+   if(!window.Tesseract){reject(new Error("OCR library did not load."));return;}
+   window.Tesseract.createWorker("eng",1,{logger:event=>{
+    if(event.status==="recognizing text")assistiveStatus("Reading banknote text… "+Math.round((event.progress||0)*100)+"%");
+   }}).then(worker=>{currencyOcrWorker=worker;resolve(worker);}).catch(reject);
+  };
+  if(window.Tesseract){finish();return;}
+  const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";script.async=true;
+  script.onload=finish;script.onerror=()=>reject(new Error("The free OCR library could not load. Check internet access and retry."));
+  document.head.append(script);
+ }).finally(()=>{currencyOcrLoading=null;});
+ return currencyOcrLoading;
+}
+function buildAssistiveCrop(maxWidth=1100){
+ const width=video.videoWidth,height=video.videoHeight;
+ if(!width||!height)throw new Error("No camera frame is available.");
+ let crop={x:Math.round(width*.08),y:Math.round(height*.06),width:Math.round(width*.84),height:Math.round(height*.88)};
+ const points=(latestHands||[]).flatMap(hand=>hand.landmarks||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+ if(points.length>=21){
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const padX=Math.max(95,(maxX-minX)*2.25,width*.09),padY=Math.max(95,(maxY-minY)*2.1,height*.09);
+  const x=Math.max(0,Math.floor(minX-padX)),y=Math.max(0,Math.floor(minY-padY));
+  const right=Math.min(width,Math.ceil(maxX+padX)),bottom=Math.min(height,Math.ceil(maxY+padY));
+  if(right-x>=60&&bottom-y>=60)crop={x,y,width:right-x,height:bottom-y};
+ }
+ const scale=Math.min(1,maxWidth/crop.width);
+ const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));
+ const context=canvas.getContext("2d",{alpha:false});if(!context)throw new Error("Unable to prepare the camera frame.");
+ context.drawImage(video,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);
+ return canvas;
+}
+async function readCurrency(){
+ if(!requireLiveCamera())return;
+ assistiveStatus("Preparing an on-device text scan. Hold one banknote flat, fully visible and without glare.");
+ try{
+  const worker=await loadCurrencyOcr(),canvas=buildAssistiveCrop(1200),result=await worker.recognize(canvas);
+  const text=String(result?.data?.text||"").replace(/,/g," ");
+  const denominations=[2000,500,200,100,50,20,10];
+  const counts=new Map(denominations.map(value=>[value,(text.match(new RegExp("\\b"+value+"\\b","g"))||[]).length]));
+  const currencyContext=/rupees?|reserve bank|bharatiya|inr|₹|guarantee|governor/i.test(text);
+  const ranked=[...counts.entries()].filter(([,count])=>count>0).sort((a,b)=>b[1]-a[1]);
+  if(!ranked.length||!currencyContext){
+   const message="I could not reliably confirm a rupee denomination from this text scan. Hold a single note flat and closer to the camera. Do not rely on this scan alone for cash.";
+   assistiveStatus(message);speakText(message);return;
+  }
+  const value=ranked[0][0],ambiguous=ranked.length>1&&ranked[0][1]===ranked[1][1];
+  const message=ambiguous
+   ?"The note text is ambiguous, so I cannot safely tell the denomination. Please use a second method to verify the cash."
+   :"The text scan suggests this could be an Indian rupee "+value+" note. This is not banknote authentication and may be wrong; please verify the denomination with a trusted method before handling cash.";
+  assistiveStatus(message);speakText(message);
+ }catch(error){
+  const message="The banknote text scan could not run. "+(error?.message||"Try again with a flatter note and better lighting.");
+  assistiveStatus(message);setNotice(message);speakText(message);
+ }
+}
+async function toggleFullscreen(){
+ try{
+  if(document.fullscreenElement){await document.exitFullscreen();return;}
+  if(frame.requestFullscreen)await frame.requestFullscreen();
+  else throw new Error("Full-screen mode is not supported in this browser.");
+ }catch(error){assistiveStatus(error?.message||"Unable to enter full-screen mode.");}
+}
+function updateFullscreenLabel(){
+ const button=$("fullscreenButton");if(!button)return;
+ const active=document.fullscreenElement===frame;
+ button.textContent=active?"⛶ Exit full screen":"⛶ Full screen";
+ button.setAttribute("aria-label",active?"Exit camera full screen":"Enter camera full screen");
+}
+function parseAssistiveRequest(text){
+ const query=String(text||"").toLowerCase().trim();
+ if(/\b(read|identify|count|check)\b.*\b(money|cash|currency|rupee|rupees|banknote|bank note)\b|\b(read|check)\s+(the\s+)?note\b/.test(query))return{action:"currency"};
+ if(/\b(full ?screen|maximize camera)\b/.test(query))return{action:"fullscreen"};
+ if(/\b(describe|what do you see|what is around|describe the scene|describe what you see)\b/.test(query))return{action:"describe"};
+ if(/\b(find|look for|search for|identify|what am i holding|what is in my hand|tell me what i am holding)\b/.test(query)){
+  const known=["id card","identity card","student card","card","pen","pencil","bottle","water bottle","mouse","computer mouse","laptop","phone","mobile phone"];
+  return{action:"find",item:known.sort((a,b)=>b.length-a.length).find(item=>query.includes(item))||$("targetItem")?.value||""};
+ }
+ if(/\b(speak|read|say)\s+(the\s+)?(latest\s+)?(result|answer|detection)\b/.test(query))return{action:"speak"};
+ return null;
+}
 async function executeCommand(text){const c=parseCommand(text);if(!c.ok){feedback(c.message);return}if(c.mode){await setMode(c.mode);feedback(c.message+(session?"":" Start camera to use live inference."));return}switch(c.action){case"startCamera":await startCamera();break;case"stopCamera":await stopCamera();break;case"stopDrawing":drawing.pause();feedback("Drawing paused.");return;case"clearDrawing":clearDrawing();return}feedback(c.message)}
 $("startCamera").addEventListener("click",()=>startCamera());$("stopCamera").addEventListener("click",stopCamera);$("cameraSelect").addEventListener("change",switchCamera);$("cameraFacingSelect").addEventListener("change",e=>{preferredFacing=e.target.value;$("cameraSelect").value="";startCamera(preferredFacing)});$("retryModels").addEventListener("click",setupMode);document.querySelectorAll(".mode-button").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));$("commandForm").addEventListener("submit",e=>{e.preventDefault();const i=$("commandInput");executeCommand(i.value);i.value=""});
 $("voiceButton").addEventListener("click",()=>{const API=window.SpeechRecognition||window.webkitSpeechRecognition;if(!API){feedback("Voice input is not supported here. Type your command instead.");return}const r=new API();r.lang=navigator.language||"en-US";r.interimResults=false;r.maxAlternatives=1;$("voiceButton").classList.add("listening");feedback("Listening for a command…");r.onresult=e=>{const t=e.results?.[0]?.[0]?.transcript||"";$("commandInput").value=t;executeCommand(t)};r.onerror=()=>feedback("Voice input unavailable or permission denied. Use text instead.");r.onend=()=>$("voiceButton").classList.remove("listening");try{r.start()}catch{feedback("Unable to start voice recognition. Type instead.")}});
