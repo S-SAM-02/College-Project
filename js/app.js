@@ -25,7 +25,7 @@ function onModelState(model,state,message){
   else $("engineStatus").textContent=mode==="people"?"Face detector ready":"Open-vocabulary object detector ready";
  }
 }
-function updateModeUI(){ink.style.display=mode==="drawing"?"block":"none";ink.hidden=mode!=="drawing";ink.style.visibility=mode==="drawing"?"visible":"hidden";ink.style.opacity=mode==="drawing"?"1":"0";document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
+function updateModeUI(){ink.style.display=mode==="drawing"?"block":"none";ink.hidden=mode!=="drawing";ink.style.visibility=mode==="drawing"?"visible":"hidden";ink.style.opacity=mode==="drawing"?"1":"0";frame.classList.toggle("air-drawing-active",mode==="drawing");document.querySelectorAll(".mode-button").forEach(b=>{b.classList.toggle("active",b.dataset.mode===mode);b.setAttribute("aria-pressed",String(b.dataset.mode===mode))});const c=configs[mode];$("resultTitle").textContent=c.title;$("visionLabel").textContent=c.label;$("metricLabel").textContent=c.metric;$("confidenceLabel").textContent=c.confidence;$("gestureLabel").textContent=c.gesture;$("resultMain").innerHTML=c.main;$("resultDescription").textContent=c.description;$("metricValue").textContent="—";$("confidenceValue").textContent="—";$("gestureValue").textContent="Waiting";ctx.clearRect(0,0,overlay.width,overlay.height)}
 async function setMode(next){
  if(!configs[next])return;
  mode=next;lastInference=0;lastHandMediaTime=-1;lastHandInferenceAt=0;lastVisionInferenceAt=0;latestObjects=[];latestHands=[];peopleDetectionHistory=[];stableClass=null;stableScore=0;portal.reset();portalHandsCache=[];portalLastBothAt=0;handTracker.reset();ctx.clearRect(0,0,overlay.width,overlay.height);
@@ -245,6 +245,7 @@ function renderOverlay(now){
  // so it can never leak into Portal, Object Finder or Person Finder, including stale CSS states.
  const drawingActive=mode==="drawing";
  ink.hidden=!drawingActive;ink.style.display=drawingActive?"block":"none";ink.style.visibility=drawingActive?"visible":"hidden";ink.style.opacity=drawingActive?"1":"0";
+ frame.classList.toggle("air-drawing-active",drawingActive);
  const mirrored=preferredFacing==="user";
  const labels=[];
  ctx.save();
