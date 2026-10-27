@@ -73,7 +73,7 @@ export class AIManager{
   this.objectModel=null;this.cocoModel=null;this.peopleDetector=null;
   this.handLandmarker=null;this.handTask=null;this.faceTask=null;this.faceDetector=null;this.faceFacingMode=null;
   this.currentFacingMode="user";this.loading={object:null,coco:null,hand:null,people:null};this.currentMode="objects";
-  this.lastPeopleCount=0;this.lastSummary="";this.lastObjectMode="";this.lastObjectResult=null;this.lastObjectInferenceAt=0;
+  this.lastPeopleCount=0;this.lastSummary="";this.lastObjectMode="";this.lastObjectResult=null;this.lastObjectInferenceAt=0;this.lastCrowdFallbackAt=0;this.lastCrowdFallbackPeople=[];
   this.lastFaceTimestamp=0;this.lastHandTimestamp=0;this.lastObjectInferenceMs=0;
  }
  async loadCocoDetector(){
@@ -93,7 +93,7 @@ export class AIManager{
     if(!video?.videoWidth||!video?.videoHeight||video.readyState<2)throw new Error("Camera frame is not ready.");
     // Downscale the inference input to reduce latency on laptop CPUs while preserving original coordinates.
     const started=performance.now(),sourceWidth=video.videoWidth,sourceHeight=video.videoHeight;
-    const inferenceWidth=Math.min(480,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
+    const inferenceWidth=Math.min(512,sourceWidth),scale=inferenceWidth/sourceWidth,inferenceHeight=Math.max(1,Math.round(sourceHeight*scale));
     let input=video;
     if(scale<0.999){
      if(!this.objectInputCanvas){this.objectInputCanvas=document.createElement("canvas");this.objectInputContext=this.objectInputCanvas.getContext("2d",{alpha:false,desynchronized:true});}
@@ -122,7 +122,7 @@ export class AIManager{
   this.onModelState("object","loading","Loading lightweight local object detector…");
   this.loading.object=(async()=>{
    const coco=await this.loadCocoDetector();
-   this.objectModel={detect:async video=>{const result=await coco.detect(video,12,0.16);this.lastObjectMode="coco-ssd-hand-local";return result;}};
+   this.objectModel={detect:async video=>{const result=await coco.detect(video,15,0.13);this.lastObjectMode="coco-ssd-hand-local";return result;}};
    this.onModelState("object","loaded","Lightweight local object detector ready");
    return this.objectModel;
   })();
@@ -131,11 +131,15 @@ export class AIManager{
   finally{this.loading.object=null}
  }
  async detectCrowdPeople(video){
-  // Reuse the already-loaded lightweight COCO-SSD model to find whole people
-  // when the face detector misses small or distant faces in a group scene.
+  // Reuse cached crowd detections between face frames; running a second model
+  // pass on every frame causes slowdowns and noisy counts.
+  const now=performance.now();
+  if(now-this.lastCrowdFallbackAt<650)return this.lastCrowdFallbackPeople;
   const detector=await this.loadCocoDetector();
-  const predictions=await detector.detect(video,20,0.22);
-  return predictions.filter(p=>p.class==="person"&&p.score>=0.22);
+  const predictions=await detector.detect(video,20,0.30);
+  this.lastCrowdFallbackAt=now;
+  this.lastCrowdFallbackPeople=predictions.filter(p=>p.class==="person"&&p.score>=0.30);
+  return this.lastCrowdFallbackPeople;
  }
  async loadPeople(facingMode=this.currentFacingMode){
   this.currentFacingMode=facingMode;
@@ -153,7 +157,7 @@ export class AIManager{
    const {FilesetResolver,FaceDetector}=await import(HANDS_CDN);
    const vision=await FilesetResolver.forVisionTasks(HAND_WASM);
    const modelPath=facingMode==="environment"?FACE_MODEL_REAR:FACE_MODEL_FRONT;
-   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.07:.20,minSuppressionThreshold:facingMode==="environment"?.08:.15};
+   const options={baseOptions:{modelAssetPath:modelPath,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:facingMode==="environment"?.10:.24,minSuppressionThreshold:facingMode==="environment"?.12:.18};
    let detector;
    try{detector=await FaceDetector.createFromOptions(vision,options);}
    catch(gpuError){
@@ -163,7 +167,7 @@ export class AIManager{
    let rearShortDetector=null;
    if(facingMode==="environment"){
     try{
-     rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:.055,minSuppressionThreshold:.08});
+     rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"GPU"},runningMode:"VIDEO",minDetectionConfidence:.075,minSuppressionThreshold:.10});
     }catch{
      try{rearShortDetector=await FaceDetector.createFromOptions(vision,{baseOptions:{modelAssetPath:FACE_MODEL_FRONT,delegate:"CPU"},runningMode:"VIDEO",minDetectionConfidence:.055,minSuppressionThreshold:.08});}catch{}
     }
@@ -186,13 +190,13 @@ export class AIManager{
       return[{class:"face",score,bbox:[x,y,right-x,bottom-y]}];
      });
     };
-    let detections=readDetections(detector,ts,facingMode==="environment"?.065:.18);
+    let detections=readDetections(detector,ts,facingMode==="environment"?.095:.22);
     // Rear views often contain both nearby and distant faces. Run both ranges,
     // then de-duplicate overlapping boxes so a partial hit from one model
     // never prevents the second model from finding other people.
     if(facingMode==="environment"&&rearShortDetector){
      const shortTs=Math.max(this.lastRearShortTimestamp+1,ts+1);this.lastRearShortTimestamp=shortTs;
-     detections.push(...readDetections(rearShortDetector,shortTs,.055));
+     detections.push(...readDetections(rearShortDetector,shortTs,.075));
     }
     // When face detection misses much of a group, augment the count using
     // the lightweight person detector. Prefer faces when it finds a useful set.
